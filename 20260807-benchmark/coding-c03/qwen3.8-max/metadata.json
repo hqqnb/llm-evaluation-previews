@@ -4,7 +4,7 @@
   "model_alias": "qwen3.8-max",
   "artifact_type": "html",
   "artifact_file": "index.html",
-  "artifact_sha256": "d4ee4171d0823a88cbfd5c8c575f99fd326b35618be5cf8d9594a6d46b554861",
+  "artifact_sha256": "f36060fda67c6df99501f8fdbffca11f242b1a121a5f40e6e80cc1d95f4a8ba2",
   "source_answer_sha256": "cad27c60f78fcd7a521c914e101b7d64da741299b76ba33969739266407213ac",
   "external_urls": [
     "https://fonts.googleapis.com",
@@ -12,5 +12,12 @@
     "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
     "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
   ],
-  "extraction_policy": "mechanical-only-no-code-repair"
+  "extraction_policy": "mechanical-extraction-with-documented-preview-hotfix",
+  "preview_hotfixes": [
+    {
+      "date": "2026-08-07",
+      "reason": "Fix HUD startup crash caused by reading chip from c.chip instead of c.cfg.chip.",
+      "source_answer_modified": false
+    }
+  ]
 }
