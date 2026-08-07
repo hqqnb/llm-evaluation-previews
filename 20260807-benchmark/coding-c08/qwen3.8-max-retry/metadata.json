@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "qwen3.8-max-retry",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "adb82efef78abf7d8bcb99f8cea51baced5cfb22fb8a3e6645c9fa926b2ee691",
+  "source": "user-provided-web-retry-2026-08-07",
+  "extraction_policy": "user-supplied-runnable-retry",
+  "repair": "fixed one-character syntax error at weapon wheel handler"
+}
