@@ -1,0 +1,10 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c01",
+  "model_alias": "kimi-k3-retry",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "d7c57fe7dd629d48b015d7d1bed0834763a18be94cc3b889a56869aefd8f0bfb",
+  "source": "user-provided-2026-08-07",
+  "extraction_policy": "user-supplied-runnable-retry"
+}

@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《极光》世代飞船 — Aurora Generation Ship</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; }
+
+        /* UI Overlay */
+        .ui-overlay {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .top-bar {
+            top: 0; left: 0; right: 0;
+            padding: 20px 30px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .title-block h1 {
+            color: #e0f7ff;
+            font-size: 1.6rem;
+            font-weight: 300;
+            letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(100,200,255,0.5);
+        }
+        .title-block .subtitle {
+            color: #88aabb;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        .controls-hint {
+            color: #668899;
+            font-size: 0.75rem;
+            text-align: right;
+            line-height: 1.6;
+        }
+
+        .side-panel {
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .btn {
+            background: rgba(10, 30, 50, 0.7);
+            border: 1px solid rgba(100, 180, 220, 0.3);
+            color: #aaddff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            min-width: 140px;
+        }
+        .btn:hover {
+            background: rgba(30, 80, 120, 0.6);
+            border-color: rgba(100, 200, 255, 0.6);
+            box-shadow: 0 0 15px rgba(50, 150, 255, 0.3);
+        }
+        .btn.active {
+            background: rgba(50, 120, 180, 0.5);
+            border-color: rgba(100, 220, 255, 0.8);
+            box-shadow: 0 0 20px rgba(50, 180, 255, 0.4);
+        }
+
+        .info-panel {
+            left: 20px;
+            bottom: 20px;
+            max-width: 320px;
+            background: rgba(5, 15, 25, 0.75);
+            border: 1px solid rgba(100, 180, 220, 0.2);
+            border-radius: 12px;
+            padding: 18px;
+            backdrop-filter: blur(15px);
+            pointer-events: auto;
+            transition: opacity 0.5s;
+        }
+        .info-panel h3 {
+            color: #88ddff;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(100, 180, 220, 0.2);
+            padding-bottom: 8px;
+        }
+        .info-panel p, .info-panel li {
+            color: #99bbcc;
+            font-size: 0.78rem;
+            line-height: 1.7;
+        }
+        .info-panel ul { padding-left: 16px; margin-top: 6px; }
+        .info-panel .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px dashed rgba(100,180,220,0.1);
+        }
+        .info-panel .data-label { color: #7799aa; }
+        .info-panel .data-value { color: #aaddff; font-family: monospace; }
+
+        .biome-selector {
+            display: none;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .biome-tag {
+            background: rgba(50, 100, 80, 0.4);
+            border: 1px solid rgba(100, 200, 150, 0.3);
+            color: #88ddbb;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.2s;
+        }
+        .biome-tag:hover, .biome-tag.active {
+            background: rgba(80, 160, 120, 0.5);
+            border-color: rgba(120, 255, 180, 0.6);
+        }
+
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 1s;
+        }
+        .loading-screen.hidden { opacity: 0; pointer-events: none; }
+        .loading-text {
+            color: #88aabb;
+            font-size: 1rem;
+            letter-spacing: 4px;
+            margin-top: 20px;
+        }
+        .loading-bar {
+            width: 200px;
+            height: 2px;
+            background: rgba(100,180,220,0.2);
+            margin-top: 15px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .loading-bar-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4488aa, #88ddff);
+            transition: width 0.5s;
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 30, 50, 0.6);
+            border: 1px solid rgba(100, 180, 220, 0.2);
+            color: #88aabb;
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            backdrop-filter: blur(10px);
+            transition: all 0.5s;
+        }
+    </style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div class="loading-screen" id="loading">
+        <div style="color:#4488aa;font-size:3rem;letter-spacing:8px;font-weight:300;">AURORA</div>
+        <div class="loading-text">INITIALIZING SHIP SYSTEMS</div>
+        <div class="loading-bar"><div class="loading-bar-inner" id="loadingBar"></div></div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div class="status-indicator" id="statusText">外部视角 · 深空航行中</div>
+
+    <div class="ui-overlay top-bar">
+        <div class="title-block">
+            <h1>AURORA</h1>
+            <div class="subtitle">世代飞船 · 鲸鱼座τ星远征 · 飞船历第160年</div>
+        </div>
+        <div class="controls-hint">
+            鼠标左键拖拽 · 旋转视角<br>
+            鼠标滚轮 · 缩放<br>
+            鼠标右键 · 平移
+        </div>
+    </div>
+
+    <div class="ui-overlay side-panel">
+        <button class="btn active" id="btnExterior" onclick="setView('exterior')">外部视角</button>
+        <button class="btn" id="btnInterior" onclick="setView('interior')">进入飞船</button>
+        <button class="btn" id="btnBiomes" onclick="toggleBiomes()">生物群落</button>
+        <button class="btn" id="btnEngine" onclick="toggleEngine()">引擎视图</button>
+        <button class="btn" id="btnSpin" onclick="toggleSpin()">停止旋转</button>
+    </div>
+
+    <div class="ui-overlay info-panel" id="infoPanel">
+        <h3 id="infoTitle">飞船概览</h3>
+        <div id="infoContent">
+            <div class="data-row"><span class="data-label">中央脊柱长度</span><span class="data-value">10 km</span></div>
+            <div class="data-row"><span class="data-label">生物群落数量</span><span class="data-value">24 个</span></div>
+            <div class="data-row"><span class="data-label">每环舱段</span><span class="data-value">12 个</span></div>
+            <div class="data-row"><span class="data-label">舱段尺寸</span><span class="data-value">4km × 1km</span></div>
+            <div class="data-row"><span class="data-label">人工重力</span><span class="data-value">0.83 G</span></div>
+            <div class="data-row"><span class="data-label">船员人数</span><span class="data-value">~2,122</span></div>
+            <div class="data-row"><span class="data-label">航行时间</span><span class="data-value">160 年</span></div>
+            <div class="data-row"><span class="data-label">距目的地</span><span class="data-value">11.9 光年</span></div>
+            <ul style="margin-top:10px;">
+                <li>双环结构，基于斯坦福环面设计</li>
+                <li>24个独立生态舱模拟地球12种气候带</li>
+                <li>聚变引擎用于减速制动</li>
+                <li>AI系统「Ship」负责航行叙事</li>
+            </ul>
+        </div>
+        <div class="biome-selector" id="biomeSelector">
+            <div class="biome-tag active" onclick="selectBiome(0)">苔原带</div>
+            <div class="biome-tag" onclick="selectBiome(1)">温带林</div>
+            <div class="biome-tag" onclick="selectBiome(2)">热带雨林</div>
+            <div class="biome-tag" onclick="selectBiome(3)">半干旱区</div>
+            <div class="biome-tag" onclick="selectBiome(4)">湖泊湿地</div>
+            <div class="biome-tag" onclick="selectBiome(5)">高山草甸</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ─── Global State ───
+        let scene, camera, renderer, controls;
+        let shipGroup, ring1Group, ring2Group, spineMesh;
+        let engineLight, engineGlow, engineParticles;
+        let stars, starField2;
+        let isSpinning = true;
+        let currentView = 'exterior';
+        let interiorScene, interiorCamera;
+        let biomeMeshes = [];
+        let sunlineLights = [];
+        let time = 0;
+
+        const BIOME_NAMES = ['苔原带','温带林','热带雨林','半干旱区','湖泊湿地','高山草甸','红树林','针叶林','草原','沙漠绿洲','珊瑚海岸','极地冰原'];
+        const BIOME_COLORS = [0x88aabb, 0x448844, 0x228833, 0xaa9944, 0x3366aa, 0x66aa66, 0x226655, 0x2d5a3d, 0x88aa44, 0xccaa55, 0x44aabb, 0xaaccdd];
+
+        // ─── Init ───
+        init();
+        animate();
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000208, 0.0005);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 20000);
+            camera.position.set(80, 40, 120);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 5;
+            controls.maxDistance = 500;
+            controls.target.set(0, 0, 0);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x112233, 0.3);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffeedd, 2.5);
+            sunLight.position.set(200, 100, 100);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            scene.add(sunLight);
+
+            const fillLight = new THREE.DirectionalLight(0x4466aa, 0.5);
+            fillLight.position.set(-100, -50, -100);
+            scene.add(fillLight);
+
+            // Stars
+            createStars();
+
+            // Ship
+            createShip();
+
+            // Interior scene (hidden initially)
+            createInteriorScene();
+
+            // Loading
+            setTimeout(() => {
+                document.getElementById('loadingBar').style.width = '100%';
+                setTimeout(() => {
+                    document.getElementById('loading').classList.add('hidden');
+                }, 800);
+            }, 500);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // ─── Stars ───
+        function createStars() {
+            const geometry = new THREE.BufferGeometry();
+            const count = 15000;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const sizes = new Float32Array(count);
+
+            for (let i = 0; i < count; i++) {
+                const r = 3000 + Math.random() * 7000;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i*3+2] = r * Math.cos(phi);
+
+                const t = Math.random();
+                const c = new THREE.Color();
+                if (t < 0.3) c.setHex(0xaaccff);
+                else if (t < 0.6) c.setHex(0xffddaa);
+                else c.setHex(0xffffff);
+                colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+                sizes[i] = Math.random() * 2 + 0.5;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            const material = new THREE.PointsMaterial({
+                size: 1.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.9,
+                sizeAttenuation: true
+            });
+
+            stars = new THREE.Points(geometry, material);
+            scene.add(stars);
+
+            // Distant nebula-like particles
+            const geo2 = new THREE.BufferGeometry();
+            const count2 = 2000;
+            const pos2 = new Float32Array(count2 * 3);
+            const col2 = new Float32Array(count2 * 3);
+            for (let i = 0; i < count2; i++) {
+                pos2[i*3] = (Math.random() - 0.5) * 8000;
+                pos2[i*3+1] = (Math.random() - 0.5) * 8000;
+                pos2[i*3+2] = (Math.random() - 0.5) * 8000;
+                const c = new THREE.Color();
+                c.setHSL(0.6 + Math.random() * 0.15, 0.4, 0.15 + Math.random() * 0.1);
+                col2[i*3] = c.r; col2[i*3+1] = c.g; col2[i*3+2] = c.b;
+            }
+            geo2.setAttribute('position', new THREE.BufferAttribute(pos2, 3));
+            geo2.setAttribute('color', new THREE.BufferAttribute(col2, 3));
+            const mat2 = new THREE.PointsMaterial({ size: 4, vertexColors: true, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending });
+            starField2 = new THREE.Points(geo2, mat2);
+            scene.add(starField2);
+        }
+
+        // ─── Ship Construction ───
+        function createShip() {
+            shipGroup = new THREE.Group();
+            scene.add(shipGroup);
+
+            // Materials
+            const hullMat = new THREE.MeshStandardMaterial({
+                color: 0x8899aa,
+                metalness: 0.85,
+                roughness: 0.25,
+                envMapIntensity: 1.0
+            });
+
+            const darkHullMat = new THREE.MeshStandardMaterial({
+                color: 0x445566,
+                metalness: 0.9,
+                roughness: 0.3
+            });
+
+            const biomeMat = new THREE.MeshStandardMaterial({
+                color: 0x66aa88,
+                metalness: 0.3,
+                roughness: 0.6,
+                transparent: true,
+                opacity: 0.85
+            });
+
+            const glassMat = new THREE.MeshPhysicalMaterial({
+                color: 0x88ccff,
+                metalness: 0.1,
+                roughness: 0.05,
+                transparent: true,
+                opacity: 0.25,
+                transmission: 0.6,
+                thickness: 2
+            });
+
+            // ── Central Spine (10km scaled to ~50 units) ──
+            const spineGeo = new THREE.CylinderGeometry(1.5, 2, 60, 32);
+            spineMesh = new THREE.Mesh(spineGeo, hullMat);
+            spineMesh.rotation.z = Math.PI / 2;
+            spineMesh.castShadow = true;
+            shipGroup.add(spineMesh);
+
+            // Spine details - rings
+            for (let i = 0; i < 20; i++) {
+                const ringGeo = new THREE.TorusGeometry(1.6 + Math.random() * 0.3, 0.08, 8, 32);
+                const ring = new THREE.Mesh(ringGeo, darkHullMat);
+                ring.position.x = -25 + i * 2.6;
+                ring.rotation.y = Math.PI / 2;
+                shipGroup.add(ring);
+            }
+
+            // Spine antenna / sensor arrays
+            for (let i = 0; i < 6; i++) {
+                const antGeo = new THREE.CylinderGeometry(0.05, 0.1, 3 + Math.random() * 2, 6);
+                const ant = new THREE.Mesh(antGeo, hullMat);
+                const angle = (i / 6) * Math.PI * 2;
+                ant.position.set(-28 + i * 10, Math.cos(angle) * 1.8, Math.sin(angle) * 1.8);
+                ant.rotation.z = -angle;
+                shipGroup.add(ant);
+            }
+
+            // ── Ring 1 (Front/Old World) ──
+            ring1Group = new THREE.Group();
+            ring1Group.position.x = -8;
+            shipGroup.add(ring1Group);
+            createRing(ring1Group, 14, hullMat, darkHullMat, biomeMat, glassMat, 0);
+
+            // ── Ring 2 (Rear/New World) ──
+            ring2Group = new THREE.Group();
+            ring2Group.position.x = 8;
+            shipGroup.add(ring2Group);
+            createRing(ring2Group, 14, hullMat, darkHullMat, biomeMat, glassMat, 12);
+
+            // ── Spokes connecting rings to spine ──
+            for (let ring of [ring1Group, ring2Group]) {
+                for (let i = 0; i < 6; i++) {
+                    const spokeGeo = new THREE.CylinderGeometry(0.3, 0.3, 12, 8);
+                    const spoke = new THREE.Mesh(spokeGeo, darkHullMat);
+                    const angle = (i / 6) * Math.PI * 2;
+                    spoke.position.set(0, Math.cos(angle) * 7, Math.sin(angle) * 7);
+                    spoke.rotation.x = -angle;
+                    spoke.lookAt(0, 0, 0);
+                    ring.add(spoke);
+                }
+            }
+
+            // ── Fusion Engine (rear) ──
+            const engineGeo = new THREE.ConeGeometry(3, 8, 32, 1, true);
+            const engineMat = new THREE.MeshStandardMaterial({
+                color: 0x334455,
+                metalness: 0.9,
+                roughness: 0.2,
+                emissive: 0x112233,
+                emissiveIntensity: 0.5
+            });
+            const engine = new THREE.Mesh(engineGeo, engineMat);
+            engine.position.x = 35;
+            engine.rotation.z = -Math.PI / 2;
+            shipGroup.add(engine);
+
+            // Engine glow
+            const glowGeo = new THREE.SphereGeometry(2.5, 32, 32);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: 0x44aaff,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+            engineGlow = new THREE.Mesh(glowGeo, glowMat);
+            engineGlow.position.x = 38;
+            shipGroup.add(engineGlow);
+
+            // Engine light
+            engineLight = new THREE.PointLight(0x44aaff, 5, 100);
+            engineLight.position.x = 38;
+            shipGroup.add(engineLight);
+
+            // Engine particles
+            createEngineParticles();
+
+            // ── Forward shield / nose cone ──
+            const noseGeo = new THREE.ConeGeometry(1.5, 4, 32);
+            const nose = new THREE.Mesh(noseGeo, hullMat);
+            nose.position.x = -32;
+            nose.rotation.z = Math.PI / 2;
+            shipGroup.add(nose);
+
+            // Shield disc
+            const shieldGeo = new THREE.CylinderGeometry(8, 8, 0.2, 64);
+            const shieldMat = new THREE.MeshStandardMaterial({
+                color: 0x556677,
+                metalness: 0.95,
+                roughness: 0.15,
+                transparent: true,
+                opacity: 0.7
+            });
+            const shield = new THREE.Mesh(shieldGeo, shieldMat);
+            shield.position.x = -30;
+            shipGroup.add(shield);
+        }
+
+        function createRing(group, radius, hullMat, darkHullMat, biomeMat, glassMat, biomeOffset) {
+            // Main torus structure
+            const torusGeo = new THREE.TorusGeometry(radius, 1.2, 24, 64);
+            const torus = new THREE.Mesh(torusGeo, hullMat);
+            torus.rotation.y = Math.PI / 2;
+            group.add(torus);
+
+            // 12 Biome cylinders
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                // Biome cylinder (4km long scaled to ~8 units)
+                const bioGeo = new THREE.CylinderGeometry(1.8, 1.8, 7, 24);
+                const bioColor = BIOME_COLORS[(i + biomeOffset) % BIOME_COLORS.length];
+                const bioM = new THREE.MeshStandardMaterial({
+                    color: bioColor,
+                    metalness: 0.4,
+                    roughness: 0.5,
+                    transparent: true,
+                    opacity: 0.75
+                });
+                const bio = new THREE.Mesh(bioGeo, bioM);
+                bio.position.set(0, x, y);
+                bio.rotation.x = -angle;
+                bio.castShadow = true;
+                group.add(bio);
+                biomeMeshes.push(bio);
+
+                // Glass windows strip
+                const winGeo = new THREE.CylinderGeometry(1.85, 1.85, 5, 24, 1, true);
+                const win = new THREE.Mesh(winGeo, glassMat);
+                win.position.set(0, x, y);
+                win.rotation.x = -angle;
+                group.add(win);
+
+                // End caps
+                const capGeo = new THREE.CylinderGeometry(2, 2, 0.5, 24);
+                const cap1 = new THREE.Mesh(capGeo, darkHullMat);
+                cap1.position.set(3.5, x, y);
+                cap1.rotation.x = -angle;
+                group.add(cap1);
+                const cap2 = new THREE.Mesh(capGeo, darkHullMat);
+                cap2.position.set(-3.5, x, y);
+                cap2.rotation.x = -angle;
+                group.add(cap2);
+
+                // Label ring
+                const labelGeo = new THREE.TorusGeometry(1.9, 0.05, 8, 32);
+                const labelMat = new THREE.MeshBasicMaterial({ color: 0x44aaff });
+                const label = new THREE.Mesh(labelGeo, labelMat);
+                label.position.set(0, x, y);
+                label.rotation.x = -angle;
+                group.add(label);
+            }
+
+            // Inner ring structure
+            const innerGeo = new THREE.TorusGeometry(radius - 2, 0.4, 12, 48);
+            const inner = new THREE.Mesh(innerGeo, darkHullMat);
+            inner.rotation.y = Math.PI / 2;
+            group.add(inner);
+        }
+
+        function createEngineParticles() {
+            const count = 800;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const velocities = [];
+
+            for (let i = 0; i < count; i++) {
+                positions[i*3] = 38 + Math.random() * 2;
+                positions[i*3+1] = (Math.random() - 0.5) * 2;
+                positions[i*3+2] = (Math.random() - 0.5) * 2;
+                velocities.push({
+                    x: 0.2 + Math.random() * 0.8,
+                    y: (Math.random() - 0.5) * 0.1,
+                    z: (Math.random() - 0.5) * 0.1,
+                    life: Math.random()
+                });
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0x66bbff,
+                size: 0.8,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+
+            engineParticles = new THREE.Points(geometry, material);
+            engineParticles.userData = { velocities: velocities };
+            shipGroup.add(engineParticles);
+        }
+
+        // ─── Interior Scene ───
+        function createInteriorScene() {
+            interiorScene = new THREE.Group();
+            interiorScene.visible = false;
+            scene.add(interiorScene);
+
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(60, 200);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x334433,
+                metalness: 0.3,
+                roughness: 0.8
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -8;
+            interiorScene.add(floor);
+
+            // Ceiling (Sunline)
+            const sunlineGeo = new THREE.PlaneGeometry(8, 180);
+            const sunlineMat = new THREE.MeshBasicMaterial({
+                color: 0xffeedd,
+                transparent: true,
+                opacity: 0.9,
+                side: THREE.DoubleSide
+            });
+            const sunline = new THREE.Mesh(sunlineGeo, sunlineMat);
+            sunline.position.y = 12;
+            interiorScene.add(sunline);
+
+            // Sunline glow
+            const sunGlow = new THREE.PointLight(0xffeedd, 3, 80);
+            sunGlow.position.set(0, 10, 0);
+            interiorScene.add(sunGlow);
+            sunlineLights.push(sunGlow);
+
+            // Side walls (curved)
+            for (let side = -1; side <= 1; side += 2) {
+                const wallGeo = new THREE.PlaneGeometry(200, 25);
+                const wallMat = new THREE.MeshStandardMaterial({
+                    color: 0x2a3a3a,
+                    metalness: 0.5,
+                    roughness: 0.4,
+                    side: THREE.DoubleSide
+                });
+                const wall = new THREE.Mesh(wallGeo, wallMat);
+                wall.position.x = side * 15;
+                wall.rotation.y = side * Math.PI / 2;
+                interiorScene.add(wall);
+            }
+
+            // Vegetation (simplified trees)
+            for (let i = 0; i < 40; i++) {
+                const treeGroup = new THREE.Group();
+                const trunkGeo = new THREE.CylinderGeometry(0.2, 0.4, 3 + Math.random() * 4, 6);
+                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a });
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.position.y = 1.5;
+                treeGroup.add(trunk);
+
+                const foliageGeo = new THREE.SphereGeometry(1.5 + Math.random(), 8, 6);
+                const foliageColor = [0x228833, 0x336622, 0x44aa55, 0x2d5a3d][Math.floor(Math.random()*4)];
+                const foliageMat = new THREE.MeshStandardMaterial({ color: foliageColor });
+                const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+                foliage.position.y = 4;
+                treeGroup.add(foliage);
+
+                treeGroup.position.set(
+                    (Math.random() - 0.5) * 20,
+                    -8,
+                    (Math.random() - 0.5) * 160
+                );
+                interiorScene.add(treeGroup);
+            }
+
+            // Water channel
+            const waterGeo = new THREE.PlaneGeometry(6, 180);
+            const waterMat = new THREE.MeshPhysicalMaterial({
+                color: 0x2266aa,
+                metalness: 0.1,
+                roughness: 0.1,
+                transparent: true,
+                opacity: 0.7,
+                transmission: 0.5
+            });
+            const water = new THREE.Mesh(waterGeo, waterMat);
+            water.rotation.x = -Math.PI / 2;
+            water.position.y = -7.8;
+            interiorScene.add(water);
+
+            // Buildings / habitats
+            for (let i = 0; i < 12; i++) {
+                const bGeo = new THREE.BoxGeometry(4 + Math.random() * 3, 3 + Math.random() * 4, 4 + Math.random() * 3);
+                const bMat = new THREE.MeshStandardMaterial({ color: 0x556677, metalness: 0.6, roughness: 0.3 });
+                const building = new THREE.Mesh(bGeo, bMat);
+                building.position.set(
+                    (Math.random() - 0.5) * 20,
+                    -8 + bGeo.parameters.height / 2,
+                    -70 + i * 12
+                );
+                interiorScene.add(building);
+
+                // Windows
+                const winGeo = new THREE.PlaneGeometry(1, 1);
+                const winMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
+                for (let w = 0; w < 4; w++) {
+                    const win = new THREE.Mesh(winGeo, winMat);
+                    win.position.set(
+                        building.position.x + (Math.random() - 0.5) * 3,
+                        building.position.y + (Math.random() - 0.5) * 2,
+                        building.position.z + 2.1
+                    );
+                    interiorScene.add(win);
+                }
+            }
+
+            // Interior ambient
+            const intAmbient = new THREE.AmbientLight(0x223344, 0.5);
+            interiorScene.add(intAmbient);
+        }
+
+        // ─── Animation ───
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+
+            // Rotate rings
+            if (isSpinning && ring1Group && ring2Group) {
+                ring1Group.rotation.x += 0.002;
+                ring2Group.rotation.x += 0.002;
+            }
+
+            // Engine pulse
+            if (engineGlow) {
+                const pulse = 0.5 + Math.sin(time * 3) * 0.15;
+                engineGlow.scale.setScalar(1 + pulse * 0.3);
+                engineGlow.material.opacity = 0.4 + pulse * 0.3;
+                engineLight.intensity = 3 + pulse * 3;
+            }
+
+            // Engine particles
+            if (engineParticles) {
+                const positions = engineParticles.geometry.attributes.position.array;
+                const vels = engineParticles.userData.velocities;
+                for (let i = 0; i < vels.length; i++) {
+                    positions[i*3] += vels[i].x;
+                    positions[i*3+1] += vels[i].y + Math.sin(time + i) * 0.02;
+                    positions[i*3+2] += vels[i].z;
+                    vels[i].life -= 0.015;
+
+                    if (vels[i].life <= 0) {
+                        positions[i*3] = 38 + Math.random() * 1;
+                        positions[i*3+1] = (Math.random() - 0.5) * 1.5;
+                        positions[i*3+2] = (Math.random() - 0.5) * 1.5;
+                        vels[i].life = 1;
+                        vels[i].x = 0.2 + Math.random() * 0.6;
+                    }
+                }
+                engineParticles.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Starfield drift
+            if (stars) {
+                stars.rotation.y += 0.0002;
+            }
+            if (starField2) {
+                starField2.rotation.x += 0.0001;
+                starField2.rotation.y -= 0.00015;
+            }
+
+            // Ship gentle float
+            if (shipGroup && currentView === 'exterior') {
+                shipGroup.position.y = Math.sin(time * 0.5) * 0.5;
+                shipGroup.rotation.z = Math.sin(time * 0.3) * 0.01;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ─── View Switching ───
+        window.setView = function(view) {
+            currentView = view;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+
+            if (view === 'exterior') {
+                document.getElementById('btnExterior').classList.add('active');
+                shipGroup.visible = true;
+                interiorScene.visible = false;
+                stars.visible = true;
+                starField2.visible = true;
+
+                // Animate camera back
+                animateCamera({ x: 80, y: 40, z: 120 }, { x: 0, y: 0, z: 0 });
+                document.getElementById('statusText').textContent = '外部视角 · 深空航行中';
+                updateInfoPanel('exterior');
+            } else if (view === 'interior') {
+                document.getElementById('btnInterior').classList.add('active');
+                shipGroup.visible = false;
+                interiorScene.visible = true;
+                stars.visible = false;
+                starField2.visible = false;
+
+                animateCamera({ x: 0, y: 2, z: 60 }, { x: 0, y: 2, z: -20 });
+                document.getElementById('statusText').textContent = '内部视角 · 生物群落 E-07 温带林';
+                updateInfoPanel('interior');
+            }
+        };
+
+        window.toggleBiomes = function() {
+            const sel = document.getElementById('biomeSelector');
+            sel.style.display = sel.style.display === 'flex' ? 'none' : 'flex';
+            document.getElementById('btnBiomes').classList.toggle('active');
+        };
+
+        window.selectBiome = function(idx) {
+            document.querySelectorAll('.biome-tag').forEach((t, i) => {
+                t.classList.toggle('active', i === idx);
+            });
+            if (currentView === 'interior') {
+                document.getElementById('statusText').textContent = '内部视角 · 生物群落 ' + BIOME_NAMES[idx];
+            }
+
+            // Change interior color theme based on biome
+            if (interiorScene) {
+                const colors = [0x334433, 0x2d4a2d, 0x1a3a1a, 0x4a4a2d, 0x2d3d4a, 0x3a4a3a];
+                interiorScene.children.forEach(child => {
+                    if (child.material && child.geometry && child.geometry.type === 'PlaneGeometry' && child.rotation.x === -Math.PI/2 && child.position.y < -5) {
+                        child.material.color.setHex(colors[idx % colors.length]);
+                    }
+                });
+            }
+        };
+
+        window.toggleEngine = function() {
+            const btn = document.getElementById('btnEngine');
+            btn.classList.toggle('active');
+            if (btn.classList.contains('active')) {
+                animateCamera({ x: 50, y: 5, z: 10 }, { x: 40, y: 0, z: 0 });
+                document.getElementById('statusText').textContent = '引擎视图 · 聚变推进器';
+            } else {
+                setView('exterior');
+            }
+        };
+
+        window.toggleSpin = function() {
+            isSpinning = !isSpinning;
+            document.getElementById('btnSpin').textContent = isSpinning ? '停止旋转' : '开始旋转';
+        };
+
+        function animateCamera(pos, target) {
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+            const endPos = new THREE.Vector3(pos.x, pos.y, pos.z);
+            const endTarget = new THREE.Vector3(target.x, target.y, target.z);
+            let t = 0;
+
+            function step() {
+                t += 0.02;
+                if (t > 1) t = 1;
+                const ease = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+
+                camera.position.lerpVectors(startPos, endPos, ease);
+                controls.target.lerpVectors(startTarget, endTarget, ease);
+                controls.update();
+
+                if (t < 1) requestAnimationFrame(step);
+            }
+            step();
+        }
+
+        function updateInfoPanel(view) {
+            const title = document.getElementById('infoTitle');
+            const content = document.getElementById('infoContent');
+
+            if (view === 'exterior') {
+                title.textContent = '飞船概览';
+                content.innerHTML = `
+                    <div class="data-row"><span class="data-label">中央脊柱长度</span><span class="data-value">10 km</span></div>
+                    <div class="data-row"><span class="data-label">生物群落数量</span><span class="data-value">24 个</span></div>
+                    <div class="data-row"><span class="data-label">每环舱段</span><span class="data-value">12 个</span></div>
+                    <div class="data-row"><span class="data-label">舱段尺寸</span><span class="data-value">4km × 1km</span></div>
+                    <div class="data-row"><span class="data-label">人工重力</span><span class="data-value">0.83 G</span></div>
+                    <div class="data-row"><span class="data-label">船员人数</span><span class="data-value">~2,122</span></div>
+                    <div class="data-row"><span class="data-label">航行时间</span><span class="data-value">160 年</span></div>
+                    <div class="data-row"><span class="data-label">距目的地</span><span class="data-value">11.9 光年</span></div>
+                    <ul style="margin-top:10px;">
+                        <li>双环结构，基于斯坦福环面设计</li>
+                        <li>24个独立生态舱模拟地球12种气候带</li>
+                        <li>聚变引擎用于减速制动</li>
+                        <li>AI系统「Ship」负责航行叙事</li>
+                    </ul>
+                `;
+            } else {
+                title.textContent = '生物群落内部';
+                content.innerHTML = `
+                    <div class="data-row"><span class="data-label">当前位置</span><span class="data-value">E-07 温带林</span></div>
+                    <div class="data-row"><span class="data-label">日光线强度</span><span class="data-value">98.3%</span></div>
+                    <div class="data-row"><span class="data-label">氧气浓度</span><span class="data-value">20.8%</span></div>
+                    <div class="data-row"><span class="data-label">温度</span><span class="data-value">18.5°C</span></div>
+                    <div class="data-row"><span class="data-label">湿度</span><span class="data-value">62%</span></div>
+                    <div class="data-row"><span class="data-label">重力</span><span class="data-value">0.83 G</span></div>
+                    <ul style="margin-top:10px;">
+                        <li>「日光线」模拟地球日照与季节变化</li>
+                        <li>地板下储藏燃料兼作辐射屏蔽</li>
+                        <li>70%农业 / 5%城市 / 13%水域 / 13%荒野</li>
+                        <li>完整生态循环：尸体与排泄物全部回收</li>
+                    </ul>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
