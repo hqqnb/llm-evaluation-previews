@@ -1,0 +1,2216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>极光号 · 世代飞船 Aurora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=JetBrains+Mono:wght@300;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #030610;
+    --bg-2: #0a1226;
+    --fg: #e8f4ff;
+    --muted: #6e8aa8;
+    --accent: #5feec5;
+    --accent-2: #ff8c69;
+    --accent-3: #c4a3ff;
+    --warning: #ffb86b;
+    --card: rgba(8, 16, 32, 0.72);
+    --border: rgba(95, 238, 197, 0.22);
+    --glow: 0 0 30px rgba(95, 238, 197, 0.3);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: #000;
+    color: var(--fg);
+    font-family: 'Space Grotesk', -apple-system, sans-serif;
+    user-select: none;
+  }
+  #canvas-container { position: fixed; inset: 0; z-index: 1; }
+  canvas { display: block; }
+  
+  /* 加载界面 */
+  #loader {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, var(--bg-2) 0%, var(--bg) 70%, #000 100%);
+    z-index: 100;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: opacity 1.2s ease;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+  .loader-logo {
+    width: 80px; height: 80px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    border-right-color: transparent;
+    animation: spin 1.5s linear infinite;
+    margin-bottom: 30px;
+    box-shadow: var(--glow);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader-title {
+    font-size: 14px; letter-spacing: 8px;
+    color: var(--accent); margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .loader-subtitle {
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .loader-progress {
+    width: 200px; height: 1px;
+    background: rgba(95, 238, 197, 0.2);
+    margin-top: 40px; overflow: hidden;
+  }
+  .loader-progress::after {
+    content: ''; display: block;
+    width: 30%; height: 100%;
+    background: var(--accent);
+    animation: progress 2s ease infinite;
+  }
+  @keyframes progress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+  
+  /* 顶部 */
+  header {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 10; padding: 20px 30px;
+    display: flex; align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+    pointer-events: none;
+  }
+  .brand { pointer-events: auto; }
+  .brand-title {
+    font-size: 22px; font-weight: 700;
+    letter-spacing: 4px; color: var(--fg);
+  }
+  .brand-title span { color: var(--accent); }
+  .brand-subtitle {
+    font-size: 10px; letter-spacing: 3px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+  .mission-info {
+    pointer-events: auto;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    line-height: 1.8;
+  }
+  .mission-info span { color: var(--accent); }
+  
+  /* 左侧信息面板 */
+  .info-panel {
+    position: fixed; left: 30px; top: 50%;
+    transform: translateY(-50%);
+    z-index: 10; width: 280px;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 24px;
+    pointer-events: auto;
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  .info-panel h3 {
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--accent); margin-bottom: 16px;
+    text-transform: uppercase; font-weight: 500;
+  }
+  .info-row {
+    display: flex; justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(95, 238, 197, 0.08);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--muted); }
+  .info-value { color: var(--fg); }
+  
+  /* 底部控制栏 */
+  .controls {
+    position: fixed; bottom: 30px;
+    left: 50%; transform: translateX(-50%);
+    z-index: 10; display: flex; gap: 8px;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 50px; padding: 8px;
+    pointer-events: auto;
+  }
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    padding: 10px 18px; border-radius: 50px;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; letter-spacing: 1.5px;
+    transition: all 0.3s;
+    text-transform: uppercase;
+  }
+  .ctrl-btn:hover {
+    color: var(--fg);
+    background: rgba(95, 238, 197, 0.08);
+  }
+  .ctrl-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(95, 238, 197, 0.4);
+  }
+  
+  /* 右侧 HUD */
+  .hud {
+    position: fixed; right: 30px; top: 50%;
+    transform: translateY(-50%);
+    z-index: 10; width: 240px;
+    pointer-events: auto;
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  .hud-block {
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px;
+    margin-bottom: 12px;
+  }
+  .hud-title {
+    font-size: 10px; letter-spacing: 3px;
+    color: var(--accent); margin-bottom: 12px;
+    text-transform: uppercase; font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hud-title::before {
+    content: ''; width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .bar-row {
+    display: flex; align-items: center;
+    gap: 10px; margin-bottom: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+  .bar-label { color: var(--muted); width: 50px; flex-shrink: 0; }
+  .bar-track {
+    flex: 1; height: 3px;
+    background: rgba(95, 238, 197, 0.1);
+    overflow: hidden; border-radius: 2px;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.5s ease;
+  }
+  .bar-value {
+    color: var(--fg); width: 40px;
+    text-align: right; flex-shrink: 0;
+  }
+  
+  /* 视图模式 */
+  .view-mode {
+    position: fixed; top: 90px;
+    left: 50%; transform: translateX(-50%);
+    z-index: 10;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 4px;
+    color: var(--muted); text-transform: uppercase;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .view-mode.show { opacity: 1; }
+  .view-mode span { color: var(--accent); }
+  
+  /* 提示 */
+  .hint {
+    position: fixed; bottom: 100px;
+    left: 50%; transform: translateX(-50%);
+    z-index: 10; color: var(--muted);
+    font-size: 11px; letter-spacing: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    opacity: 0.6; text-align: center;
+    transition: opacity 0.4s;
+  }
+  .hint kbd {
+    background: rgba(95, 238, 197, 0.1);
+    border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 3px;
+    margin: 0 4px; color: var(--accent);
+    font-family: inherit; font-size: 10px;
+  }
+  
+  /* Toast */
+  .toast {
+    position: fixed; top: 90px; right: 30px;
+    z-index: 100;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--accent);
+    border-radius: 4px; padding: 12px 20px;
+    color: var(--fg); font-size: 12px;
+    letter-spacing: 1px;
+    box-shadow: 0 0 30px rgba(95, 238, 197, 0.3);
+    transform: translateX(120%);
+    transition: transform 0.4s ease;
+  }
+  .toast.show { transform: translateX(0); }
+  
+  /* 内部场景UI */
+  body.interior .info-panel,
+  body.interior .hud { opacity: 0; pointer-events: none; }
+  body.interior .info-panel { transform: translateY(-50%) translateX(-120%); }
+  body.interior .hud { transform: translateY(-50%) translateX(120%); }
+  body.interior .hint { opacity: 0; }
+  
+  .room-list {
+    position: fixed; right: 30px; top: 100px;
+    z-index: 10; width: 220px;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 16px;
+    opacity: 0; transform: translateX(120%);
+    transition: all 0.4s; pointer-events: none;
+  }
+  body.interior .room-list {
+    opacity: 1; transform: translateX(0);
+    pointer-events: auto;
+  }
+  .room-list h3 {
+    font-size: 10px; letter-spacing: 3px;
+    color: var(--accent); margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .room-item {
+    display: block; width: 100%;
+    text-align: left;
+    background: transparent; border: none;
+    color: var(--muted);
+    padding: 8px 10px; cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; border-radius: 3px;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+  }
+  .room-item:hover {
+    color: var(--fg);
+    background: rgba(95, 238, 197, 0.05);
+  }
+  .room-item.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(95, 238, 197, 0.08);
+  }
+  
+  /* 内部场景的描述卡 */
+  .interior-info {
+    position: fixed; left: 30px; bottom: 100px;
+    z-index: 10; width: 320px;
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px 20px;
+    opacity: 0; transform: translateX(-120%);
+    transition: all 0.4s; pointer-events: none;
+  }
+  body.interior .interior-info {
+    opacity: 1; transform: translateX(0);
+    pointer-events: auto;
+  }
+  .interior-info h4 {
+    font-size: 16px; color: var(--accent);
+    margin-bottom: 8px; letter-spacing: 2px;
+  }
+  .interior-info p {
+    font-size: 11px; color: var(--muted);
+    line-height: 1.7;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  /* 切换过渡遮罩 */
+  #transition {
+    position: fixed; inset: 0;
+    background: #000; z-index: 50;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  #transition.active { opacity: 1; }
+  
+  /* 角标装饰 */
+  .corner-deco {
+    position: fixed; width: 30px; height: 30px;
+    z-index: 5; pointer-events: none;
+    opacity: 0.6;
+  }
+  .corner-deco.tl { top: 70px; left: 20px;
+    border-top: 1px solid var(--accent);
+    border-left: 1px solid var(--accent); }
+  .corner-deco.tr { top: 70px; right: 20px;
+    border-top: 1px solid var(--accent);
+    border-right: 1px solid var(--accent); }
+  .corner-deco.bl { bottom: 90px; left: 20px;
+    border-bottom: 1px solid var(--accent);
+    border-left: 1px solid var(--accent); }
+  .corner-deco.br { bottom: 90px; right: 20px;
+    border-bottom: 1px solid var(--accent);
+    border-right: 1px solid var(--accent); }
+  
+  @media (max-width: 768px) {
+    .info-panel, .hud, .room-list, .interior-info { display: none; }
+    .controls { padding: 6px; gap: 4px; }
+    .ctrl-btn { padding: 8px 12px; font-size: 10px; }
+    header { padding: 15px; }
+    .brand-title { font-size: 16px; letter-spacing: 2px; }
+    .mission-info { font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="loader-logo"></div>
+  <div class="loader-title">AURORA</div>
+  <div class="loader-subtitle">INITIALIZING GENERATION SHIP</div>
+  <div class="loader-progress"></div>
+</div>
+
+<div id="canvas-container"></div>
+
+<header>
+  <div class="brand">
+    <div class="brand-title">极光<span>·AURORA</span></div>
+    <div class="brand-subtitle">GENERATION SHIP · TAU CETI MISSION</div>
+  </div>
+  <div class="mission-info">
+    航行时间 <span id="mtime">00:00:00</span><br>
+    距离地球 <span id="mdist">0.000 AU</span>
+  </div>
+</header>
+
+<div class="view-mode" id="viewMode">
+  当前视图: <span id="viewModeText">外观全景</span>
+</div>
+
+<aside class="info-panel" id="infoPanel">
+  <h3>飞船规格</h3>
+  <div class="info-row"><span class="info-label">舰级</span><span class="info-value">Lancer-7</span></div>
+  <div class="info-row"><span class="info-label">总长度</span><span class="info-value">12.4 km</span></div>
+  <div class="info-row"><span class="info-label">外环直径</span><span class="info-value">4.8 km</span></div>
+  <div class="info-row"><span class="info-label">内环直径</span><span class="info-value">2.8 km</span></div>
+  <div class="info-row"><span class="info-label">船员</span><span class="info-value">2,144</span></div>
+  <div class="info-row"><span class="info-label">世代</span><span class="info-value">第 6 代</span></div>
+  <div class="info-row"><span class="info-label">航行年数</span><span class="info-value">158 yr</span></div>
+  <div class="info-row"><span class="info-label">推进系统</span><span class="info-value">聚变-反物质</span></div>
+</aside>
+
+<div class="hud">
+  <div class="hud-block">
+    <div class="hud-title">环舱状态</div>
+    <div class="bar-row">
+      <span class="bar-label">外环</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 92%"></div></div>
+      <span class="bar-value">92%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">内环</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 88%"></div></div>
+      <span class="bar-value">88%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">生态</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 76%"></div></div>
+      <span class="bar-value">76%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">生命</span>
+      <div class="bar-track"><div class="bar-fill" style="width: 84%"></div></div>
+      <span class="bar-value">84%</span>
+    </div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-title">航向数据</div>
+    <div class="info-row"><span class="info-label">航速</span><span class="info-value">0.087 c</span></div>
+    <div class="info-row"><span class="info-label">目标</span><span class="info-value">Tau Ceti e</span></div>
+    <div class="info-row"><span class="info-label">距离</span><span class="info-value">11.9 ly</span></div>
+    <div class="info-row"><span class="info-label">预计抵达</span><span class="info-value">90 yr</span></div>
+  </div>
+</div>
+
+<div class="room-list" id="roomList">
+  <h3>内部区域</h3>
+  <button class="room-item active" data-room="bridge">指挥中枢</button>
+  <button class="room-item" data-room="axis">中央通道</button>
+  <button class="room-item" data-room="outerRing">外环居住区</button>
+  <button class="room-item" data-room="innerRing">内环农业区</button>
+  <button class="room-item" data-room="engine">引擎舱</button>
+  <button class="room-item" data-room="shield">防护盾舱</button>
+</div>
+
+<div class="interior-info" id="interiorInfo">
+  <h4 id="roomTitle">指挥中枢</h4>
+  <p id="roomDesc">飞船的核心控制室，全息投影显示航行数据，工作站环绕分布。</p>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn active" id="btnExterior">外观</button>
+  <button class="ctrl-btn" id="btnInterior">内部</button>
+  <button class="ctrl-btn" id="btnRotate">自转</button>
+  <button class="ctrl-btn" id="btnReset">复位</button>
+</div>
+
+<div class="hint" id="hint">
+  <kbd>拖拽</kbd> 旋转视角 · <kbd>滚轮</kbd> 缩放 · <kbd>右键</kbd> 平移
+</div>
+
+<div class="corner-deco tl"></div>
+<div class="corner-deco tr"></div>
+<div class="corner-deco bl"></div>
+<div class="corner-deco br"></div>
+
+<div class="toast" id="toast"></div>
+<div id="transition"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+// === 全局变量 ===
+let scene, camera, renderer, composer, controls;
+let ship, starField, nebula, interiorGroup;
+let currentMode = 'exterior';
+let autoRotate = false;
+const clock = new THREE.Clock();
+const startTime = Date.now();
+
+// === 初始化 ===
+function init() {
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x000511, 0.0006);
+  
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 5000);
+  camera.position.set(140, 60, 140);
+  
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+  
+  // 后处理 - bloom发光
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloom = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    0.7, 0.6, 0.85
+  );
+  composer.addPass(bloom);
+  
+  // 控制器
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 30;
+  controls.maxDistance = 600;
+  controls.rotateSpeed = 0.6;
+  controls.zoomSpeed = 0.8;
+  
+  // 光照
+  const ambient = new THREE.AmbientLight(0x334466, 0.45);
+  scene.add(ambient);
+  
+  const sunLight = new THREE.DirectionalLight(0xfff4e0, 1.3);
+  sunLight.position.set(200, 100, 100);
+  scene.add(sunLight);
+  
+  const rimLight = new THREE.DirectionalLight(0x5feec5, 0.6);
+  rimLight.position.set(-100, -50, -200);
+  scene.add(rimLight);
+  
+  const fillLight = new THREE.DirectionalLight(0xff8c69, 0.25);
+  fillLight.position.set(0, -100, 100);
+  scene.add(fillLight);
+  
+  // 星空和星云
+  starField = createStarField(6000);
+  scene.add(starField);
+  
+  nebula = createNebula();
+  scene.add(nebula);
+  
+  // 飞船
+  ship = createAuroraShip();
+  scene.add(ship);
+  
+  // 内部场景容器
+  interiorGroup = new THREE.Group();
+  interiorGroup.visible = false;
+  scene.add(interiorGroup);
+  
+  // 事件
+  window.addEventListener('resize', onResize);
+  setupUI();
+  
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+    showToast('极光号已就绪 · 拖拽视角探索');
+  }, 2000);
+}
+
+// === 创建飞船 ===
+function createAuroraShip() {
+  const ship = new THREE.Group();
+  ship.name = 'Aurora';
+  
+  // 旋转部分（环+辐条）
+  const rotatingPart = new THREE.Group();
+  rotatingPart.name = 'rotatingPart';
+  ship.add(rotatingPart);
+  
+  // 外环
+  const outerRing = createLivingRing({
+    radius: 60, tubeRadius: 11,
+    baseColor: 0x3a5868, accentColor: 0x5feec5,
+    windowCount: 140, windowColor: 0xffd88a
+  });
+  outerRing.name = 'outerRing';
+  rotatingPart.add(outerRing);
+  
+  // 内环
+  const innerRing = createLivingRing({
+    radius: 36, tubeRadius: 8,
+    baseColor: 0x3a4a68, accentColor: 0xff8c69,
+    windowCount: 90, windowColor: 0xff9a6a
+  });
+  innerRing.name = 'innerRing';
+  rotatingPart.add(innerRing);
+  
+  // 外环辐条
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    rotatingPart.add(createSpoke(60, 5, 4, angle, 0x4a6a85));
+  }
+  
+  // 内环辐条
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    rotatingPart.add(createSpoke(36, 5, 3, angle, 0x4a6a85));
+  }
+  
+  // 中央轴
+  ship.add(createCentralAxis());
+  
+  // 前部防护盾
+  const shield = createForwardShield();
+  shield.position.x = 90;
+  ship.add(shield);
+  
+  // 推进器
+  const thrusters = createThrusters();
+  thrusters.position.x = -75;
+  ship.add(thrusters);
+  
+  // 顶部标识灯
+  for (let i = 0; i < 4; i++) {
+    const angle = i * Math.PI / 2 + Math.PI / 4;
+    const lightGeo = new THREE.SphereGeometry(0.6, 12, 12);
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xff4466 });
+    const light = new THREE.Mesh(lightGeo, lightMat);
+    light.position.set(0, Math.cos(angle) * 60, Math.sin(angle) * 60);
+    light.userData.isBlinker = true;
+    light.userData.blinkPhase = i * 0.7;
+    ship.add(light);
+  }
+  
+  // 飞船标识
+  const labelTex = createLabelText('AURORA · 7');
+  const labelGeo = new THREE.PlaneGeometry(20, 4);
+  const labelMat = new THREE.MeshBasicMaterial({
+    map: labelTex, transparent: true, opacity: 0.85
+  });
+  const label = new THREE.Mesh(labelGeo, labelMat);
+  label.position.set(0, 0, 73);
+  ship.add(label);
+  
+  const label2 = label.clone();
+  label2.position.set(0, 0, -73);
+  label2.rotation.y = Math.PI;
+  ship.add(label2);
+  
+  return ship;
+}
+
+function createLivingRing(opts) {
+  const group = new THREE.Group();
+  const { radius, tubeRadius, baseColor, accentColor, windowCount, windowColor } = opts;
+  
+  // 主环体
+  const ringGeo = new THREE.TorusGeometry(radius, tubeRadius, 24, 96);
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: baseColor, metalness: 0.65, roughness: 0.45
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.y = Math.PI / 2;
+  group.add(ring);
+  
+  // 外侧装饰带
+  const outerBandGeo = new THREE.TorusGeometry(radius + tubeRadius * 0.95, 0.25, 8, 96);
+  const bandMat = new THREE.MeshBasicMaterial({
+    color: accentColor, transparent: true, opacity: 0.7
+  });
+  const outerBand = new THREE.Mesh(outerBandGeo, bandMat);
+  outerBand.rotation.y = Math.PI / 2;
+  group.add(outerBand);
+  
+  // 内侧发光带
+  const innerBandGeo = new THREE.TorusGeometry(radius - tubeRadius * 0.95, 0.35, 8, 96);
+  const innerBandMat = new THREE.MeshBasicMaterial({
+    color: accentColor, transparent: true, opacity: 0.5
+  });
+  const innerBand = new THREE.Mesh(innerBandGeo, innerBandMat);
+  innerBand.rotation.y = Math.PI / 2;
+  group.add(innerBand);
+  
+  // 外侧结构支撑（8个均匀分布的盒子）
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const r = radius + tubeRadius + 0.3;
+    const y = Math.cos(angle) * r;
+    const z = Math.sin(angle) * r;
+    
+    const strutGeo = new THREE.BoxGeometry(0.8, 1.2, tubeRadius * 1.8);
+    const strutMat = new THREE.MeshStandardMaterial({
+      color: 0x2a3540, metalness: 0.8, roughness: 0.35
+    });
+    const strut = new THREE.Mesh(strutGeo, strutMat);
+    strut.position.set(0, y, z);
+    // 让strut的Z方向沿径向
+    const dir = new THREE.Vector3(0, y, z).normalize();
+    const quat = new THREE.Quaternion();
+    quat.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+    strut.quaternion.copy(quat);
+    group.add(strut);
+  }
+  
+  // 窗户灯光
+  const windowGeo = new THREE.BoxGeometry(0.5, 0.25, 0.08);
+  for (let i = 0; i < windowCount; i++) {
+    const angle = (i / windowCount) * Math.PI * 2;
+    const r = radius + tubeRadius * 0.92;
+    const y = Math.cos(angle) * r;
+    const z = Math.sin(angle) * r;
+    
+    const winMat = new THREE.MeshBasicMaterial({
+      color: windowColor, transparent: true,
+      opacity: 0.7 + Math.random() * 0.3
+    });
+    const win = new THREE.Mesh(windowGeo, winMat);
+    win.position.set(0, y, z);
+    win.lookAt(0, y * 2, z * 2);
+    group.add(win);
+  }
+  
+  // 内侧窗户
+  for (let i = 0; i < windowCount * 0.6; i++) {
+    const angle = (i / (windowCount * 0.6)) * Math.PI * 2 + 0.05;
+    const r = radius - tubeRadius * 0.92;
+    const y = Math.cos(angle) * r;
+    const z = Math.sin(angle) * r;
+    
+    const winMat = new THREE.MeshBasicMaterial({
+      color: windowColor, transparent: true,
+      opacity: 0.5 + Math.random() * 0.4
+    });
+    const win = new THREE.Mesh(windowGeo, winMat);
+    win.position.set(0, y, z);
+    win.lookAt(0, y * 2, z * 2);
+    group.add(win);
+  }
+  
+  return group;
+}
+
+function createSpoke(outerR, innerR, thickness, angle, color) {
+  const group = new THREE.Group();
+  const length = outerR - innerR;
+  
+  const spokeGeo = new THREE.BoxGeometry(thickness, length, thickness);
+  const spokeMat = new THREE.MeshStandardMaterial({
+    color: color, metalness: 0.7, roughness: 0.4
+  });
+  const spoke = new THREE.Mesh(spokeGeo, spokeMat);
+  spoke.position.set(0, innerR + length / 2, 0);
+  
+  group.rotation.x = angle;
+  group.add(spoke);
+  
+  // 辐条上的灯
+  for (let i = 1; i < 4; i++) {
+    const lightGeo = new THREE.SphereGeometry(0.35, 8, 8);
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0x5feec5 });
+    const light = new THREE.Mesh(lightGeo, lightMat);
+    light.position.set(0, innerR + (length * i / 4), 0);
+    group.add(light);
+  }
+  
+  // 辐条上的能量管线
+  const pipeGeo = new THREE.CylinderGeometry(0.15, 0.15, length * 0.95, 8);
+  const pipeMat = new THREE.MeshBasicMaterial({
+    color: 0x5feec5, transparent: true, opacity: 0.4
+  });
+  const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+  pipe.position.set(thickness * 0.6, innerR + length / 2, 0);
+  group.add(pipe);
+  
+  return group;
+}
+
+function createCentralAxis() {
+  const group = new THREE.Group();
+  
+  // 主轴
+  const axisGeo = new THREE.CylinderGeometry(4, 4, 170, 32);
+  const axisMat = new THREE.MeshStandardMaterial({
+    color: 0x2a3540, metalness: 0.85, roughness: 0.3
+  });
+  const axis = new THREE.Mesh(axisGeo, axisMat);
+  axis.rotation.z = Math.PI / 2;
+  group.add(axis);
+  
+  // 能量环
+  for (let i = -4; i <= 4; i++) {
+    if (i === 0) continue;
+    const ringGeo = new THREE.TorusGeometry(5, 0.3, 8, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x5feec5, transparent: true, opacity: 0.8
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.y = Math.PI / 2;
+    ring.position.x = i * 18;
+    group.add(ring);
+  }
+  
+  // 轴向管道
+  for (let i = 0; i < 4; i++) {
+    const angle = i * Math.PI / 2 + Math.PI / 4;
+    const pipeGeo = new THREE.CylinderGeometry(0.4, 0.4, 170, 8);
+    const pipeMat = new THREE.MeshStandardMaterial({
+      color: 0x4a5a68, metalness: 0.7, roughness: 0.4
+    });
+    const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+    pipe.rotation.z = Math.PI / 2;
+    pipe.position.set(0, Math.cos(angle) * 4.5, Math.sin(angle) * 4.5);
+    group.add(pipe);
+  }
+  
+  // 中央指挥舱
+  const bridgeGeo = new THREE.SphereGeometry(8, 32, 16);
+  const bridgeMat = new THREE.MeshStandardMaterial({
+    color: 0x3a4858, metalness: 0.7, roughness: 0.3,
+    emissive: 0x5feec5, emissiveIntensity: 0.08
+  });
+  const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
+  group.add(bridge);
+  
+  // 指挥舱窗户带
+  for (let i = 0; i < 24; i++) {
+    const angle = (i / 24) * Math.PI * 2;
+    const winGeo = new THREE.PlaneGeometry(1, 0.6);
+    const winMat = new THREE.MeshBasicMaterial({
+      color: 0xffd88a, transparent: true, opacity: 0.85
+    });
+    const win = new THREE.Mesh(winGeo, winMat);
+    const r = 8.1;
+    win.position.set(0, Math.cos(angle) * r, Math.sin(angle) * r);
+    win.lookAt(0, win.position.y * 2, win.position.z * 2);
+    group.add(win);
+  }
+  
+  // 指挥舱顶部天线
+  const antennaGeo = new THREE.CylinderGeometry(0.15, 0.15, 12, 8);
+  const antennaMat = new THREE.MeshStandardMaterial({
+    color: 0x6a7a88, metalness: 0.9, roughness: 0.2
+  });
+  const antenna = new THREE.Mesh(antennaGeo, antennaMat);
+  antenna.position.x = 8;
+  antenna.rotation.z = Math.PI / 2;
+  group.add(antenna);
+  
+  // 天线碟
+  const dishGeo = new THREE.SphereGeometry(2, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+  const dishMat = new THREE.MeshStandardMaterial({
+    color: 0x8a9aa5, metalness: 0.85, roughness: 0.25, side: THREE.DoubleSide
+  });
+  const dish = new THREE.Mesh(dishGeo, dishMat);
+  dish.position.x = 14;
+  dish.rotation.z = -Math.PI / 2;
+  group.add(dish);
+  
+  return group;
+}
+
+function createForwardShield() {
+  const group = new THREE.Group();
+  
+  // 主防护盾（凹面盘）
+  const shieldGeo = new THREE.SphereGeometry(28, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2);
+  const shieldMat = new THREE.MeshStandardMaterial({
+    color: 0x6a7a88, metalness: 0.85, roughness: 0.25,
+    side: THREE.DoubleSide,
+    emissive: 0x5feec5, emissiveIntensity: 0.04
+  });
+  const shield = new THREE.Mesh(shieldGeo, shieldMat);
+  shield.rotation.z = Math.PI / 2;
+  group.add(shield);
+  
+  // 磁场光晕
+  const fieldGeo = new THREE.SphereGeometry(32, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+  const fieldMat = new THREE.MeshBasicMaterial({
+    color: 0x5feec5, transparent: true, opacity: 0.12,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+  });
+  const field = new THREE.Mesh(fieldGeo, fieldMat);
+  field.rotation.z = Math.PI / 2;
+  field.userData.isShieldField = true;
+  group.add(field);
+  
+  // 支撑结构
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const supportGeo = new THREE.CylinderGeometry(0.6, 0.6, 22, 8);
+    const supportMat = new THREE.MeshStandardMaterial({
+      color: 0x4a5560, metalness: 0.8, roughness: 0.3
+    });
+    const support = new THREE.Mesh(supportGeo, supportMat);
+    support.rotation.z = Math.PI / 2;
+    support.position.set(-10, Math.cos(angle) * 7, Math.sin(angle) * 7);
+    group.add(support);
+  }
+  
+  // 中央传感器
+  const sensorGeo = new THREE.SphereGeometry(3, 16, 16);
+  const sensorMat = new THREE.MeshBasicMaterial({
+    color: 0xff4466, transparent: true, opacity: 0.95
+  });
+  const sensor = new THREE.Mesh(sensorGeo, sensorMat);
+  sensor.position.x = -3;
+  sensor.userData.isSensor = true;
+  group.add(sensor);
+  
+  // 传感器光环
+  const haloGeo = new THREE.RingGeometry(4.5, 5.5, 32);
+  const haloMat = new THREE.MeshBasicMaterial({
+    color: 0xff4466, transparent: true, opacity: 0.5,
+    side: THREE.DoubleSide
+  });
+  const halo = new THREE.Mesh(haloGeo, haloMat);
+  halo.rotation.y = Math.PI / 2;
+  halo.position.x = -3;
+  halo.userData.isHalo = true;
+  group.add(halo);
+  
+  // 第二层光环
+  const halo2 = new THREE.Mesh(
+    new THREE.RingGeometry(6, 6.5, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xff4466, transparent: true, opacity: 0.3,
+      side: THREE.DoubleSide
+    })
+  );
+  halo2.rotation.y = Math.PI / 2;
+  halo2.position.x = -3;
+  halo2.userData.isHalo = true;
+  group.add(halo2);
+  
+  return group;
+}
+
+function createThrusters() {
+  const group = new THREE.Group();
+  
+  // 中央主推进器
+  const mainBodyGeo = new THREE.CylinderGeometry(5.5, 6.5, 14, 32);
+  const mainBodyMat = new THREE.MeshStandardMaterial({
+    color: 0x2a3540, metalness: 0.85, roughness: 0.3
+  });
+  const mainBody = new THREE.Mesh(mainBodyGeo, mainBodyMat);
+  mainBody.rotation.z = Math.PI / 2;
+  mainBody.position.x = -7;
+  group.add(mainBody);
+  
+  // 主推进器喷嘴
+  const nozzleGeo = new THREE.CylinderGeometry(6.5, 5, 5, 32);
+  const nozzleMat = new THREE.MeshStandardMaterial({
+    color: 0x4a5560, metalness: 0.9, roughness: 0.2
+  });
+  const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+  nozzle.rotation.z = Math.PI / 2;
+  nozzle.position.x = -16;
+  group.add(nozzle);
+  
+  // 主火焰外层
+  const flameOuterGeo = new THREE.ConeGeometry(5, 35, 32, 1, true);
+  const flameOuterMat = new THREE.MeshBasicMaterial({
+    color: 0x5feec5, transparent: true, opacity: 0.55,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+  });
+  const flameOuter = new THREE.Mesh(flameOuterGeo, flameOuterMat);
+  flameOuter.rotation.z = -Math.PI / 2;
+  flameOuter.position.x = -36;
+  flameOuter.userData.isFlame = true;
+  group.add(flameOuter);
+  
+  // 主火焰中层
+  const flameMidGeo = new THREE.ConeGeometry(3, 25, 32, 1, true);
+  const flameMidMat = new THREE.MeshBasicMaterial({
+    color: 0xaaffee, transparent: true, opacity: 0.7,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+  });
+  const flameMid = new THREE.Mesh(flameMidGeo, flameMidMat);
+  flameMid.rotation.z = -Math.PI / 2;
+  flameMid.position.x = -29;
+  flameMid.userData.isFlame = true;
+  flameMid.userData.layer = 1;
+  group.add(flameMid);
+  
+  // 主火焰内层
+  const flameInnerGeo = new THREE.ConeGeometry(1.5, 18, 32, 1, true);
+  const flameInnerMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.85,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+  });
+  const flameInner = new THREE.Mesh(flameInnerGeo, flameInnerMat);
+  flameInner.rotation.z = -Math.PI / 2;
+  flameInner.position.x = -25;
+  flameInner.userData.isFlame = true;
+  flameInner.userData.layer = 2;
+  group.add(flameInner);
+  
+  // 4个辅助推进器
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const sub = createSubThruster();
+    sub.position.set(0, Math.cos(angle) * 8, Math.sin(angle) * 8);
+    group.add(sub);
+  }
+  
+  // 推进器支架
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const armGeo = new THREE.BoxGeometry(10, 0.6, 0.6);
+    const armMat = new THREE.MeshStandardMaterial({
+      color: 0x4a5560, metalness: 0.8, roughness: 0.3
+    });
+    const arm = new THREE.Mesh(armGeo, armMat);
+    arm.position.set(-5, Math.cos(angle) * 4, Math.sin(angle) * 4);
+    arm.rotation.z = Math.PI / 2;
+    arm.rotation.y = -angle;
+    // 修正arm方向
+    arm.rotation.set(0, 0, 0);
+    arm.rotation.z = Math.PI / 2;
+    // 让arm沿径向
+    const dir = new THREE.Vector3(0, Math.cos(angle), Math.sin(angle)).normalize();
+    const quat = new THREE.Quaternion();
+    quat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    arm.quaternion.copy(quat);
+    arm.position.set(-5, Math.cos(angle) * 4, Math.sin(angle) * 4);
+    group.add(arm);
+  }
+  
+  return group;
+}
+
+function createSubThruster() {
+  const group = new THREE.Group();
+  
+  const bodyGeo = new THREE.CylinderGeometry(2.5, 3, 9, 16);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x2a3540, metalness: 0.85, roughness: 0.3
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.rotation.z = Math.PI / 2;
+  body.position.x = -4.5;
+  group.add(body);
+  
+  const nozzleGeo = new THREE.CylinderGeometry(3, 2.2, 3, 16);
+  const nozzleMat = new THREE.MeshStandardMaterial({
+    color: 0x4a5560, metalness: 0.9, roughness: 0.2
+  });
+  const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+  nozzle.rotation.z = Math.PI / 2;
+  nozzle.position.x = -10;
+  group.add(nozzle);
+  
+  // 火焰
+  const flameGeo = new THREE.ConeGeometry(2, 16, 16, 1, true);
+  const flameMat = new THREE.MeshBasicMaterial({
+    color: 0x5feec5, transparent: true, opacity: 0.55,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+  });
+  const flame = new THREE.Mesh(flameGeo, flameMat);
+  flame.rotation.z = -Math.PI / 2;
+  flame.position.x = -20;
+  flame.userData.isFlame = true;
+  flame.userData.layer = 0;
+  group.add(flame);
+  
+  const flameInGeo = new THREE.ConeGeometry(0.8, 10, 16, 1, true);
+  const flameInMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.8,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+  });
+  const flameIn = new THREE.Mesh(flameInGeo, flameInMat);
+  flameIn.rotation.z = -Math.PI / 2;
+  flameIn.position.x = -17;
+  flameIn.userData.isFlame = true;
+  flameIn.userData.layer = 2;
+  group.add(flameIn);
+  
+  return group;
+}
+
+// === 星空 ===
+function createStarField(count) {
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const sizes = new Float32Array(count);
+  
+  for (let i = 0; i < count; i++) {
+    const r = 800 + Math.random() * 1800;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    
+    positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i*3+2] = r * Math.cos(phi);
+    
+    const c = Math.random();
+    if (c < 0.65) {
+      colors[i*3] = 1; colors[i*3+1] = 1; colors[i*3+2] = 1;
+    } else if (c < 0.85) {
+      colors[i*3] = 0.7; colors[i*3+1] = 0.85; colors[i*3+2] = 1;
+    } else {
+      colors[i*3] = 1; colors[i*3+1] = 0.85; colors[i*3+2] = 0.7;
+    }
+    
+    sizes[i] = Math.random() * 2 + 0.5;
+  }
+  
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  
+  const material = new THREE.PointsMaterial({
+    size: 1.6, sizeAttenuation: true, vertexColors: true,
+    transparent: true, opacity: 0.9,
+    blending: THREE.AdditiveBlending
+  });
+  
+  return new THREE.Points(geometry, material);
+}
+
+function createNebula() {
+  const group = new THREE.Group();
+  
+  // 主星云
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024; canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+  
+  const grad = ctx.createRadialGradient(512, 512, 80, 512, 512, 500);
+  grad.addColorStop(0, 'rgba(95, 238, 197, 0.35)');
+  grad.addColorStop(0.3, 'rgba(196, 163, 255, 0.18)');
+  grad.addColorStop(0.6, 'rgba(255, 140, 105, 0.1)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1024, 1024);
+  
+  // 加噪点
+  for (let i = 0; i < 500; i++) {
+    const x = Math.random() * 1024;
+    const y = Math.random() * 1024;
+    const r = Math.random() * 2.5;
+    ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.4})`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.MeshBasicMaterial({
+    map: tex, side: THREE.BackSide,
+    transparent: true, opacity: 0.65,
+    depthWrite: false
+  });
+  const geo = new THREE.SphereGeometry(1900, 32, 16);
+  group.add(new THREE.Mesh(geo, mat));
+  
+  // 第二个星云
+  const canvas2 = document.createElement('canvas');
+  canvas2.width = 512; canvas2.height = 512;
+  const ctx2 = canvas2.getContext('2d');
+  const grad2 = ctx2.createRadialGradient(256, 256, 30, 256, 256, 240);
+  grad2.addColorStop(0, 'rgba(255, 140, 105, 0.45)');
+  grad2.addColorStop(0.4, 'rgba(196, 100, 100, 0.15)');
+  grad2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx2.fillStyle = grad2;
+  ctx2.fillRect(0, 0, 512, 512);
+  
+  const tex2 = new THREE.CanvasTexture(canvas2);
+  const mat2 = new THREE.MeshBasicMaterial({
+    map: tex2, side: THREE.BackSide,
+    transparent: true, opacity: 0.5,
+    depthWrite: false
+  });
+  const nebula2 = new THREE.Mesh(new THREE.SphereGeometry(1300, 32, 16), mat2);
+  nebula2.position.set(-600, 200, -900);
+  group.add(nebula2);
+  
+  // 第三星云 - 紫色
+  const canvas3 = document.createElement('canvas');
+  canvas3.width = 512; canvas3.height = 512;
+  const ctx3 = canvas3.getContext('2d');
+  const grad3 = ctx3.createRadialGradient(256, 256, 40, 256, 256, 220);
+  grad3.addColorStop(0, 'rgba(196, 163, 255, 0.4)');
+  grad3.addColorStop(0.5, 'rgba(120, 100, 200, 0.12)');
+  grad3.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx3.fillStyle = grad3;
+  ctx3.fillRect(0, 0, 512, 512);
+  
+  const tex3 = new THREE.CanvasTexture(canvas3);
+  const mat3 = new THREE.MeshBasicMaterial({
+    map: tex3, side: THREE.BackSide,
+    transparent: true, opacity: 0.45,
+    depthWrite: false
+  });
+  const nebula3 = new THREE.Mesh(new THREE.SphereGeometry(1500, 32, 16), mat3);
+  nebula3.position.set(700, -300, -1100);
+  group.add(nebula3);
+  
+  return group;
+}
+
+// === 文字纹理 ===
+function createLabelText(text) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0)';
+  ctx.fillRect(0, 0, 512, 128);
+  ctx.fillStyle = '#5feec5';
+  ctx.font = 'bold 56px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, 64);
+  ctx.strokeStyle = '#5feec5';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(40, 30, 432, 68);
+  return new THREE.CanvasTexture(canvas);
+}
+
+// === 内部场景构建 ===
+function clearInterior() {
+  while (interiorGroup.children.length > 0) {
+    const obj = interiorGroup.children[0];
+    interiorGroup.remove(obj);
+    obj.traverse(child => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+        else child.material.dispose();
+      }
+    });
+  }
+}
+
+function loadInteriorRoom(roomName) {
+  clearInterior();
+  
+  const roomData = {
+    bridge: {
+      title: '指挥中枢',
+      desc: '飞船的核心控制室。全息投影显示航行数据，环形工作站24小时监控飞船各系统。',
+      camera: [0, 2, 14], target: [0, 0, 0]
+    },
+    axis: {
+      title: '中央通道',
+      desc: '零重力环境下的运输走廊。漂浮的货物模块在管道之间穿梭，连接飞船前后。',
+      camera: [22, 2, 0], target: [-10, 0, 0]
+    },
+    outerRing: {
+      title: '外环居住区',
+      desc: '主居住环。广阔的内部空间有人造天空、城镇、河流与森林，是船员的主要生活区。',
+      camera: [50, 5, 0], target: [0, 8, 0]
+    },
+    innerRing: {
+      title: '内环农业区',
+      desc: '农业与生态实验区。种植作物、培育蛋白质，维持飞船的生态循环。',
+      camera: [28, 3, 0], target: [0, 5, 0]
+    },
+    engine: {
+      title: '引擎舱',
+      desc: '聚变-反物质推进核心。能量通过磁场约束输送到尾部喷口，产生持续推力。',
+      camera: [18, 2, 5], target: [-20, 0, 0]
+    },
+    shield: {
+      title: '防护盾舱',
+      desc: '前部磁盾控制中心。强电磁场偏转星际尘埃与高能粒子，保护飞船免受撞击。',
+      camera: [0, 3, 12], target: [0, 2, 0]
+    }
+  };
+  
+  const data = roomData[roomName];
+  document.getElementById('roomTitle').textContent = data.title;
+  document.getElementById('roomDesc').textContent = data.desc;
+  
+  // 通用光照
+  const ambient = new THREE.AmbientLight(0x445566, 0.5);
+  interiorGroup.add(ambient);
+  
+  switch(roomName) {
+    case 'bridge': buildBridgeInterior(interiorGroup); break;
+    case 'axis': buildAxisInterior(interiorGroup); break;
+    case 'outerRing': buildRingInterior(interiorGroup, 50, 9, 0x5feec5, true); break;
+    case 'innerRing': buildRingInterior(interiorGroup, 28, 6, 0xff8c69, false); break;
+    case 'engine': buildEngineInterior(interiorGroup); break;
+    case 'shield': buildShieldInterior(interiorGroup); break;
+  }
+  
+  // 设置相机
+  camera.position.set(...data.camera);
+  controls.target.set(...data.target);
+  controls.update();
+}
+
+function buildBridgeInterior(group) {
+  // 球形房间
+  const roomGeo = new THREE.SphereGeometry(20, 32, 24);
+  const roomMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2530, side: THREE.BackSide,
+    metalness: 0.5, roughness: 0.6
+  });
+  group.add(new THREE.Mesh(roomGeo, roomMat));
+  
+  // 主光
+  const mainLight = new THREE.PointLight(0x5feec5, 0.6, 30);
+  mainLight.position.set(0, 8, 0);
+  group.add(mainLight);
+  
+  // 窗户带（全景观察窗）
+  for (let i = 0; i < 16; i++) {
+    const angle = (i / 16) * Math.PI * 2;
+    const winGeo = new THREE.PlaneGeometry(3.5, 5);
+    const winMat = new THREE.MeshBasicMaterial({
+      color: 0x000511, side: THREE.DoubleSide
+    });
+    const win = new THREE.Mesh(winGeo, winMat);
+    win.position.set(Math.cos(angle) * 19, 0, Math.sin(angle) * 19);
+    win.lookAt(0, 0, 0);
+    group.add(win);
+    
+    // 窗框
+    const frameGeo = new THREE.BoxGeometry(4, 0.15, 0.2);
+    const frameMat = new THREE.MeshStandardMaterial({
+      color: 0x4a5560, metalness: 0.8, roughness: 0.3
+    });
+    const frameTop = new THREE.Mesh(frameGeo, frameMat);
+    frameTop.position.copy(win.position);
+    frameTop.position.y = 2.5;
+    frameTop.lookAt(0, 2.5, 0);
+    group.add(frameTop);
+    
+    const frameBot = frameTop.clone();
+    frameBot.position.y = -2.5;
+    frameBot.lookAt(0, -2.5, 0);
+    group.add(frameBot);
+  }
+  
+  // 中央控制台
+  const consoleGeo = new THREE.CylinderGeometry(3, 4, 1.5, 16);
+  const consoleMat = new THREE.MeshStandardMaterial({
+    color: 0x2a3540, metalness: 0.7, roughness: 0.3,
+    emissive: 0x5feec5, emissiveIntensity: 0.15
+  });
+  group.add(new THREE.Mesh(consoleGeo, consoleMat));
+  
+  // 控制台顶部
+  const topGeo = new THREE.CylinderGeometry(2, 3, 0.5, 16);
+  const topMat = new THREE.MeshBasicMaterial({
+    color: 0x5feec5, transparent: true, opacity: 0.4
+  });
+  const top = new THREE.Mesh(topGeo, topMat);
+  top.position.y = 1;
+  group.add(top);
+  
+  // 全息投影
+  const holoGeo = new THREE.CylinderGeometry(0.05, 2.5, 7, 32, 1, true);
+  const holoMat = new THREE.MeshBasicMaterial({
+    color: 0x5feec5, transparent: true, opacity: 0.35,
+    side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+  });
+  const holo = new THREE.Mesh(holoGeo, holoMat);
+  holo.position.y = 4.5;
+  holo.userData.isHolo = true;
+  group.add(holo);
+  
+  // 全息地球
+  const earthGeo = new THREE.SphereGeometry(1.2, 24, 16);
+  const earthMat = new THREE.MeshBasicMaterial({
+    color: 0x5feec5, transparent: true, opacity: 0.4,
+    wireframe: true
+  });
+  const earth = new THREE.Mesh(earthGeo, earthMat);
+  earth.position.y = 6;
+  earth.userData.isHoloObj = true;
+  group.add(earth);
+  
+  // 工作站
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const stationGeo = new THREE.BoxGeometry(2, 1.2, 1.4);
+    const stationMat = new THREE.MeshStandardMaterial({
+      color: 0x1a2530, metalness: 0.6, roughness: 0.4
+    });
+    const station = new THREE.Mesh(stationGeo, stationMat);
+    station.position.set(Math.cos(angle) * 8, -2, Math.sin(angle) * 8);
+    station.lookAt(0, -2, 0);
+    group.add(station);
+    
+    // 屏幕
+    const screenGeo = new THREE.PlaneGeometry(1.6, 0.7);
+    const screenMat = new THREE.MeshBasicMaterial({
+      color: 0x5feec5, transparent: true, opacity: 0.85
+    });
+    const screen = new THREE.Mesh(screenGeo, screenMat);
+    screen.position.set(Math.cos(angle) * 7.95, -1.3, Math.sin(angle) * 7.95);
+    screen.lookAt(0, -1.3, 0);
+    group.add(screen);
+    
+    // 椅子
+    const chairGeo = new THREE.BoxGeometry(0.8, 0.5, 0.8);
+    const chairMat = new THREE.MeshStandardMaterial({
+      color: 0x0a1520, metalness: 0.4, roughness: 0.7
+    });
+    const chair = new THREE.Mesh(chairGeo, chairMat);
+    chair.position.set(Math.cos(angle) * 6.5, -2.4, Math.sin(angle) * 6.5);
+    group.add(chair);
+  }
+  
+  // 地板
+  const floorGeo = new THREE.CircleGeometry(18, 32);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x0a1520, metalness: 0.4, roughness: 0.7
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -3;
+  group.add(floor);
+  
+  // 地板网格
+  const grid = new THREE.GridHelper(36, 18, 0x5feec5, 0x1a3a40);
+  grid.position.y = -2.99;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.35;
+  group.add(grid);
+  
+  // 顶部装饰
+  const ceilingGeo = new THREE.CircleGeometry(18, 32);
+  const ceilingMat = new THREE.MeshStandardMaterial({
+    color: 0x0a1520, metalness: 0.5, roughness: 0.6
+  });
+  const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.y = 7;
+  group.add(ceiling);
+  
+  // 顶灯
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const lampGeo = new THREE.SphereGeometry(0.3, 12, 12);
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0xffd88a });
+    const lamp = new THREE.Mesh(lampGeo, lampMat);
+    lamp.position.set(Math.cos(angle) * 10, 6.8, Math.sin(angle) * 10);
+    group.add(lamp);
+    
+    const lt = new THREE.PointLight(0xffd88a, 0.3, 12);
+    lt.position.copy(lamp.position);
+    group.add(lt);
+  }
+}
+
+function buildRingInterior(group, radius, tubeRadius, accentColor, isOuter) {
+  // 环形空间
+  const ringGeo = new THREE.TorusGeometry(radius, tubeRadius, 32, 64);
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: isOuter ? 0x2a4a3a : 0x3a3a4a,
+    side: THREE.BackSide, metalness: 0.3, roughness: 0.7
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+  
+  // 主光 - 模拟太阳
+  const sunLight = new THREE.PointLight(0xfff4d0, 1.2, 80);
+  sunLight.position.set(0, 25, 0);
+  group.add(sunLight);
+  
+  // 太阳本体
+  const sunGeo = new THREE.SphereGeometry(2, 16, 16);
+  const sunMat = new THREE.MeshBasicMaterial({ color: 0xfff4d0 });
+  const sun = new THREE.Mesh(sunGeo, sunMat);
+  sun.position.set(0, 25, 0);
+  sun.userData.isSun = true;
+  group.add(sun);
+  
+  // 太阳光晕
+  const haloGeo = new THREE.SphereGeometry(3.5, 16, 16);
+  const haloMat = new THREE.MeshBasicMaterial({
+    color: 0xfff4d0, transparent: true, opacity: 0.3,
+    blending: THREE.AdditiveBlending
+  });
+  const halo = new THREE.Mesh(haloGeo, haloMat);
+  halo.position.set(0, 25, 0);
+  halo.userData.isSunHalo = true;
+  group.add(halo);
+  
+  // 建筑
+  const buildingCount = isOuter ? 36 : 22;
+  for (let i = 0; i < buildingCount; i++) {
+    const angle = (i / buildingCount) * Math.PI * 2;
+    const r = radius - tubeRadius * 0.5 - Math.random() * tubeRadius * 0.35;
+    
+    const h = 1.5 + Math.random() * (isOuter ? 4 : 2.5);
+    const w = 1 + Math.random() * 1.5;
+    const buildingGeo = new THREE.BoxGeometry(w, h, w);
+    const buildingMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.6, 0.15, 0.2 + Math.random() * 0.15),
+      metalness: 0.4, roughness: 0.7
+    });
+    const building = new THREE.Mesh(buildingGeo, buildingMat);
+    building.position.set(
+      0,
+      -tubeRadius * 0.7,
+      0
+    );
+    // 沿环放置
+    const x = 0;
+    const y = Math.cos(angle) * r;
+    const z = Math.sin(angle) * r;
+    building.position.set(x, y, z);
+    building.position.y -= tubeRadius * 0.7 - h / 2;
+    // 实际上"下"方向应该是径向内
+    // 因为我们让环在水平面（绕X轴旋转Math.PI/2），所以"下"是Y的负方向？
+    // 让我重新设计：在内部场景，环平躺，地面在环的内表面（即环的"下"侧）
+    // 建筑物从地面向上生长，即向Y正方向
+    building.position.set(0, y, z);
+    building.position.x = 0;
+    building.position.y = y - tubeRadius * 0.7 + h / 2;
+    building.position.z = z;
+    // 建筑物站立在环内表面
+    // 实际上让我换个思路：环放在水平面（地面在下，建筑向上）
+    // 但环的轴向是X，所以"地面"应该是环面（YZ平面）的下方
+    // 简化：让环在XZ平面（地面在Y的负方向）
+    // 那么环需要绕Z轴旋转Math.PI/2
+    building.position.set(y, -tubeRadius * 0.7 + h / 2, z);
+    building.rotation.y = -angle;
+    group.add(building);
+    
+    // 建筑窗户
+    const winCount = Math.floor(h * 1.5);
+    for (let j = 0; j < winCount; j++) {
+      const winGeo = new THREE.PlaneGeometry(0.25, 0.15);
+      const winMat = new THREE.MeshBasicMaterial({
+        color: 0xffd88a, transparent: true,
+        opacity: 0.7 + Math.random() * 0.3
+      });
+      const win = new THREE.Mesh(winGeo, winMat);
+      // 窗户在建筑外侧面（径向外）
+      const wy = y + (j - winCount/2) * 0.3;
+      win.position.set(
+        y + Math.cos(angle) * (w / 2 + 0.01),
+        -tubeRadius * 0.7 + j * 0.3 + 0.2,
+        z + Math.sin(angle) * (w / 2 + 0.01)
+      );
+      win.position.x = y + Math.cos(angle) * (w / 2 + 0.05);
+      win.position.z = z + Math.sin(angle) * (w / 2 + 0.05);
+      win.position.y = -tubeRadius * 0.7 + (j % 3) * 0.4 + 0.3;
+      win.lookAt(win.position.x * 2, win.position.y, win.position.z * 2);
+      group.add(win);
+    }
+  }
+  
+  // 路径
+  const pathGeo = new THREE.TorusGeometry(radius - tubeRadius * 0.6, 0.6, 8, 64);
+  const pathMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2030, metalness: 0.3, roughness: 0.8
+  });
+  const path = new THREE.Mesh(pathGeo, pathMat);
+  path.rotation.x = Math.PI / 2;
+  path.position.y = -tubeRadius * 0.85;
+  group.add(path);
+  
+  // 灯柱
+  for (let i = 0; i < 16; i++) {
+    const angle = (i / 16) * Math.PI * 2;
+    const y = Math.cos(angle) * (radius - tubeRadius * 0.6);
+    const z = Math.sin(angle) * (radius - tubeRadius * 0.6);
+    
+    const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 4, 8);
+    const poleMat = new THREE.MeshStandardMaterial({
+      color: 0x4a5560, metalness: 0.7, roughness: 0.4
+    });
+    const pole = new THREE.Mesh(poleGeo, poleMat);
+    pole.position.set(y, -tubeRadius * 0.85 + 2, z);
+    group.add(pole);
+    
+    const lampGeo = new THREE.SphereGeometry(0.35, 12, 12);
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0xffd88a });
+    const lamp = new THREE.Mesh(lampGeo, lampMat);
+    lamp.position.set(y, -tubeRadius * 0.85 + 4.2, z);
+    group.add(lamp);
+    
+    const lt = new THREE.PointLight(0xffd88a, 0.5, 10);
+    lt.position.copy(lamp.position);
+    group.add(lt);
+  }
+  
+  // 远端"天空"（环对面）
+  const skyGeo = new THREE.TorusGeometry(radius, tubeRadius * 0.8, 16, 64);
+  const skyMat = new THREE.MeshBasicMaterial({
+    color: accentColor, transparent: true, opacity: 0.06,
+    side: THREE.BackSide
+  });
+  const sky = new THREE.Mesh(skyGeo, skyMat);
+  sky.rotation.x = Math.PI / 2;
+  group.add(sky);
+  
+  // 树木（仅外环）
+  if (isOuter) {
+    for (let i = 0; i < 25; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = radius - tubeRadius * 0.3 - Math.random() * tubeRadius * 0.4;
+      const y = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
+      
+      const trunkGeo = new THREE.CylinderGeometry(0.15, 0.2, 1.5, 6);
+      const trunkMat = new THREE.MeshStandardMaterial({
+        color: 0x4a3a2a, metalness: 0.1, roughness: 0.9
+      });
+      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+      trunk.position.set(y, -tubeRadius * 0.85 + 0.75, z);
+      group.add(trunk);
+      
+      const leavesGeo = new THREE.ConeGeometry(0.8, 2, 8);
+      const leavesMat = new THREE.MeshStandardMaterial({
+        color: 0x2a5a3a, metalness: 0.1, roughness: 0.8
+      });
+      const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+      leaves.position.set(y, -tubeRadius * 0.85 + 2.2, z);
+      group.add(leaves);
+    }
+  }
+}
+
+function buildAxisInterior(group) {
+  // 长走廊
+  const tubeGeo = new THREE.CylinderGeometry(6, 6, 70, 32, 1, true);
+  const tubeMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2030, side: THREE.BackSide,
+    metalness: 0.5, roughness: 0.5
+  });
+  const tube = new THREE.Mesh(tubeGeo, tubeMat);
+  tube.rotation.z = Math.PI / 2;
+  group.add(tube);
+  
+  // 主光
+  const mainLight = new THREE.PointLight(0x5feec5, 0.8, 40);
+  mainLight.position.set(0, 0, 0);
+  group.add(mainLight);
+  
+  // 环形装饰
+  for (let i = -6; i <= 6; i++) {
+    const ringGeo = new THREE.TorusGeometry(5.5, 0.15, 8, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x5feec5, transparent: true, opacity: 0.55
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.y = Math.PI / 2;
+    ring.position.x = i * 5;
+    group.add(ring);
+  }
+  
+  // 顶灯
+  for (let i = -6; i <= 6; i++) {
+    const lampGeo = new THREE.SphereGeometry(0.25, 8, 8);
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0xffd88a });
+    const lamp = new THREE.Mesh(lampGeo, lampMat);
+    lamp.position.set(i * 5, 5, 0);
+    group.add(lamp);
+    
+    const lt = new THREE.PointLight(0xffd88a, 0.4, 15);
+    lt.position.copy(lamp.position);
+    group.add(lt);
+  }
+  
+  // 管道
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const pipeGeo = new THREE.CylinderGeometry(0.25, 0.25, 70, 8);
+    const pipeMat = new THREE.MeshStandardMaterial({
+      color: 0x3a4858, metalness: 0.7, roughness: 0.5
+    });
+    const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+    pipe.rotation.z = Math.PI / 2;
+    pipe.position.set(0, Math.cos(angle) * 5, Math.sin(angle) * 5);
+    group.add(pipe);
+  }
+  
+  // 漂浮的货物箱
+  for (let i = 0; i < 25; i++) {
+    const size = 0.3 + Math.random() * 0.5;
+    const boxGeo = new THREE.BoxGeometry(size, size, size);
+    const boxMat = new THREE.MeshStandardMaterial({
+      color: 0x4a5560, metalness: 0.6, roughness: 0.4
+    });
+    const box = new THREE.Mesh(boxGeo, boxMat);
+    box.position.set(
+      (Math.random() - 0.5) * 60,
+      (Math.random() - 0.5) * 4,
+      (Math.random() - 0.5) * 4
+    );
+    box.userData.isFloating = true;
+    box.userData.floatSpeed = (Math.random() - 0.5) * 0.3;
+    box.userData.rotSpeed = (Math.random() - 0.5) * 0.5;
+    box.userData.startPos = box.position.clone();
+    group.add(box);
+  }
+  
+  // 通道接口
+  for (let i = -2; i <= 2; i++) {
+    if (i === 0) continue;
+    const portalGeo = new THREE.TorusGeometry(3, 0.4, 8, 24);
+    const portalMat = new THREE.MeshBasicMaterial({
+      color: 0x5feec5, transparent: true, opacity: 0.5
+    });
+    const portal = new THREE.Mesh(portalGeo, portalMat);
+    portal.rotation.y = Math.PI / 2;
+    portal.position.x = i * 15;
+    group.add(portal);
+    
+    // 通道内部
+    const tunnelGeo = new THREE.CylinderGeometry(2.8, 2.8, 0.5, 24);
+    const tunnelMat = new THREE.MeshBasicMaterial({
+      color: 0x000511, transparent: true, opacity: 0.7
+    });
+    const tunnel = new THREE.Mesh(tunnelGeo, tunnelMat);
+    tunnel.rotation.z = Math.PI / 2;
+    tunnel.position.x = i * 15;
+    group.add(tunnel);
+  }
+  
+  // 网格地面（仅作视觉参考）
+  const grid = new THREE.GridHelper(60, 30, 0x5feec5, 0x1a3a40);
+  grid.rotation.y = Math.PI / 2;
+  grid.position.y = -5.5;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.25;
+  group.add(grid);
+}
+
+function buildEngineInterior(group) {
+  // 引擎室 - 长走廊尽头是发光核心
+  const corridorGeo = new THREE.CylinderGeometry(8, 8, 55, 32, 1, true);
+  const corridorMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2030, side: THREE.BackSide,
+    metalness: 0.6, roughness: 0.4
+  });
+  const corridor = new THREE.Mesh(corridorGeo, corridorMat);
+  corridor.rotation.z = Math.PI / 2;
+  group.add(corridor);
+  
+  // 引擎核心
+  const coreGeo = new THREE.SphereGeometry(4, 32, 32);
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0x5feec5, transparent: true, opacity: 0.95
+  });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  core.position.x = -22;
+  core.userData.isCore = true;
+  group.add(core);
+  
+  // 核心光晕
+  for (let i = 1; i <= 3; i++) {
+    const haloGeo = new THREE.SphereGeometry(4 + i * 1.5, 32, 32);
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0x5feec5, transparent: true,
+      opacity: 0.3 / i, blending: THREE.AdditiveBlending
+    });
+    const halo = new THREE.Mesh(haloGeo, haloMat);
+    halo.position.x = -22;
+    halo.userData.isHalo = true;
+    halo.userData.layer = i;
+    group.add(halo);
+  }
+  
+  // 核心光源
+  const coreLight = new THREE.PointLight(0x5feec5, 3, 40);
+  coreLight.position.x = -22;
+  group.add(coreLight);
+  
+  // 走廊环
+  for (let i = -2; i <= 2; i++) {
+    const ringGeo = new THREE.TorusGeometry(7.5, 0.25, 8, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x5feec5, transparent: true, opacity: 0.65
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.y = Math.PI / 2;
+    ring.position.x = i * 10;
+    group.add(ring);
+  }
+  
+  // 管道
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const pipeGeo = new THREE.CylinderGeometry(0.4, 0.4, 50, 8);
+    const pipeMat = new THREE.MeshStandardMaterial({
+      color: 0x3a4858, metalness: 0.7, roughness: 0.5
+    });
+    const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+    pipe.rotation.z = Math.PI / 2;
+    pipe.position.set(0, Math.cos(angle) * 6.5, Math.sin(angle) * 6.5);
+    group.add(pipe);
+    
+    // 管道发光线
+    const lineGeo = new THREE.CylinderGeometry(0.05, 0.05, 50, 8);
+    const lineMat = new THREE.MeshBasicMaterial({
+      color: 0x5feec5, transparent: true, opacity: 0.6
+    });
+    const line = new THREE.Mesh(lineGeo, lineMat);
+    line.rotation.z = Math.PI / 2;
+    line.position.set(0, Math.cos(angle) * 6.5, Math.sin(angle) * 6.5);
+    line.position.x += Math.cos(angle) * 0.4;
+    line.position.y += Math.cos(angle) * 0.4;
+    line.position.z += Math.sin(angle) * 0.4;
+    line.userData.isEnergyLine = true;
+    group.add(line);
+  }
+  
+  // 控制台
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const consoleGeo = new THREE.BoxGeometry(2, 1.5, 1);
+    const consoleMat = new THREE.MeshStandardMaterial({
+      color: 0x2a3540, metalness: 0.6, roughness: 0.4
+    });
+    const console = new THREE.Mesh(consoleGeo, consoleMat);
+    console.position.set(15, Math.cos(angle) * 6, Math.sin(angle) * 6);
+    console.lookAt(0, console.position.y, 0);
+    group.add(console);
+    
+    // 屏幕
+    const screenGeo = new THREE.PlaneGeometry(1.5, 0.8);
+    const screenMat = new THREE.MeshBasicMaterial({
+      color: 0x5feec5, transparent: true, opacity: 0.85
+    });
+    const screen = new THREE.Mesh(screenGeo, screenMat);
+    screen.position.set(14.95, Math.cos(angle) * 6, Math.sin(angle) * 6);
+    screen.lookAt(0, screen.position.y, 0);
+    group.add(screen);
+  }
+  
+  // 地板网格
+  const grid = new THREE.GridHelper(40, 20, 0x5feec5, 0x1a3a40);
+  grid.rotation.y = Math.PI / 2;
+  grid.position.y = -7.5;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.3;
+  group.add(grid);
+  
+  // 顶灯
+  for (let i = 0; i < 6; i++) {
+    const lampGeo = new THREE.SphereGeometry(0.2, 8, 8);
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0xffd88a });
+    const lamp = new THREE.Mesh(lampGeo, lampMat);
+    lamp.position.set(i * 8 - 16, 7, 0);
+    group.add(lamp);
+    
+    const lt = new THREE.PointLight(0xffd88a, 0.3, 12);
+    lt.position.copy(lamp.position);
+    group.add(lt);
+  }
+}
+
+function buildShieldInterior(group) {
+  // 半球形房间
+  const domeGeo = new THREE.SphereGeometry(16, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+  const domeMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2530, side: THREE.BackSide,
+    metalness: 0.5, roughness: 0.5
+  });
+  group.add(new THREE.Mesh(domeGeo, domeMat));
+  
+  // 主光
+  const mainLight = new THREE.PointLight(0xff4466, 0.7, 25);
+  mainLight.position.set(0, 8, 0);
+  group.add(mainLight);
+  
+  // 地板
+  const floorGeo = new THREE.CircleGeometry(16, 32);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x0a1520, metalness: 0.5, roughness: 0.7
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  group.add(floor);
+  
+  // 中央控制台
+  const consoleGeo = new THREE.CylinderGeometry(1.5, 2, 1.2, 16);
+  const consoleMat = new THREE.MeshStandardMaterial({
+    color: 0x2a3540, metalness: 0.7, roughness: 0.3,
+    emissive: 0xff4466, emissiveIntensity: 0.15
+  });
+  group.add(new THREE.Mesh(consoleGeo, consoleMat));
+  
+  // 防护盾全息显示
+  const displayGeo = new THREE.SphereGeometry(4, 32, 16);
+  const displayMat = new THREE.MeshBasicMaterial({
+    color: 0xff4466, transparent: true, opacity: 0.18,
+    blending: THREE.AdditiveBlending, wireframe: true
+  });
+  const display = new THREE.Mesh(displayGeo, displayMat);
+  display.position.y = 4;
+  display.userData.isShieldDisplay = true;
+  group.add(display);
+  
+  // 全息光环
+  const ring1Geo = new THREE.TorusGeometry(4, 0.1, 8, 32);
+  const ring1Mat = new THREE.MeshBasicMaterial({
+    color: 0xff4466, transparent: true, opacity: 0.5
+  });
+  const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
+  ring1.position.y = 4;
+  ring1.userData.isShieldRing = true;
+  ring1.userData.axis = 'x';
+  group.add(ring1);
+  
+  const ring2 = ring1.clone();
+  ring2.material = ring1.material.clone();
+  ring2.userData.axis = 'y';
+  group.add(ring2);
+  
+  const ring3 = ring1.clone();
+  ring3.material = ring1.material.clone();
+  ring3.userData.axis = 'z';
+  group.add(ring3);
+  
+  // 工作站
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const stationGeo = new THREE.BoxGeometry(1.8, 1, 1);
+    const stationMat = new THREE.MeshStandardMaterial({
+      color: 0x1a2530, metalness: 0.6, roughness: 0.4
+    });
+    const station = new THREE.Mesh(stationGeo, stationMat);
+    station.position.set(Math.cos(angle) * 8, 0, Math.sin(angle) * 8);
+    station.lookAt(0, 0, 0);
+    group.add(station);
+    
+    // 屏幕
+    const screenGeo = new THREE.PlaneGeometry(1.4, 0.6);
+    const screenMat = new THREE.MeshBasicMaterial({
+      color: 0xff4466, transparent: true, opacity: 0.85
+    });
+    const screen = new THREE.Mesh(screenGeo, screenMat);
+    screen.position.set(Math.cos(angle) * 7.95, 0.5, Math.sin(angle) * 7.95);
+    screen.lookAt(0, 0.5, 0);
+    group.add(screen);
+  }
+  
+  // 网格
+  const grid = new THREE.GridHelper(32, 16, 0xff4466, 0x3a2030);
+  grid.material.transparent = true;
+  grid.material.opacity = 0.3;
+  group.add(grid);
+  
+  // 顶部传感器指示
+  const indicatorGeo = new THREE.SphereGeometry(0.4, 12, 12);
+  const indicatorMat = new THREE.MeshBasicMaterial({ color: 0xff4466 });
+  const indicator = new THREE.Mesh(indicatorGeo, indicatorMat);
+  indicator.position.y = 14;
+  indicator.userData.isIndicator = true;
+  group.add(indicator);
+  
+  // 顶灯
+  for (let i = 0; i < 4; i++) {
+    const angle = i * Math.PI / 2 + Math.PI / 4;
+    const lampGeo = new THREE.SphereGeometry(0.2, 8, 8);
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0xffd88a });
+    const lamp = new THREE.Mesh(lampGeo, lampMat);
+    lamp.position.set(Math.cos(angle) * 10, 12, Math.sin(angle) * 10);
+    group.add(lamp);
+    
+    const lt = new THREE.PointLight(0xffd88a, 0.3, 10);
+    lt.position.copy(lamp.position);
+    group.add(lt);
+  }
+}
+
+// === UI 设置 ===
+function setupUI() {
+  document.getElementById('btnExterior').addEventListener('click', () => switchMode('exterior'));
+  document.getElementById('btnInterior').addEventListener('click', () => switchMode('interior'));
+  document.getElementById('btnRotate').addEventListener('click', toggleAutoRotate);
+  document.getElementById('btnReset').addEventListener('click', resetView);
+  
+  document.querySelectorAll('.room-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.room-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadInteriorRoom(btn.dataset.room);
+      const names = {
+        bridge: '指挥中枢', axis: '中央通道',
+        outerRing: '外环居住区', innerRing: '内环农业区',
+        engine: '引擎舱', shield: '防护盾舱'
+      };
+      showToast(`进入 ${names[btn.dataset.room]}`);
+    });
+  });
+}
+
+function switchMode(mode) {
+  if (currentMode === mode) return;
+  
+  const transition = document.getElementById('transition');
+  transition.classList.add('active');
+  
+  setTimeout(() => {
+    currentMode = mode;
+    document.getElementById('btnExterior').classList.toggle('active', mode === 'exterior');
+    document.getElementById('btnInterior').classList.toggle('active', mode === 'interior');
+    document.body.classList.toggle('interior', mode === 'interior');
+    
+    const vm = document.getElementById('viewMode');
+    vm.classList.add('show');
+    
+    if (mode === 'exterior') {
+      document.getElementById('viewModeText').textContent = '外观全景';
+      ship.visible = true;
+      interiorGroup.visible = false;
+      scene.fog = new THREE.FogExp2(0x000511, 0.0006);
+      camera.position.set(140, 60, 140);
+      controls.target.set(0, 0, 0);
+      controls.minDistance = 30;
+      controls.maxDistance = 600;
+      showToast('已切换至外观视图');
+    } else {
+      document.getElementById('viewModeText').textContent = '内部探索';
+      ship.visible = false;
+      interiorGroup.visible = true;
+      scene.fog = new THREE.FogExp2(0x050810, 0.018);
+      controls.minDistance = 1;
+      controls.maxDistance = 80;
+      document.querySelector('.room-item.active').click();
+      showToast('进入飞船内部 · 选择区域探索');
+    }
+    
+    controls.update();
+    
+    setTimeout(() => vm.classList.remove('show'), 2500);
+    setTimeout(() => transition.classList.remove('active'), 50);
+  }, 400);
+}
+
+function toggleAutoRotate() {
+  autoRotate = !autoRotate;
+  document.getElementById('btnRotate').classList.toggle('active', autoRotate);
+  showToast(autoRotate ? '自动旋转已开启' : '自动旋转已关闭');
+}
+
+function resetView() {
+  if (currentMode === 'exterior') {
+    camera.position.set(140, 60, 140);
+    controls.target.set(0, 0, 0);
+  } else {
+    document.querySelector('.room-item.active').click();
+  }
+  controls.update();
+  showToast('视角已复位');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// === 动画循环 ===
+function animate() {
+  requestAnimationFrame(animate);
+  
+  const delta = Math.min(clock.getDelta(), 0.1);
+  const elapsed = clock.getElapsedTime();
+  
+  // 飞船动画
+  if (ship && ship.visible) {
+    // 整体缓慢旋转
+    if (autoRotate) {
+      ship.rotation.y += delta * 0.06;
+    }
+    
+    // 环旋转（人造重力）
+    const rotatingPart = ship.getObjectByName('rotatingPart');
+    if (rotatingPart) {
+      rotatingPart.rotation.x += delta * 0.12;
+    }
+    
+    // 推进器尾焰动画
+    ship.traverse(obj => {
+      if (obj.userData.isFlame) {
+        const layer = obj.userData.layer || 0;
+        const scale = 0.85 + Math.sin(elapsed * 8 + layer) * 0.15;
+        obj.scale.set(scale, scale, 1);
+        if (obj.material) {
+          obj.material.opacity = (layer === 0 ? 0.55 : layer === 1 ? 0.7 : 0.85) 
+            + Math.sin(elapsed * 5 + layer) * 0.1;
+        }
+      }
+      if (obj.userData.isBlinker) {
+        const phase = obj.userData.blinkPhase || 0;
+        obj.visible = Math.sin(elapsed * 1.5 + phase) > -0.3;
+      }
+      if (obj.userData.isSensor) {
+        const scale = 1 + Math.sin(elapsed * 3) * 0.1;
+        obj.scale.set(scale, scale, scale);
+      }
+      if (obj.userData.isHalo) {
+        obj.rotation.x += delta * 0.5;
+      }
+      if (obj.userData.isShieldField) {
+        obj.material.opacity = 0.1 + Math.sin(elapsed * 1.5) * 0.04;
+      }
+    });
+  }
+  
+  // 内部场景动画
+  if (interiorGroup && interiorGroup.visible) {
+    interiorGroup.traverse(obj => {
+      if (obj.userData.isHolo) {
+        obj.rotation.y += delta * 0.4;
+        obj.material.opacity = 0.3 + Math.sin(elapsed * 2) * 0.05;
+      }
+      if (obj.userData.isHoloObj) {
+        obj.rotation.y += delta * 0.5;
+        obj.rotation.x += delta * 0.2;
+      }
+      if (obj.userData.isCore) {
+        const scale = 1 + Math.sin(elapsed * 3) * 0.06;
+        obj.scale.set(scale, scale, scale);
+      }
+      if (obj.userData.isHalo && obj.userData.layer) {
+        const scale = 1 + Math.sin(elapsed * 2 + obj.userData.layer) * 0.08;
+        obj.scale.set(scale, scale, scale);
+      }
+      if (obj.userData.isFloating && obj.userData.startPos) {
+        const t = elapsed * obj.userData.floatSpeed;
+        obj.position.x = obj.userData.startPos.x + Math.sin(t) * 0.5;
+        obj.position.y = obj.userData.startPos.y + Math.cos(t * 0.7) * 0.5;
+        obj.position.z = obj.userData.startPos.z + Math.sin(t * 1.3) * 0.3;
+        obj.rotation.x += delta * obj.userData.rotSpeed;
+        obj.rotation.y += delta * obj.userData.rotSpeed * 0.7;
+      }
+      if (obj.userData.isShieldDisplay) {
+        obj.rotation.y += delta * 0.4;
+        obj.rotation.x += delta * 0.2;
+      }
+      if (obj.userData.isShieldRing) {
+        if (obj.userData.axis === 'x') obj.rotation.x += delta * 0.6;
+        if (obj.userData.axis === 'y') obj.rotation.y += delta * 0.6;
+        if (obj.userData.axis === 'z') obj.rotation.z += delta * 0.6;
+      }
+      if (obj.userData.isSun) {
+        const scale = 1 + Math.sin(elapsed * 1.5) * 0.05;
+        obj.scale.set(scale, scale, scale);
+      }
+      if (obj.userData.isSunHalo) {
+        const scale = 1 + Math.sin(elapsed * 2) * 0.15;
+        obj.scale.set(scale, scale, scale);
+        obj.material.opacity = 0.3 + Math.sin(elapsed * 2) * 0.1;
+      }
+      if (obj.userData.isEnergyLine) {
+        obj.material.opacity = 0.4 + Math.sin(elapsed * 4 + obj.position.x) * 0.3;
+      }
+      if (obj.userData.isIndicator) {
+        obj.visible = Math.sin(elapsed * 2) > 0;
+      }
+    });
+  }
+  
+  // 星空缓慢移动
+  if (starField) {
+    starField.rotation.y += delta * 0.003;
+    starField.rotation.x += delta * 0.001;
+  }
+  
+  controls.update();
+  
+  // 渲染
+  composer.render();
+  
+  // 更新HUD
+  updateHUD();
+}
+
+function updateHUD() {
+  const elapsed = (Date.now() - startTime) / 1000;
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = Math.floor(elapsed % 60);
+  document.getElementById('mtime').textContent = 
+    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const dist = (elapsed * 0.013).toFixed(3);
+  document.getElementById('mdist').textContent = `${dist} AU`;
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// === 启动 ===
+init();
+animate();
+</script>
+</body>
+</html>

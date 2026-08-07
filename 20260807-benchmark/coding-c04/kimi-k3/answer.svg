@@ -1,0 +1,264 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-labelledby="t d" style="max-width:100%;height:auto;background:#DFF4FD">
+  <title id="t">长颈鹿开小汽车</title>
+  <desc id="d">A giraffe driving a tiny red car. Wheels spin, the road scrolls, trees pass by, the giraffe's long neck sways, its scarf flutters, and the exhaust puffs smoke.</desc>
+
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7CC6FA"/><stop offset="1" stop-color="#DFF4FD"/>
+    </linearGradient>
+    <radialGradient id="sunG" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFE27A"/><stop offset="1" stop-color="#FFC93B"/>
+    </radialGradient>
+    <linearGradient id="carG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF7A66"/><stop offset="1" stop-color="#E23B2E"/>
+    </linearGradient>
+
+    <g id="tree">
+      <rect x="-6" y="-38" width="12" height="38" rx="4" fill="#8B5A2B"/>
+      <circle cx="-19" cy="-50" r="16" fill="#63B45F"/>
+      <circle cx="19" cy="-48" r="16" fill="#63B45F"/>
+      <circle cx="0" cy="-64" r="23" fill="#6FC46B"/>
+      <circle cx="-6" cy="-70" r="9" fill="#86D383" opacity=".8"/>
+    </g>
+    <g id="bush">
+      <ellipse cx="0" cy="-12" rx="24" ry="14" fill="#6CBF6C"/>
+      <ellipse cx="-8" cy="-16" rx="8" ry="5" fill="#86D383" opacity=".8"/>
+    </g>
+    <g id="tuftA">
+      <path d="M0,0 C1,-6 3,-8 4,-11 M5,0 C6,-5 9,-8 11,-10 M9,0 C10,-4 12,-6 14,-8"
+            stroke="#4E9A3F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </g>
+    <g id="tuftB">
+      <use href="#tuftA"/>
+      <circle cx="6" cy="-13" r="3" fill="#fff"/><circle cx="6" cy="-13" r="1.2" fill="#FFC93B"/>
+    </g>
+
+    <g id="trees800">
+      <use href="#tree" transform="translate(115,434)"/>
+      <use href="#bush" transform="translate(225,437)"/>
+      <use href="#tree" transform="translate(345,436) scale(1.35)"/>
+      <use href="#bush" transform="translate(480,437) scale(1.15)"/>
+      <use href="#tree" transform="translate(610,434) scale(.9)"/>
+      <use href="#bush" transform="translate(725,437) scale(.9)"/>
+    </g>
+  </defs>
+
+  <style>
+    .bob{animation:bob .5s ease-in-out infinite}
+    .spin{animation:spin .7s linear infinite;transform-box:fill-box;transform-origin:center}
+    .sway{animation:sway 2.8s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+    .headbob{animation:headbob 2.2s ease-in-out infinite}
+    .eye{animation:blink 4.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+    .twitch{animation:eartwitch 3.8s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 100%}
+    .tailwag{animation:tailwag 1.15s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 100%}
+    .puff{animation:puff 1.9s ease-out infinite;opacity:0}
+    .p2{animation-delay:.65s}.p3{animation-delay:1.3s}
+    .dashes{animation:dashmove .6s linear infinite}
+    .treeloop{animation:treeloop 9s linear infinite}
+    .tuftloop{animation:tuftloop 1.12s linear infinite}
+    .drift{animation:drift linear infinite}
+    .c1{animation-duration:44s}.c2{animation-duration:60s;animation-delay:-25s}.c3{animation-duration:52s;animation-delay:-40s}
+    .sunrays{animation:sunspin 55s linear infinite;transform-box:fill-box;transform-origin:center}
+    .speed{animation:speedline .55s linear infinite}
+    .s2{animation-delay:.18s}.s3{animation-delay:.36s}
+
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3.5px)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2.5deg)}}
+    @keyframes headbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    @keyframes blink{0%,92%,96%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
+    @keyframes eartwitch{0%,52%,64%,100%{transform:rotate(0)}56%,60%{transform:rotate(-14deg)}}
+    @keyframes tailwag{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(11deg)}}
+    @keyframes puff{0%{transform:translate(0,0) scale(.45);opacity:.55}70%{opacity:.35}100%{transform:translate(-72px,-36px) scale(1.7);opacity:0}}
+    @keyframes dashmove{to{stroke-dashoffset:-86px}}
+    @keyframes treeloop{to{transform:translateX(-800px)}}
+    @keyframes tuftloop{to{transform:translateX(-160px)}}
+    @keyframes drift{from{transform:translateX(-340px)}to{transform:translateX(880px)}}
+    @keyframes sunspin{to{transform:rotate(360deg)}}
+    @keyframes speedline{0%{transform:translateX(26px);opacity:0}30%{opacity:.45}100%{transform:translateX(-52px);opacity:0}}
+
+    @media (prefers-reduced-motion:reduce){
+      .bob,.spin,.sway,.headbob,.eye,.twitch,.tailwag,.puff,.dashes,.treeloop,.tuftloop,.drift,.sunrays,.speed{animation:none!important}
+    }
+  </style>
+
+  <!-- ===== 背景 ===== -->
+  <rect width="800" height="500" fill="url(#sky)"/>
+
+  <g class="sunrays" stroke="#FFD93B" stroke-width="5" stroke-linecap="round" opacity=".85">
+    <line x1="678" y1="34" x2="678" y2="22"/>
+    <line x1="678" y1="34" x2="678" y2="22" transform="rotate(45 678 78)"/>
+    <line x1="678" y1="34" x2="678" y2="22" transform="rotate(90 678 78)"/>
+    <line x1="678" y1="34" x2="678" y2="22" transform="rotate(135 678 78)"/>
+    <line x1="678" y1="34" x2="678" y2="22" transform="rotate(180 678 78)"/>
+    <line x1="678" y1="34" x2="678" y2="22" transform="rotate(225 678 78)"/>
+    <line x1="678" y1="34" x2="678" y2="22" transform="rotate(270 678 78)"/>
+    <line x1="678" y1="34" x2="678" y2="22" transform="rotate(315 678 78)"/>
+  </g>
+  <circle cx="678" cy="78" r="36" fill="url(#sunG)"/>
+
+  <g transform="translate(140,86)"><g class="drift c1" fill="#fff" opacity=".95">
+    <ellipse rx="34" ry="20"/><ellipse cx="26" cy="-10" rx="26" ry="17"/>
+    <ellipse cx="-28" cy="-6" rx="22" ry="14"/><ellipse cx="-2" cy="-16" rx="20" ry="13"/>
+  </g></g>
+  <g transform="translate(430,58) scale(.8)"><g class="drift c2" fill="#fff" opacity=".9">
+    <ellipse rx="34" ry="20"/><ellipse cx="26" cy="-10" rx="26" ry="17"/>
+    <ellipse cx="-28" cy="-6" rx="22" ry="14"/><ellipse cx="-2" cy="-16" rx="20" ry="13"/>
+  </g></g>
+  <g transform="translate(620,122) scale(.62)"><g class="drift c3" fill="#fff" opacity=".9">
+    <ellipse rx="34" ry="20"/><ellipse cx="26" cy="-10" rx="26" ry="17"/>
+    <ellipse cx="-28" cy="-6" rx="22" ry="14"/><ellipse cx="-2" cy="-16" rx="20" ry="13"/>
+  </g></g>
+
+  <path d="M0,432 C90,396 210,394 300,430 C400,404 520,402 620,428 C690,410 760,412 800,424 L800,432 Z" fill="#B9E2A8"/>
+  <path d="M0,432 C110,388 230,388 330,428 C420,396 560,392 660,426 C725,404 775,410 800,420 L800,432 Z" fill="#9CD387"/>
+
+  <g class="treeloop"><use href="#trees800"/><use href="#trees800" x="800"/></g>
+
+  <rect y="430" width="800" height="70" fill="#8AD060"/>
+  <rect y="430" width="800" height="8" fill="#79C257"/>
+  <rect y="445" width="800" height="50" fill="#6E6E6E"/>
+  <line x1="0" y1="446" x2="800" y2="446" stroke="#5A5A5A" stroke-width="4"/>
+  <line x1="0" y1="493" x2="800" y2="493" stroke="#585858" stroke-width="3"/>
+  <line class="dashes" x1="-120" y1="470" x2="900" y2="470" stroke="#FFD54F" stroke-width="6" stroke-dasharray="46 40"/>
+
+  <g class="tuftloop">
+    <use href="#tuftA" transform="translate(-130,444)"/><use href="#tuftA" transform="translate(30,444)"/>
+    <use href="#tuftA" transform="translate(190,444)"/><use href="#tuftA" transform="translate(350,444)"/>
+    <use href="#tuftA" transform="translate(510,444)"/><use href="#tuftA" transform="translate(670,444)"/>
+    <use href="#tuftA" transform="translate(830,444)"/>
+    <use href="#tuftB" transform="translate(-60,445)"/><use href="#tuftB" transform="translate(100,445)"/>
+    <use href="#tuftB" transform="translate(260,445)"/><use href="#tuftB" transform="translate(420,445)"/>
+    <use href="#tuftB" transform="translate(580,445)"/><use href="#tuftB" transform="translate(740,445)"/>
+    <use href="#tuftB" transform="translate(900,445)"/>
+  </g>
+
+  <!-- 速度线 -->
+  <g stroke="#fff" stroke-linecap="round">
+    <line class="speed"    x1="200" y1="350" x2="234" y2="350" stroke-width="5"/>
+    <line class="speed s2" x1="182" y1="374" x2="222" y2="374" stroke-width="4"/>
+    <line class="speed s3" x1="206" y1="396" x2="240" y2="396" stroke-width="4"/>
+  </g>
+
+  <!-- 尾气 -->
+  <g fill="#D8D8D8">
+    <circle class="puff"    cx="236" cy="370" r="6"/>
+    <circle class="puff p2" cx="238" cy="372" r="7"/>
+    <circle class="puff p3" cx="234" cy="369" r="5.5"/>
+  </g>
+
+  <!-- ===== 车 + 长颈鹿 ===== -->
+  <!-- 车轮（不随车身颠簸，贴地滚动） -->
+  <g>
+    <g transform="translate(315,415)">
+      <circle r="30" fill="#3A3A3A" stroke="#262626" stroke-width="4"/>
+      <g class="spin">
+        <circle r="18.5" fill="#EEEEEE" stroke="#BBBBBB" stroke-width="2"/>
+        <path d="M0,-18 V18 M-18,0 H18 M-12.7,-12.7 L12.7,12.7 M-12.7,12.7 L12.7,-12.7" stroke="#999" stroke-width="4"/>
+        <circle r="5" fill="#666"/><circle cx="24" r="4" fill="#555"/>
+      </g>
+    </g>
+    <g transform="translate(470,415)">
+      <circle r="30" fill="#3A3A3A" stroke="#262626" stroke-width="4"/>
+      <g class="spin">
+        <circle r="18.5" fill="#EEEEEE" stroke="#BBBBBB" stroke-width="2"/>
+        <path d="M0,-18 V18 M-18,0 H18 M-12.7,-12.7 L12.7,12.7 M-12.7,12.7 L12.7,-12.7" stroke="#999" stroke-width="4"/>
+        <circle r="5" fill="#666"/><circle cx="24" r="4" fill="#555"/>
+      </g>
+    </g>
+  </g>
+
+  <g class="bob">
+    <!-- 车身（带座舱开口与轮拱） -->
+    <path fill="url(#carG)" stroke="#B03024" stroke-width="3" stroke-linejoin="round"
+      d="M268,402 L282,402 A33,33 0 0 1 348,402 L437,402 A33,33 0 0 1 503,402 L510,402
+         Q522,402 522,390 L522,358 Q522,342 506,342 L452,344 Q444,366 424,368 L352,368
+         Q330,366 322,344 L272,342 Q258,342 258,354 L258,390 Q258,402 268,402 Z"/>
+    <ellipse cx="386" cy="359" rx="56" ry="10" fill="#3A1F1C"/>
+    <rect x="324" y="290" width="30" height="74" rx="12" fill="#8C2F2F" stroke="#6F2323" stroke-width="2"/>
+
+    <!-- 长颈鹿 -->
+    <g class="tailwag">
+      <path d="M340,296 Q324,282 318,266" stroke="#F4B942" stroke-width="7" stroke-linecap="round" fill="none"/>
+      <circle cx="317" cy="263" r="6" fill="#6B4423"/>
+    </g>
+
+    <ellipse cx="375" cy="322" rx="42" ry="44" fill="#F4B942" stroke="#D89A33" stroke-width="2.5"/>
+    <g fill="#9C6B30">
+      <ellipse cx="352" cy="302" rx="8" ry="6" transform="rotate(-8 352 302)"/>
+      <ellipse cx="396" cy="288" rx="7" ry="5.5" transform="rotate(12 396 288)"/>
+      <ellipse cx="368" cy="340" rx="8" ry="6"/>
+      <ellipse cx="404" cy="318" rx="6" ry="4.5"/>
+      <ellipse cx="342" cy="330" rx="5.5" ry="4.5"/>
+    </g>
+
+    <g class="sway">
+      <path d="M350,282 Q342,205 354,142" stroke="#6B4423" stroke-width="7" stroke-linecap="round" fill="none"/>
+      <path d="M368,285 Q360,205 372,142" stroke="#F4B942" stroke-width="34" stroke-linecap="round" fill="none"/>
+      <g fill="#9C6B30">
+        <ellipse cx="364" cy="258" rx="7" ry="5.5" transform="rotate(-10 364 258)"/>
+        <ellipse cx="373" cy="232" rx="6" ry="5" transform="rotate(15 373 232)"/>
+        <ellipse cx="361" cy="206" rx="6.5" ry="5"/>
+        <ellipse cx="371" cy="180" rx="6" ry="4.5" transform="rotate(-12 371 180)"/>
+        <ellipse cx="363" cy="158" rx="5" ry="4"/>
+      </g>
+
+      <!-- 围巾（SMIL 摆动） -->
+      <path fill="#2E9DB0" stroke="#1F7A8A" stroke-width="2"
+        d="M352,246 C328,236 304,250 280,241 L283,259 C307,268 330,254 352,262 Z">
+        <animate attributeName="d" dur="0.75s" repeatCount="indefinite"
+          values="M352,246 C328,236 304,250 280,241 L283,259 C307,268 330,254 352,262 Z;
+                  M352,246 C328,255 306,238 282,250 L285,266 C308,257 330,270 352,262 Z;
+                  M352,246 C328,236 304,250 280,241 L283,259 C307,268 330,254 352,262 Z"/>
+      </path>
+      <ellipse cx="365" cy="250" rx="19" ry="7" fill="#2E9DB0" stroke="#1F7A8A" stroke-width="2" transform="rotate(-3 365 250)"/>
+      <circle cx="352" cy="254" r="6.5" fill="#1F7A8A"/>
+
+      <!-- 头 -->
+      <g class="headbob">
+        <ellipse cx="356" cy="86" rx="8" ry="4.5" fill="#E0A53B" transform="rotate(-35 356 86)"/>
+        <line x1="375" y1="94" x2="372" y2="75" stroke="#F4B942" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="371.5" cy="72.5" r="5" fill="#6B4423"/>
+        <line x1="389" y1="93" x2="391" y2="74" stroke="#F4B942" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="391.5" cy="71.5" r="5" fill="#6B4423"/>
+        <ellipse cx="382" cy="110" rx="23" ry="19" fill="#F4B942" stroke="#D89A33" stroke-width="2.5"/>
+        <g fill="#9C6B30">
+          <ellipse cx="370" cy="116" rx="5" ry="4"/>
+          <ellipse cx="393" cy="98" rx="4" ry="3.5"/>
+        </g>
+        <rect x="390" y="101" width="40" height="22" rx="11" fill="#FCE9C8"/>
+        <ellipse cx="419" cy="107" rx="2.5" ry="3.5" fill="#6B4423"/>
+        <path d="M398,117 Q409,123 420,116.5" stroke="#A8763E" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <circle cx="402" cy="113" r="3.5" fill="#F2A69A" opacity=".5"/>
+        <g class="eye">
+          <circle cx="384" cy="103" r="7" fill="#fff"/>
+          <circle cx="386" cy="104" r="3.4" fill="#33241A"/>
+          <circle cx="387.4" cy="102.6" r="1.3" fill="#fff"/>
+        </g>
+        <path d="M380,96 l-3,-3 M386,95 l-1,-4" stroke="#33241A" stroke-width="1.8" stroke-linecap="round"/>
+        <g class="twitch">
+          <ellipse cx="364" cy="90" rx="9" ry="5" fill="#F4B942" transform="rotate(-22 364 90)"/>
+          <ellipse cx="364" cy="90" rx="5" ry="2.6" fill="#F0A8A0" transform="rotate(-22 364 90)"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- 手臂 + 方向盘 -->
+    <path d="M396,298 Q412,308 428,310" stroke="#F4B942" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <line x1="452" y1="344" x2="438" y2="317" stroke="#666" stroke-width="6"/>
+    <circle cx="435" cy="313" r="13" fill="none" stroke="#3D3D3D" stroke-width="5"/>
+    <path d="M435,313 L435,301 M435,313 L424,319 M435,313 L446,319" stroke="#3D3D3D" stroke-width="3"/>
+    <circle cx="435" cy="313" r="3.5" fill="#3D3D3D"/>
+    <circle cx="431" cy="310" r="6.5" fill="#6B4423"/>
+
+    <!-- 挡风玻璃与车身细节 -->
+    <rect x="449" y="296" width="9" height="54" rx="4.5" fill="#CFEAFF" opacity=".8" stroke="#8FB8D8" stroke-width="2" transform="rotate(16 453 323)"/>
+    <rect x="352" y="372" width="88" height="24" rx="8" fill="none" stroke="#C0392B" stroke-width="2.5"/>
+    <rect x="398" y="376" width="16" height="5" rx="2.5" fill="#B03024"/>
+    <circle cx="514" cy="362" r="8" fill="#FFE9A8" stroke="#D8B25A" stroke-width="2"/>
+    <circle cx="259" cy="362" r="5" fill="#8A1F1F"/>
+    <rect x="514" y="392" width="20" height="10" rx="4" fill="#D9D9D9" stroke="#A9A9A9" stroke-width="2"/>
+    <rect x="246" y="392" width="20" height="10" rx="4" fill="#D9D9D9" stroke="#A9A9A9" stroke-width="2"/>
+    <rect x="240" y="366" width="18" height="9" rx="3" fill="#999" stroke="#777" stroke-width="2"/>
+  </g>
+</svg>

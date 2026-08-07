@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>《极光 Aurora》宇宙飞船交互模型</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body {
+      margin: 0;
+      overflow: hidden;
+      background: #02040a;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #eaf2ff;
+    }
+
+    #app {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #hud {
+      position: fixed;
+      left: 18px;
+      top: 18px;
+      z-index: 10;
+      padding: 14px 16px;
+      width: 340px;
+      background: rgba(5, 10, 22, 0.72);
+      border: 1px solid rgba(130, 180, 255, 0.35);
+      border-radius: 14px;
+      box-shadow: 0 0 30px rgba(55, 120, 255, 0.22);
+      backdrop-filter: blur(10px);
+      user-select: none;
+    }
+
+    #hud h1 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      letter-spacing: 0.04em;
+    }
+
+    #hud p {
+      margin: 6px 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #bfd1f7;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(130, 180, 255, 0.45);
+      background: rgba(20, 45, 90, 0.62);
+      color: #eaf2ff;
+      border-radius: 999px;
+      padding: 7px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: 0.18s;
+    }
+
+    button:hover {
+      background: rgba(50, 110, 210, 0.82);
+      box-shadow: 0 0 16px rgba(95, 160, 255, 0.4);
+    }
+
+    button.active {
+      background: rgba(75, 140, 255, 0.95);
+    }
+
+    #modeLabel {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(86, 150, 255, 0.18);
+      color: #9fc6ff;
+      font-size: 12px;
+    }
+
+    #tooltip {
+      position: fixed;
+      pointer-events: none;
+      display: none;
+      padding: 6px 9px;
+      background: rgba(5, 10, 20, 0.86);
+      color: #fff;
+      border: 1px solid rgba(140, 190, 255, 0.38);
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 20;
+      white-space: nowrap;
+    }
+
+    #credit {
+      position: fixed;
+      right: 16px;
+      bottom: 14px;
+      z-index: 10;
+      color: rgba(210, 225, 255, 0.58);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="hud">
+  <h1>《极光 Aurora》代际飞船模型</h1>
+  <p>
+    鼠标左键拖拽：360° 旋转查看；滚轮：缩放；右键拖拽：平移。
+    飞船外部包含中央主轴、双旋转生态环、推进器、防护盾与散热翼。
+  </p>
+  <div id="modeLabel">当前模式：外部深空航行</div>
+
+  <div class="btn-row">
+    <button id="exteriorBtn" class="active">外部视角</button>
+    <button id="interiorBtn">进入飞船内部</button>
+  </div>
+
+  <div class="btn-row">
+    <button data-focus="hub">中央枢纽</button>
+    <button data-focus="corridor">主廊道</button>
+    <button data-focus="farm">农业生态区</button>
+    <button data-focus="water">水域生态区</button>
+    <button data-focus="habitat">居住区</button>
+    <button data-focus="engine">工程/推进区</button>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<div id="credit">Three.js procedural model · Aurora-inspired starship</div>
+
+<script type="module">
+  import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+  import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+
+  const container = document.getElementById("app");
+  const tooltip = document.getElementById("tooltip");
+  const modeLabel = document.getElementById("modeLabel");
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x02040a, 0.012);
+
+  const camera = new THREE.PerspectiveCamera(
+    55,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    5000
+  );
+  camera.position.set(18, 11, 22);
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: false
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  container.appendChild(renderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.minDistance = 2;
+  controls.maxDistance = 120;
+  controls.target.set(0, 0, 0);
+
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  const interactiveObjects = [];
+
+  const clock = new THREE.Clock();
+
+  const exteriorGroup = new THREE.Group();
+  const interiorGroup = new THREE.Group();
+  scene.add(exteriorGroup);
+  scene.add(interiorGroup);
+
+  interiorGroup.visible = false;
+
+  // ---------- Materials ----------
+  const matHull = new THREE.MeshStandardMaterial({
+    color: 0x9fb2c9,
+    metalness: 0.78,
+    roughness: 0.28
+  });
+
+  const matDarkHull = new THREE.MeshStandardMaterial({
+    color: 0x394960,
+    metalness: 0.8,
+    roughness: 0.32
+  });
+
+  const matGlass = new THREE.MeshPhysicalMaterial({
+    color: 0x8fd8ff,
+    roughness: 0.08,
+    metalness: 0.1,
+    transmission: 0.35,
+    transparent: true,
+    opacity: 0.42,
+    clearcoat: 1
+  });
+
+  const matGlowBlue = new THREE.MeshBasicMaterial({
+    color: 0x4da3ff,
+    transparent: true,
+    opacity: 0.75
+  });
+
+  const matGlowOrange = new THREE.MeshBasicMaterial({
+    color: 0xff9b38,
+    transparent: true,
+    opacity: 0.78
+  });
+
+  const matPanel = new THREE.MeshStandardMaterial({
+    color: 0x192844,
+    metalness: 0.35,
+    roughness: 0.6,
+    side: THREE.DoubleSide
+  });
+
+  // ---------- Lighting ----------
+  const ambient = new THREE.AmbientLight(0x5d78a8, 0.48);
+  scene.add(ambient);
+
+  const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+  sun.position.set(40, 28, 18);
+  scene.add(sun);
+
+  const rim = new THREE.PointLight(0x3377ff, 3.0, 150);
+  rim.position.set(-28, -12, -20);
+  scene.add(rim);
+
+  // ---------- Utility ----------
+  function cylinderBetween(start, end, radius, material, radialSegments = 24) {
+    const dir = new THREE.Vector3().subVectors(end, start);
+    const len = dir.length();
+    const geom = new THREE.CylinderGeometry(radius, radius, len, radialSegments);
+    const mesh = new THREE.Mesh(geom, material);
+    const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+    mesh.position.copy(mid);
+    mesh.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      dir.clone().normalize()
+    );
+    return mesh;
+  }
+
+  function makeLabel(text, position, scale = 1.0) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(10,18,36,0.64)";
+    ctx.strokeStyle = "rgba(130,190,255,0.78)";
+    ctx.lineWidth = 4;
+    roundRect(ctx, 10, 18, 492, 92, 22);
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = "bold 38px system-ui";
+    ctx.fillStyle = "#eaf4ff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 256, 65);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(mat);
+    sprite.position.copy(position);
+    sprite.scale.set(3.8 * scale, 0.95 * scale, 1);
+    return sprite;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function registerInteractive(mesh, label) {
+    mesh.userData.label = label;
+    interactiveObjects.push(mesh);
+  }
+
+  // ---------- Star Field ----------
+  function createStars() {
+    const starCount = 4500;
+    const positions = new Float32Array(starCount * 3);
+    const colors = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      const r = THREE.MathUtils.randFloat(150, 1200);
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(THREE.MathUtils.randFloatSpread(2));
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = r * Math.cos(phi);
+
+      const c = new THREE.Color();
+      const t = Math.random();
+      if (t < 0.72) c.set(0xffffff);
+      else if (t < 0.88) c.set(0xa8c7ff);
+      else c.set(0xffd6a0);
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+    const mat = new THREE.PointsMaterial({
+      size: 1.3,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false
+    });
+
+    const stars = new THREE.Points(geom, mat);
+    scene.add(stars);
+    return stars;
+  }
+
+  const stars = createStars();
+
+  // ---------- Exterior Ship ----------
+  const rotatingRings = [];
+  const engineGlows = [];
+
+  function createExteriorShip() {
+    const ship = new THREE.Group();
+    exteriorGroup.add(ship);
+
+    // Central spine
+    const spine = cylinderBetween(
+      new THREE.Vector3(-9.8, 0, 0),
+      new THREE.Vector3(9.8, 0, 0),
+      0.42,
+      matHull,
+      48
+    );
+    registerInteractive(spine, "中央主轴：贯穿飞船的结构骨架与交通核心");
+    ship.add(spine);
+
+    // Layered spine shell
+    for (let x of [-7.5, -4.5, -1.5, 1.5, 4.5, 7.5]) {
+      const module = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.7, 0.7, 1.0, 32),
+        matDarkHull
+      );
+      module.rotation.z = Math.PI / 2;
+      module.position.x = x;
+      registerInteractive(module, "主轴舱段：控制、储藏、维护与生命保障节点");
+      ship.add(module);
+    }
+
+    // Two rotating ecological rings
+    createHabitatRing(ship, -3.0, "前生态环：多生物群落栖居与农业区域");
+    createHabitatRing(ship, 3.0, "后生态环：居住、生态循环与人工重力区域");
+
+    // Forward shield
+    const shield = new THREE.Mesh(
+      new THREE.ConeGeometry(2.75, 1.15, 96, 1, true),
+      new THREE.MeshStandardMaterial({
+        color: 0xc5d2df,
+        metalness: 0.82,
+        roughness: 0.22,
+        side: THREE.DoubleSide
+      })
+    );
+    shield.rotation.z = -Math.PI / 2;
+    shield.position.x = 10.75;
+    registerInteractive(shield, "前方防护盾：面向航行方向，抵御微陨石与星际尘埃");
+    ship.add(shield);
+
+    const shieldGlow = new THREE.Mesh(
+      new THREE.RingGeometry(2.0, 2.9, 96),
+      new THREE.MeshBasicMaterial({
+        color: 0x6fb6ff,
+        transparent: true,
+        opacity: 0.18,
+        side: THREE.DoubleSide
+      })
+    );
+    shieldGlow.rotation.y = Math.PI / 2;
+    shieldGlow.position.x = 10.68;
+    ship.add(shieldGlow);
+
+    // Rear engine block
+    const engineBlock = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.25, 1.65, 2.1, 48),
+      matDarkHull
+    );
+    engineBlock.rotation.z = Math.PI / 2;
+    engineBlock.position.x = -10.45;
+    registerInteractive(engineBlock, "后部推进区：深空航行主推进与反应质量系统");
+    ship.add(engineBlock);
+
+    for (let i = 0; i < 4; i++) {
+      const a = i / 4 * Math.PI * 2;
+      const y = Math.cos(a) * 0.74;
+      const z = Math.sin(a) * 0.74;
+
+      const nozzle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28, 0.43, 0.9, 32),
+        matHull
+      );
+      nozzle.rotation.z = Math.PI / 2;
+      nozzle.position.set(-11.55, y, z);
+      registerInteractive(nozzle, "推进喷口：带有蓝橙色等离子体尾焰");
+      ship.add(nozzle);
+
+      const glow = new THREE.Mesh(
+        new THREE.ConeGeometry(0.38, 2.2, 32, 1, true),
+        matGlowOrange
+      );
+      glow.rotation.z = Math.PI / 2;
+      glow.position.set(-12.55, y, z);
+      ship.add(glow);
+      engineGlows.push(glow);
+    }
+
+    // Radiators
+    for (let side of [-1, 1]) {
+      for (let i = 0; i < 4; i++) {
+        const panel = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 2.2, 4.4),
+          matPanel
+        );
+        panel.position.set(-6.5 + i * 1.4, side * 2.15, 0);
+        panel.rotation.x = side * 0.16;
+        registerInteractive(panel, "深空散热翼：排出生态环与推进系统产生的废热");
+        ship.add(panel);
+      }
+    }
+
+    // Communication arrays
+    for (let i = 0; i < 5; i++) {
+      const mast = cylinderBetween(
+        new THREE.Vector3(5.8 + i * 0.45, 0.45, 0),
+        new THREE.Vector3(6.1 + i * 0.45, 2.1 + i * 0.08, 0.25),
+        0.035,
+        matHull,
+        12
+      );
+      registerInteractive(mast, "通信/导航桅杆：与地球及目标恒星方向保持联系");
+      ship.add(mast);
+    }
+
+    // Labels
+    ship.add(makeLabel("双旋转生态环", new THREE.Vector3(0, 6.7, 0), 0.85));
+    ship.add(makeLabel("前方防护盾", new THREE.Vector3(10.8, 3.6, 0), 0.7));
+    ship.add(makeLabel("推进区", new THREE.Vector3(-11.1, 3.0, 0), 0.7));
+  }
+
+  function createHabitatRing(parent, x, label) {
+    const ringGroup = new THREE.Group();
+    ringGroup.position.x = x;
+    parent.add(ringGroup);
+    rotatingRings.push(ringGroup);
+
+    const torus = new THREE.Mesh(
+      new THREE.TorusGeometry(3.9, 0.32, 32, 160),
+      matHull
+    );
+    torus.rotation.y = Math.PI / 2;
+    registerInteractive(torus, label);
+    ringGroup.add(torus);
+
+    const innerGlass = new THREE.Mesh(
+      new THREE.TorusGeometry(3.25, 0.11, 16, 160),
+      matGlass
+    );
+    innerGlass.rotation.y = Math.PI / 2;
+    registerInteractive(innerGlass, "环内观景与生态采光带");
+    ringGroup.add(innerGlass);
+
+    // 12 biome blocks around ring
+    const biomeMats = [
+      new THREE.MeshStandardMaterial({ color: 0x3c8f52, roughness: 0.55 }),
+      new THREE.MeshStandardMaterial({ color: 0x2f77a7, roughness: 0.48 }),
+      new THREE.MeshStandardMaterial({ color: 0xb38a4a, roughness: 0.62 }),
+      new THREE.MeshStandardMaterial({ color: 0x596a78, roughness: 0.5 })
+    ];
+
+    const biomeNames = [
+      "农业生态舱",
+      "水域生态舱",
+      "干旱/草原生态舱",
+      "居住生态舱"
+    ];
+
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2;
+      const y = Math.cos(a) * 3.9;
+      const z = Math.sin(a) * 3.9;
+      const mat = biomeMats[i % biomeMats.length];
+
+      const capsule = new THREE.Mesh(
+        new THREE.BoxGeometry(1.08, 0.72, 0.52),
+        mat
+      );
+      capsule.position.set(0, y, z);
+      capsule.lookAt(new THREE.Vector3(0, 0, 0));
+      capsule.rotateY(Math.PI / 2);
+      registerInteractive(capsule, biomeNames[i % biomeNames.length]);
+      ringGroup.add(capsule);
+
+      const windowBand = new THREE.Mesh(
+        new THREE.BoxGeometry(1.12, 0.08, 0.54),
+        matGlass
+      );
+      windowBand.position.copy(capsule.position.clone().multiplyScalar(1.003));
+      windowBand.rotation.copy(capsule.rotation);
+      ringGroup.add(windowBand);
+    }
+
+    // Spokes
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2;
+      const y = Math.cos(a) * 3.55;
+      const z = Math.sin(a) * 3.55;
+      const spoke = cylinderBetween(
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, y, z),
+        0.055,
+        matHull,
+        12
+      );
+      registerInteractive(spoke, "辐条：从失重主轴通往旋转人工重力环");
+      ringGroup.add(spoke);
+    }
+
+    const hub = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 32, 16),
+      matDarkHull
+    );
+    registerInteractive(hub, "旋转环枢纽：对接、轴承与交通转换节点");
+    ringGroup.add(hub);
+  }
+
+  createExteriorShip();
+
+  // ---------- Interior ----------
+  const focusPoints = {
+    hub: new THREE.Vector3(0, 0.15, 0),
+    corridor: new THREE.Vector3(4.0, 0, 0),
+    farm: new THREE.Vector3(0, -1.2, -5.2),
+    water: new THREE.Vector3(-2.6, -1.1, 5.0),
+    habitat: new THREE.Vector3(2.7, 1.5, 4.8),
+    engine: new THREE.Vector3(-8.0, 0, 0)
+  };
+
+  function createInterior() {
+    // Interior coordinate: central corridor along X
+    const corridorOuter = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.05, 1.05, 15.5, 64, 1, true),
+      new THREE.MeshStandardMaterial({
+        color: 0x23334c,
+        metalness: 0.3,
+        roughness: 0.62,
+        side: THREE.BackSide
+      })
+    );
+    corridorOuter.rotation.z = Math.PI / 2;
+    registerInteractive(corridorOuter, "主廊道内部：失重交通、维修通道与生命保障管线");
+    interiorGroup.add(corridorOuter);
+
+    const corridorRibs = [];
+    for (let x = -7; x <= 7; x += 1) {
+      const rib = new THREE.Mesh(
+        new THREE.TorusGeometry(1.06, 0.025, 8, 48),
+        new THREE.MeshBasicMaterial({ color: 0x6fa8ff })
+      );
+      rib.rotation.y = Math.PI / 2;
+      rib.position.x = x;
+      interiorGroup.add(rib);
+      corridorRibs.push(rib);
+    }
+
+    // Floor strip
+    const floor = new THREE.Mesh(
+      new THREE.BoxGeometry(15.2, 0.04, 0.42),
+      new THREE.MeshStandardMaterial({
+        color: 0x6d7f98,
+        roughness: 0.48,
+        metalness: 0.28
+      })
+    );
+    floor.position.y = -0.92;
+    registerInteractive(floor, "磁靴步道：主轴中的低重力维护通行带");
+    interiorGroup.add(floor);
+
+    // Central hub
+    const hub = new THREE.Mesh(
+      new THREE.SphereGeometry(1.25, 48, 24),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x6f91bd,
+        metalness: 0.45,
+        roughness: 0.18,
+        transparent: true,
+        opacity: 0.56,
+        transmission: 0.18
+      })
+    );
+    hub.position.set(0, 0, 0);
+    registerInteractive(hub, "中央枢纽：通向两座旋转生态环的换乘核心");
+    interiorGroup.add(hub);
+
+    // Access tunnels to ring
+    for (let side of [-1, 1]) {
+      const tunnel = cylinderBetween(
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0, side * 4.0),
+        0.28,
+        new THREE.MeshStandardMaterial({
+          color: 0x7488a5,
+          metalness: 0.42,
+          roughness: 0.38
+        }),
+        24
+      );
+      registerInteractive(tunnel, "通往旋转生态环的转换通道");
+      interiorGroup.add(tunnel);
+    }
+
+    // Ring interior impression
+    const ringInterior = new THREE.Mesh(
+      new THREE.TorusGeometry(5.0, 0.42, 32, 160),
+      new THREE.MeshStandardMaterial({
+        color: 0x1e3149,
+        metalness: 0.18,
+        roughness: 0.6
+      })
+    );
+    ringInterior.rotation.y = Math.PI / 2;
+    registerInteractive(ringInterior, "环形生态区内壁：人工重力居住带");
+    interiorGroup.add(ringInterior);
+
+    // Ecological areas
+    createInteriorBiome(
+      "农业生态区：封闭循环粮食生产",
+      new THREE.Vector3(0, -1.45, -5.0),
+      0x3da35d,
+      "农业生态区"
+    );
+
+    createInteriorBiome(
+      "水域生态区：湖泊、水循环与湿地系统",
+      new THREE.Vector3(-2.7, -1.1, 4.8),
+      0x2b89c8,
+      "水域生态区"
+    );
+
+    createInteriorBiome(
+      "居住区：数代船员生活、学习与社会空间",
+      new THREE.Vector3(2.8, 1.3, 4.5),
+      0xd0a15e,
+      "居住区"
+    );
+
+    createInteriorBiome(
+      "工程区：推进、维修、能源与热控系统",
+      new THREE.Vector3(-7.8, -0.2, 0),
+      0x9a5960,
+      "工程推进区"
+    );
+
+    // Light strips
+    for (let x = -7; x <= 7; x += 1.4) {
+      const light = new THREE.PointLight(0x7db8ff, 0.7, 4);
+      light.position.set(x, 0.82, 0.35);
+      interiorGroup.add(light);
+    }
+
+    // Labels
+    interiorGroup.add(makeLabel("中央枢纽", new THREE.Vector3(0, 1.9, 0), 0.65));
+    interiorGroup.add(makeLabel("主廊道", new THREE.Vector3(4.6, 1.4, 0), 0.58));
+    interiorGroup.add(makeLabel("农业生态区", new THREE.Vector3(0, 0.2, -5.7), 0.58));
+    interiorGroup.add(makeLabel("水域生态区", new THREE.Vector3(-3.1, 0.6, 5.45), 0.58));
+    interiorGroup.add(makeLabel("居住区", new THREE.Vector3(3.1, 2.7, 4.6), 0.58));
+    interiorGroup.add(makeLabel("工程区", new THREE.Vector3(-8.2, 1.25, 0), 0.58));
+  }
+
+  function createInteriorBiome(label, pos, color, shortName) {
+    const group = new THREE.Group();
+    group.position.copy(pos);
+    interiorGroup.add(group);
+
+    const base = new THREE.Mesh(
+      new THREE.BoxGeometry(2.0, 0.18, 1.45),
+      new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.54,
+        metalness: 0.12
+      })
+    );
+    registerInteractive(base, label);
+    group.add(base);
+
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(1.08, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshPhysicalMaterial({
+        color: 0x9cdfff,
+        roughness: 0.05,
+        metalness: 0.02,
+        transparent: true,
+        opacity: 0.28,
+        transmission: 0.3,
+        side: THREE.DoubleSide
+      })
+    );
+    dome.position.y = 0.08;
+    registerInteractive(dome, shortName);
+    group.add(dome);
+
+    if (shortName.includes("农业")) {
+      for (let i = -3; i <= 3; i++) {
+        const crop = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 0.36, 1.18),
+          new THREE.MeshStandardMaterial({ color: 0x6fe06a })
+        );
+        crop.position.set(i * 0.23, 0.2, 0);
+        group.add(crop);
+      }
+    }
+
+    if (shortName.includes("水域")) {
+      const water = new THREE.Mesh(
+        new THREE.CircleGeometry(0.78, 48),
+        new THREE.MeshBasicMaterial({
+          color: 0x40b8ff,
+          transparent: true,
+          opacity: 0.72,
+          side: THREE.DoubleSide
+        })
+      );
+      water.rotation.x = -Math.PI / 2;
+      water.position.y = 0.12;
+      group.add(water);
+    }
+
+    if (shortName.includes("居住")) {
+      for (let i = 0; i < 5; i++) {
+        const block = new THREE.Mesh(
+          new THREE.BoxGeometry(0.22, 0.32, 0.22),
+          new THREE.MeshStandardMaterial({
+            color: 0xf2d59c,
+            roughness: 0.42
+          })
+        );
+        block.position.set(-0.65 + i * 0.32, 0.25, THREE.MathUtils.randFloat(-0.38, 0.38));
+        group.add(block);
+      }
+    }
+
+    if (shortName.includes("工程")) {
+      for (let i = 0; i < 4; i++) {
+        const pipe = cylinderBetween(
+          new THREE.Vector3(-0.8 + i * 0.5, 0.28, -0.5),
+          new THREE.Vector3(-0.8 + i * 0.5, 0.28, 0.5),
+          0.045,
+          new THREE.MeshStandardMaterial({
+            color: 0xff9c55,
+            metalness: 0.3,
+            roughness: 0.35
+          }),
+          12
+        );
+        group.add(pipe);
+      }
+    }
+  }
+
+  createInterior();
+
+  // ---------- Mode Switching ----------
+  let mode = "exterior";
+
+  function setMode(nextMode) {
+    mode = nextMode;
+    const exteriorBtn = document.getElementById("exteriorBtn");
+    const interiorBtn = document.getElementById("interiorBtn");
+
+    if (mode === "exterior") {
+      exteriorGroup.visible = true;
+      interiorGroup.visible = false;
+      exteriorBtn.classList.add("active");
+      interiorBtn.classList.remove("active");
+      modeLabel.textContent = "当前模式：外部深空航行";
+      camera.position.set(18, 11, 22);
+      controls.target.set(0, 0, 0);
+      controls.minDistance = 5;
+      controls.maxDistance = 120;
+    } else {
+      exteriorGroup.visible = false;
+      interiorGroup.visible = true;
+      exteriorBtn.classList.remove("active");
+      interiorBtn.classList.add("active");
+      modeLabel.textContent = "当前模式：飞船内部探索";
+      camera.position.set(5.4, 2.6, 5.8);
+      controls.target.set(0, 0.2, 0);
+      controls.minDistance = 1.1;
+      controls.maxDistance = 24;
+    }
+
+    controls.update();
+  }
+
+  document.getElementById("exteriorBtn").addEventListener("click", () => setMode("exterior"));
+  document.getElementById("interiorBtn").addEventListener("click", () => setMode("interior"));
+
+  document.querySelectorAll("[data-focus]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (mode !== "interior") setMode("interior");
+      const key = btn.dataset.focus;
+      const p = focusPoints[key];
+      if (!p) return;
+      controls.target.copy(p);
+      const offset = new THREE.Vector3(3.4, 2.1, 3.2);
+      if (key === "engine") offset.set(2.5, 1.7, 2.8);
+      if (key === "corridor") offset.set(4.0, 1.7, 2.0);
+      camera.position.copy(p.clone().add(offset));
+      controls.update();
+    });
+  });
+
+  // ---------- Pointer Interaction ----------
+  window.addEventListener("pointermove", (event) => {
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const visibleInteractive = interactiveObjects.filter(obj => {
+      let parent = obj;
+      while (parent) {
+        if (parent === exteriorGroup && !exteriorGroup.visible) return false;
+        if (parent === interiorGroup && !interiorGroup.visible) return false;
+        parent = parent.parent;
+      }
+      return true;
+    });
+
+    const hits = raycaster.intersectObjects(visibleInteractive, true);
+    if (hits.length > 0) {
+      const label = findLabel(hits[0].object);
+      tooltip.style.display = "block";
+      tooltip.style.left = `${event.clientX + 12}px`;
+      tooltip.style.top = `${event.clientY + 12}px`;
+      tooltip.textContent = label;
+      document.body.style.cursor = "pointer";
+    } else {
+      tooltip.style.display = "none";
+      document.body.style.cursor = "default";
+    }
+  });
+
+  function findLabel(obj) {
+    let o = obj;
+    while (o) {
+      if (o.userData && o.userData.label) return o.userData.label;
+      o = o.parent;
+    }
+    return "飞船结构";
+  }
+
+  // ---------- Animation ----------
+  function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+    const delta = clock.getDelta();
+
+    stars.rotation.y += delta * 0.004;
+    stars.rotation.x += delta * 0.0015;
+
+    if (mode === "exterior") {
+      exteriorGroup.position.y = Math.sin(t * 0.45) * 0.08;
+      exteriorGroup.rotation.z = Math.sin(t * 0.08) * 0.018;
+
+      rotatingRings.forEach((ring, i) => {
+        ring.rotation.x += delta * (i === 0 ? 0.42 : -0.38);
+      });
+
+      engineGlows.forEach((g, i) => {
+        const s = 1 + Math.sin(t * 8 + i) * 0.12;
+        g.scale.set(1, s, s);
+        g.material.opacity = 0.58 + Math.sin(t * 10 + i) * 0.14;
+      });
+    } else {
+      interiorGroup.rotation.y = Math.sin(t * 0.12) * 0.012;
+    }
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // ---------- Resize ----------
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+</body>
+</html>

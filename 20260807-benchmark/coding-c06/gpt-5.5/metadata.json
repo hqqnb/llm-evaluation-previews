@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c06",
+  "model_alias": "gpt-5.5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "cec9d2087a390ef89c94d380e57d960f7079c5b87b5a6c1c2743c78967a20e4c",
+  "source_answer_sha256": "d2651eb80c21818be83827bb2a3de88aa862034db4b99fc36a44391e2494e164",
+  "external_urls": [
+    "http://localhost:8000/archery_game.html"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

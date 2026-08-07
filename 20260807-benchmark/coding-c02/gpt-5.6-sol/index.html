@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>电梯模拟器</title>
+
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: rgba(15, 28, 48, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.09);
+      --text: #eef5ff;
+      --muted: #8fa3bc;
+      --accent: #57d4ff;
+      --accent-2: #8b7cff;
+      --success: #55e6a5;
+      --warning: #ffca68;
+      --danger: #ff6e8c;
+      --shaft-width: 228px;
+      --floor-height: 78px;
+      --floor-count: 8;
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font-family:
+        Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei",
+        system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(87, 212, 255, 0.12), transparent 28%),
+        radial-gradient(circle at 88% 16%, rgba(139, 124, 255, 0.15), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(31, 92, 149, 0.17), transparent 35%),
+        linear-gradient(145deg, #07111f 0%, #0a1525 52%, #07101c 100%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: clamp(26px, 4vw, 42px);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .title-block p {
+      max-width: 720px;
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+      padding: 9px 13px;
+      color: #c9ffec;
+      background: rgba(85, 230, 165, 0.09);
+      border: 1px solid rgba(85, 230, 165, 0.2);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 14px var(--success);
+      animation: pulse 1.8s infinite;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      box-shadow:
+        0 22px 60px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(18px);
+    }
+
+    .simulation-panel {
+      min-width: 0;
+      padding: 16px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 4px;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .field select,
+    .field input {
+      height: 42px;
+      color: var(--text);
+      background: rgba(4, 12, 24, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 11px;
+      outline: none;
+      padding: 0 12px;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .field select {
+      min-width: 105px;
+    }
+
+    .field input {
+      width: 100px;
+    }
+
+    .field select:focus,
+    .field input:focus {
+      border-color: rgba(87, 212, 255, 0.72);
+      box-shadow: 0 0 0 3px rgba(87, 212, 255, 0.12);
+    }
+
+    .primary-button,
+    .secondary-button {
+      height: 42px;
+      border: 0;
+      border-radius: 11px;
+      padding: 0 17px;
+      cursor: pointer;
+      font-weight: 800;
+      transition:
+        transform 140ms ease,
+        filter 140ms ease,
+        background 140ms ease;
+    }
+
+    .primary-button {
+      color: #06111c;
+      background: linear-gradient(135deg, var(--accent), #77f1d2);
+      box-shadow: 0 8px 24px rgba(87, 212, 255, 0.2);
+    }
+
+    .secondary-button {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .primary-button:hover,
+    .secondary-button:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    .primary-button:active,
+    .secondary-button:active {
+      transform: translateY(1px);
+    }
+
+    .building-scroller {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 15px;
+      scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+      scrollbar-width: thin;
+    }
+
+    .building {
+      position: relative;
+      min-width: 760px;
+      height: calc(var(--floor-height) * var(--floor-count));
+      overflow: hidden;
+      background:
+        linear-gradient(90deg,
+          rgba(2, 9, 17, 0.82) 0,
+          rgba(2, 9, 17, 0.82) var(--shaft-width),
+          rgba(15, 30, 49, 0.74) var(--shaft-width),
+          rgba(15, 30, 49, 0.74) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 15px;
+      isolation: isolate;
+    }
+
+    .floors {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: grid;
+      grid-template-rows: repeat(var(--floor-count), 1fr);
+    }
+
+    .floor {
+      position: relative;
+      min-height: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+      background:
+        linear-gradient(90deg,
+          transparent 0,
+          transparent var(--shaft-width),
+          rgba(255, 255, 255, 0.012) var(--shaft-width),
+          rgba(255, 255, 255, 0.012) 100%);
+    }
+
+    .floor:last-child {
+      border-bottom: 0;
+    }
+
+    .floor-number {
+      position: absolute;
+      top: 9px;
+      left: calc(var(--shaft-width) + 13px);
+      color: rgba(222, 236, 255, 0.52);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    .waiting-count {
+      position: absolute;
+      right: 12px;
+      top: 9px;
+      min-width: 25px;
+      padding: 3px 7px;
+      color: var(--warning);
+      background: rgba(255, 202, 104, 0.08);
+      border: 1px solid rgba(255, 202, 104, 0.16);
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .waiting-count.visible {
+      opacity: 1;
+    }
+
+    .people {
+      position: absolute;
+      z-index: 4;
+      left: calc(var(--shaft-width) + 58px);
+      right: 48px;
+      bottom: 8px;
+      display: flex;
+      align-items: flex-end;
+      gap: 7px;
+      min-height: 42px;
+      pointer-events: none;
+    }
+
+    .person {
+      --person-color: #57d4ff;
+      position: relative;
+      width: 22px;
+      height: 38px;
+      flex: 0 0 22px;
+      cursor: help;
+      pointer-events: auto;
+      outline: none;
+      filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.28));
+      transform-origin: center bottom;
+      animation: personIn 350ms cubic-bezier(.2, .85, .25, 1.25) both;
+      transition:
+        transform 580ms cubic-bezier(.4, 0, .2, 1),
+        opacity 280ms ease,
+        filter 160ms ease;
+    }
+
+    .person::before {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 7px;
+      width: 9px;
+      height: 9px;
+      background: var(--person-color);
+      border-radius: 50%;
+      box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .person::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      bottom: 0;
+      width: 15px;
+      height: 25px;
+      background:
+        linear-gradient(90deg,
+          transparent 0 3px,
+          var(--person-color) 3px 7px,
+          transparent 7px 9px,
+          var(--person-color) 9px 13px,
+          transparent 13px),
+        linear-gradient(var(--person-color), var(--person-color));
+      background-size: 100% 10px, 15px 15px;
+      background-position: bottom, top;
+      background-repeat: no-repeat;
+      border-radius: 6px 6px 2px 2px;
+    }
+
+    .person:hover,
+    .person:focus-visible {
+      filter:
+        brightness(1.2)
+        drop-shadow(0 5px 7px rgba(0, 0, 0, 0.34));
+      transform: translateY(-2px);
+    }
+
+    .person.boarding {
+      z-index: 20;
+      pointer-events: none;
+      filter: brightness(1.25) drop-shadow(0 8px 8px rgba(0, 0, 0, 0.4));
+    }
+
+    .tooltip {
+      position: absolute;
+      z-index: 30;
+      left: 50%;
+      bottom: calc(100% + 9px);
+      width: max-content;
+      max-width: 150px;
+      padding: 7px 9px;
+      color: #07111f;
+      background: #f5fbff;
+      border-radius: 8px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.2;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 5px);
+      transition: opacity 140ms ease, transform 140ms ease;
+    }
+
+    .tooltip::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      border: 5px solid transparent;
+      border-top-color: #f5fbff;
+      transform: translateX(-50%);
+    }
+
+    .person:hover .tooltip,
+    .person:focus-visible .tooltip {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .shaft-bank {
+      position: absolute;
+      z-index: 2;
+      inset: 0 auto 0 0;
+      width: var(--shaft-width);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+    }
+
+    .shaft {
+      position: relative;
+      border-right: 1px solid rgba(255, 255, 255, 0.07);
+      background:
+        linear-gradient(90deg,
+          rgba(255, 255, 255, 0.018),
+          transparent 18%,
+          transparent 82%,
+          rgba(255, 255, 255, 0.018));
+    }
+
+    .shaft:last-child {
+      border-right: 0;
+    }
+
+    .shaft::before,
+    .shaft::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(123, 150, 178, 0.12);
+    }
+
+    .shaft::before {
+      left: 11px;
+    }
+
+    .shaft::after {
+      right: 11px;
+    }
+
+    .shaft-label {
+      position: absolute;
+      left: 50%;
+      top: 6px;
+      color: rgba(255, 255, 255, 0.18);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      transform: translateX(-50%);
+    }
+
+    .elevator {
+      position: absolute;
+      z-index: 8;
+      width: 56px;
+      height: 64px;
+      overflow: hidden;
+      background:
+        linear-gradient(145deg, rgba(89, 116, 147, 0.9), rgba(25, 40, 61, 0.96));
+      border: 1px solid rgba(145, 213, 255, 0.56);
+      border-radius: 9px 9px 6px 6px;
+      box-shadow:
+        0 10px 24px rgba(0, 0, 0, 0.38),
+        0 0 20px rgba(87, 212, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      will-change: top;
+      transition-property: top;
+      transition-timing-function: cubic-bezier(.45, .02, .23, 1);
+      pointer-events: none;
+    }
+
+    .elevator::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      background: #07111e;
+      border-radius: 5px;
+    }
+
+    .door {
+      position: absolute;
+      z-index: 3;
+      top: 5px;
+      bottom: 5px;
+      width: calc(50% - 5px);
+      background:
+        linear-gradient(90deg, #2a3b50, #526a83);
+      transition: transform 330ms cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .door.left {
+      left: 5px;
+      border-radius: 5px 0 0 5px;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      transform-origin: left center;
+    }
+
+    .door.right {
+      right: 5px;
+      border-radius: 0 5px 5px 0;
+      border-left: 1px solid rgba(0, 0, 0, 0.22);
+      transform-origin: right center;
+    }
+
+    .elevator.open .door.left {
+      transform: translateX(-82%);
+    }
+
+    .elevator.open .door.right {
+      transform: translateX(82%);
+    }
+
+    .elevator-id {
+      position: absolute;
+      z-index: 6;
+      top: 0;
+      left: 50%;
+      padding: 1px 5px;
+      color: #ccefff;
+      background: rgba(5, 14, 26, 0.86);
+      border-radius: 0 0 5px 5px;
+      font-size: 8px;
+      font-weight: 900;
+      transform: translateX(-50%);
+    }
+
+    .rider {
+      --person-color: #55e6a5;
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      bottom: 10px;
+      width: 15px;
+      height: 28px;
+      opacity: 0;
+      transform: translateX(-50%) scale(0.85);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .rider.visible {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+
+    .rider::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 0;
+      width: 7px;
+      height: 7px;
+      background: var(--person-color);
+      border-radius: 50%;
+    }
+
+    .rider::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      top: 9px;
+      width: 11px;
+      height: 17px;
+      background: var(--person-color);
+      border-radius: 4px 4px 2px 2px;
+    }
+
+    .arrival-person {
+      --arrival-color: #55e6a5;
+      position: absolute;
+      z-index: 6;
+      left: calc(var(--shaft-width) - 8px);
+      bottom: 8px;
+      width: 20px;
+      height: 37px;
+      pointer-events: none;
+      animation: walkOut 1.25s cubic-bezier(.2, .75, .2, 1) forwards;
+    }
+
+    .arrival-person::before {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 6px;
+      width: 9px;
+      height: 9px;
+      background: var(--arrival-color);
+      border-radius: 50%;
+    }
+
+    .arrival-person::after {
+      content: "";
+      position: absolute;
+      left: 3px;
+      bottom: 0;
+      width: 15px;
+      height: 25px;
+      background: var(--arrival-color);
+      border-radius: 6px 6px 3px 3px;
+    }
+
+    .side-panel {
+      display: grid;
+      gap: 16px;
+    }
+
+    .side-section {
+      padding: 17px;
+    }
+
+    .side-title {
+      margin: 0 0 13px;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      padding: 11px 8px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 11px;
+    }
+
+    .stat-value {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--accent);
+      font-size: 22px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .elevator-status-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .elevator-card {
+      display: grid;
+      grid-template-columns: 35px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 11px;
+    }
+
+    .elevator-badge {
+      display: grid;
+      place-items: center;
+      width: 35px;
+      height: 35px;
+      color: #07111f;
+      background: linear-gradient(135deg, var(--accent), #8ff2db);
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 1000;
+    }
+
+    .elevator-info {
+      min-width: 0;
+    }
+
+    .elevator-name {
+      margin-bottom: 3px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .elevator-state {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .elevator-floor {
+      color: var(--warning);
+      font-size: 12px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .event-log {
+      display: grid;
+      gap: 8px;
+      max-height: 185px;
+      overflow: auto;
+      padding-right: 3px;
+      scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+      scrollbar-width: thin;
+    }
+
+    .event-item {
+      position: relative;
+      padding: 8px 8px 8px 19px;
+      color: #b6c4d6;
+      background: rgba(255, 255, 255, 0.026);
+      border-radius: 8px;
+      font-size: 10px;
+      line-height: 1.45;
+      animation: eventIn 240ms ease both;
+    }
+
+    .event-item::before {
+      content: "";
+      position: absolute;
+      top: 13px;
+      left: 8px;
+      width: 5px;
+      height: 5px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(87, 212, 255, 0.7);
+    }
+
+    .empty-log {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .reset-button {
+      width: 100%;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.55;
+        transform: scale(0.78);
+      }
+    }
+
+    @keyframes personIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.72);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes walkOut {
+      0% {
+        opacity: 0;
+        transform: translateX(0) scale(0.85);
+      }
+      18% {
+        opacity: 1;
+      }
+      75% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(125px) scale(1);
+      }
+    }
+
+    @keyframes eventIn {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 1020px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      .side-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .side-panel .panel:last-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        padding: 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .controls {
+        align-items: stretch;
+      }
+
+      .field {
+        flex: 1 1 110px;
+      }
+
+      .field select,
+      .field input {
+        width: 100%;
+      }
+
+      .primary-button {
+        flex: 1 1 150px;
+      }
+
+      .side-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .side-panel .panel:last-child {
+        grid-column: auto;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot,
+      .person,
+      .event-item {
+        animation-duration: 1ms;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="title-block">
+        <h1>电梯模拟器</h1>
+        <p>
+          在任意楼层生成人物。每位乘客会获得一个随机目标楼层，
+          三部电梯会自动调度，并且每部电梯每次只运送一人。
+        </p>
+      </div>
+
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        自动调度中
+      </div>
+    </header>
+
+    <section class="dashboard">
+      <div class="panel simulation-panel">
+        <form class="controls" id="spawnForm">
+          <div class="field">
+            <label for="floorSelect">生成楼层</label>
+            <select id="floorSelect" aria-label="生成楼层"></select>
+          </div>
+
+          <div class="field">
+            <label for="peopleCount">人数</label>
+            <input
+              id="peopleCount"
+              type="number"
+              min="1"
+              max="12"
+              value="3"
+              inputmode="numeric"
+              aria-label="生成人数"
+            >
+          </div>
+
+          <button class="primary-button" type="submit">
+            ＋ 生成人物
+          </button>
+
+          <button class="secondary-button" id="randomButton" type="button">
+            随机来一批
+          </button>
+        </form>
+
+        <div class="building-scroller">
+          <div class="building" id="building">
+            <div class="floors" id="floors"></div>
+
+            <div class="shaft-bank" aria-hidden="true">
+              <div class="shaft"><span class="shaft-label">A</span></div>
+              <div class="shaft"><span class="shaft-label">B</span></div>
+              <div class="shaft"><span class="shaft-label">C</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <section class="panel side-section">
+          <h2 class="side-title">实时数据</h2>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-value" id="waitingStat">0</span>
+              <span class="stat-label">等待中</span>
+            </div>
+
+            <div class="stat">
+              <span class="stat-value" id="movingStat">0</span>
+              <span class="stat-label">运送中</span>
+            </div>
+
+            <div class="stat">
+              <span class="stat-value" id="completedStat">0</span>
+              <span class="stat-label">已送达</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel side-section">
+          <h2 class="side-title">电梯状态</h2>
+          <div class="elevator-status-list" id="elevatorStatusList"></div>
+        </section>
+
+        <section class="panel side-section">
+          <h2 class="side-title">运行记录</h2>
+          <div class="event-log" id="eventLog">
+            <div class="empty-log" id="emptyLog">
+              尚无运行记录，请先在楼层生成人物。
+            </div>
+          </div>
+        </section>
+
+        <section class="panel side-section">
+          <button class="secondary-button reset-button" id="resetButton" type="button">
+            重置模拟器
+          </button>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const FLOOR_COUNT = 8;
+      const ELEVATOR_COUNT = 3;
+      const SHAFT_WIDTH = 228;
+      const PERSON_COLORS = [
+        "#57d4ff",
+        "#8b7cff",
+        "#ffca68",
+        "#55e6a5",
+        "#ff7ca8",
+        "#9ad8ff",
+        "#f39cff"
+      ];
+
+      const building = document.getElementById("building");
+      const floorsContainer = document.getElementById("floors");
+      const floorSelect = document.getElementById("floorSelect");
+      const peopleCountInput = document.getElementById("peopleCount");
+      const spawnForm = document.getElementById("spawnForm");
+      const randomButton = document.getElementById("randomButton");
+      const resetButton = document.getElementById("resetButton");
+
+      const waitingStat = document.getElementById("waitingStat");
+      const movingStat = document.getElementById("movingStat");
+      const completedStat = document.getElementById("completedStat");
+      const elevatorStatusList = document.getElementById("elevatorStatusList");
+      const eventLog = document.getElementById("eventLog");
+      const emptyLog = document.getElementById("emptyLog");
+
+      const floorElements = new Map();
+      const floorPeopleElements = new Map();
+      const floorBadgeElements = new Map();
+
+      let passengerId = 0;
+      let completedTrips = 0;
+      let simulationVersion = 0;
+      let logEntries = [];
+
+      const queues = new Map();
+      const elevators = [];
+
+      for (let floor = 1; floor <= FLOOR_COUNT; floor++) {
+        queues.set(floor, []);
+      }
+
+      function initializeFloorOptions() {
+        floorSelect.innerHTML = "";
+
+        for (let floor = FLOOR_COUNT; floor >= 1; floor--) {
+          const option = document.createElement("option");
+          option.value = String(floor);
+          option.textContent = `${floor} 楼`;
+          floorSelect.appendChild(option);
+        }
+
+        floorSelect.value = "1";
+      }
+
+      function initializeFloors() {
+        floorsContainer.innerHTML = "";
+        floorElements.clear();
+        floorPeopleElements.clear();
+        floorBadgeElements.clear();
+
+        for (let floor = FLOOR_COUNT; floor >= 1; floor--) {
+          const floorElement = document.createElement("div");
+          floorElement.className = "floor";
+          floorElement.dataset.floor = String(floor);
+
+          const number = document.createElement("div");
+          number.className = "floor-number";
+          number.textContent = `${floor}F`;
+
+          const badge = document.createElement("div");
+          badge.className = "waiting-count";
+          badge.textContent = "0 人等待";
+
+          const people = document.createElement("div");
+          people.className = "people";
+          people.setAttribute("aria-label", `${floor}楼等待区域`);
+
+          floorElement.append(number, badge, people);
+          floorsContainer.appendChild(floorElement);
+
+          floorElements.set(floor, floorElement);
+          floorPeopleElements.set(floor, people);
+          floorBadgeElements.set(floor, badge);
+        }
+      }
+
+      function createElevatorElement(index) {
+        const element = document.createElement("div");
+        element.className = "elevator";
+        element.setAttribute("aria-label", `${String.fromCharCode(65 + index)}号电梯`);
+
+        const id = document.createElement("span");
+        id.className = "elevator-id";
+        id.textContent = String.fromCharCode(65 + index);
+
+        const rider = document.createElement("div");
+        rider.className = "rider";
+
+        const leftDoor = document.createElement("div");
+        leftDoor.className = "door left";
+
+        const rightDoor = document.createElement("div");
+        rightDoor.className = "door right";
+
+        element.append(id, rider, leftDoor, rightDoor);
+        building.appendChild(element);
+
+        return { element, rider };
+      }
+
+      function initializeElevators() {
+        elevators.splice(0, elevators.length);
+
+        building.querySelectorAll(".elevator").forEach((element) => {
+          element.remove();
+        });
+
+        for (let index = 0; index < ELEVATOR_COUNT; index++) {
+          const { element, rider } = createElevatorElement(index);
+
+          const elevator = {
+            id: index,
+            name: String.fromCharCode(65 + index),
+            element,
+            riderElement: rider,
+            currentFloor: 1,
+            visualFloor: 1,
+            targetFloor: null,
+            pickupFloor: null,
+            passenger: null,
+            state: "idle",
+            moveTimer: null
+          };
+
+          elevators.push(elevator);
+        }
+
+        requestAnimationFrame(() => {
+          elevators.forEach((elevator) => {
+            positionElevator(elevator, 1, false);
+          });
+          renderElevatorStatuses();
+        });
+      }
+
+      function getFloorHeight() {
+        return building.clientHeight / FLOOR_COUNT;
+      }
+
+      function getElevatorTop(floor) {
+        const floorHeight = getFloorHeight();
+        const elevatorHeight = 64;
+        return (
+          (FLOOR_COUNT - floor) * floorHeight +
+          (floorHeight - elevatorHeight) / 2
+        );
+      }
+
+      function getElevatorLeft(index) {
+        const laneWidth = SHAFT_WIDTH / ELEVATOR_COUNT;
+        return index * laneWidth + (laneWidth - 56) / 2;
+      }
+
+      function positionElevator(elevator, floor, animate, duration = 0) {
+        elevator.visualFloor = floor;
+        elevator.element.style.left = `${getElevatorLeft(elevator.id)}px`;
+
+        if (!animate) {
+          const previousTransition = elevator.element.style.transitionDuration;
+          elevator.element.style.transitionDuration = "0ms";
+          elevator.element.style.top = `${getElevatorTop(floor)}px`;
+
+          requestAnimationFrame(() => {
+            elevator.element.style.transitionDuration = previousTransition || "0ms";
+          });
+          return;
+        }
+
+        elevator.element.style.transitionDuration = `${duration}ms`;
+
+        requestAnimationFrame(() => {
+          elevator.element.style.top = `${getElevatorTop(floor)}px`;
+        });
+      }
+
+      function createPassengerElement(passenger) {
+        const element = document.createElement("div");
+        element.className = "person";
+        element.tabIndex = 0;
+        element.style.setProperty("--person-color", passenger.color);
+        element.setAttribute(
+          "aria-label",
+          `乘客 ${passenger.id}，目标楼层 ${passenger.destination} 楼`
+        );
+
+        const tooltip = document.createElement("span");
+        tooltip.className = "tooltip";
+        tooltip.textContent = `目标：${passenger.destination}F`;
+
+        element.appendChild(tooltip);
+        passenger.element = element;
+
+        return element;
+      }
+
+      function getRandomDestination(origin) {
+        let destination = origin;
+
+        while (destination === origin) {
+          destination = Math.floor(Math.random() * FLOOR_COUNT) + 1;
+        }
+
+        return destination;
+      }
+
+      function spawnPassengers(floor, count) {
+        const queue = queues.get(floor);
+        const peopleContainer = floorPeopleElements.get(floor);
+
+        for (let index = 0; index < count; index++) {
+          const passenger = {
+            id: ++passengerId,
+            origin: floor,
+            destination: getRandomDestination(floor),
+            createdAt: performance.now() + index / 100,
+            color: PERSON_COLORS[
+              Math.floor(Math.random() * PERSON_COLORS.length)
+            ],
+            element: null
+          };
+
+          queue.push(passenger);
+          peopleContainer.appendChild(createPassengerElement(passenger));
+        }
+
+        updateFloorBadge(floor);
+        updateStats();
+        addLog(`${floor}F 新增 ${count} 位乘客，等待电梯。`);
+        dispatchElevators();
+      }
+
+      function updateFloorBadge(floor) {
+        const count = queues.get(floor).length;
+        const badge = floorBadgeElements.get(floor);
+
+        badge.textContent = `${count} 人等待`;
+        badge.classList.toggle("visible", count > 0);
+      }
+
+      function countIncomingElevators(floor) {
+        return elevators.filter((elevator) => {
+          return (
+            elevator.state === "toPickup" &&
+            elevator.pickupFloor === floor
+          );
+        }).length;
+      }
+
+      function choosePickupFloor(elevator) {
+        const candidates = [];
+
+        for (let floor = 1; floor <= FLOOR_COUNT; floor++) {
+          const queue = queues.get(floor);
+          const availableDemand = queue.length - countIncomingElevators(floor);
+
+          if (availableDemand > 0) {
+            candidates.push({
+              floor,
+              distance: Math.abs(elevator.currentFloor - floor),
+              createdAt: queue[0].createdAt
+            });
+          }
+        }
+
+        candidates.sort((a, b) => {
+          if (a.distance !== b.distance) {
+            return a.distance - b.distance;
+          }
+          return a.createdAt - b.createdAt;
+        });
+
+        return candidates.length ? candidates[0].floor : null;
+      }
+
+      function dispatchElevators() {
+        elevators.forEach((elevator) => {
+          if (elevator.state !== "idle") {
+            return;
+          }
+
+          const pickupFloor = choosePickupFloor(elevator);
+
+          if (pickupFloor !== null) {
+            sendElevatorToPickup(elevator, pickupFloor);
+          }
+        });
+
+        updateStats();
+        renderElevatorStatuses();
+      }
+
+      function sendElevatorToPickup(elevator, floor) {
+        elevator.state = "toPickup";
+        elevator.pickupFloor = floor;
+        elevator.targetFloor = floor;
+
+        addLog(`${elevator.name}号电梯前往 ${floor}F 接客。`);
+        moveElevator(elevator, floor, () => {
+          handlePickupArrival(elevator);
+        });
+      }
+
+      function moveElevator(elevator, targetFloor, onArrival) {
+        const version = simulationVersion;
+        const distance = Math.abs(elevator.currentFloor - targetFloor);
+        const duration = distance === 0
+          ? 320
+          : Math.max(620, distance * 520);
+
+        clearTimeout(elevator.moveTimer);
+
+        elevator.targetFloor = targetFloor;
+        positionElevator(elevator, targetFloor, true, duration);
+        renderElevatorStatuses();
+
+        elevator.moveTimer = window.setTimeout(() => {
+          if (version !== simulationVersion) {
+            return;
+          }
+
+          elevator.currentFloor = targetFloor;
+          elevator.visualFloor = targetFloor;
+          elevator.moveTimer = null;
+          onArrival();
+        }, duration + 40);
+      }
+
+      function handlePickupArrival(elevator) {
+        const floor = elevator.currentFloor;
+        const queue = queues.get(floor);
+
+        elevator.element.classList.add("open");
+        elevator.state = "boarding";
+        renderElevatorStatuses();
+
+        if (!queue.length) {
+          window.setTimeout(() => {
+            elevator.element.classList.remove("open");
+            elevator.state = "idle";
+            elevator.pickupFloor = null;
+            elevator.targetFloor = null;
+            dispatchElevators();
+          }, 520);
+          return;
+        }
+
+        const passenger = queue.shift();
+        elevator.passenger = passenger;
+
+        updateFloorBadge(floor);
+        updateStats();
+
+        addLog(
+          `乘客 #${passenger.id} 进入 ${elevator.name}号电梯，目标 ${passenger.destination}F。`
+        );
+
+        animatePassengerBoarding(passenger, elevator, () => {
+          elevator.riderElement.style.setProperty(
+            "--person-color",
+            passenger.color
+          );
+          elevator.riderElement.classList.add("visible");
+
+          window.setTimeout(() => {
+            elevator.element.classList.remove("open");
+            elevator.state = "toDropoff";
+            elevator.pickupFloor = null;
+            elevator.targetFloor = passenger.destination;
+
+            moveElevator(elevator, passenger.destination, () => {
+              handleDropoffArrival(elevator);
+            });
+          }, 280);
+        });
+      }
+
+      function animatePassengerBoarding(passenger, elevator, onComplete) {
+        const passengerElement = passenger.element;
+
+        if (!passengerElement || !passengerElement.isConnected) {
+          onComplete();
+          return;
+        }
+
+        const passengerRect = passengerElement.getBoundingClientRect();
+        const elevatorRect = elevator.element.getBoundingClientRect();
+
+        const targetX =
+          elevatorRect.left +
+          elevatorRect.width / 2 -
+          (passengerRect.left + passengerRect.width / 2);
+
+        const targetY =
+          elevatorRect.bottom -
+          12 -
+          passengerRect.bottom;
+
+        passengerElement.classList.add("boarding");
+
+        requestAnimationFrame(() => {
+          passengerElement.style.transform =
+            `translate(${targetX}px, ${targetY}px) scale(0.72)`;
+          passengerElement.style.opacity = "0.08";
+        });
+
+        window.setTimeout(() => {
+          passengerElement.remove();
+          onComplete();
+        }, 610);
+      }
+
+      function handleDropoffArrival(elevator) {
+        const passenger = elevator.passenger;
+
+        elevator.state = "unloading";
+        elevator.element.classList.add("open");
+        renderElevatorStatuses();
+
+        window.setTimeout(() => {
+          elevator.riderElement.classList.remove("visible");
+
+          if (passenger) {
+            spawnArrivalAnimation(
+              passenger.destination,
+              passenger.color,
+              elevator.id
+            );
+
+            completedTrips++;
+            addLog(
+              `乘客 #${passenger.id} 已由 ${elevator.name}号电梯送达 ${passenger.destination}F。`
+            );
+          }
+
+          elevator.passenger = null;
+          updateStats();
+
+          window.setTimeout(() => {
+            elevator.element.classList.remove("open");
+            elevator.state = "idle";
+            elevator.targetFloor = null;
+            elevator.pickupFloor = null;
+
+            dispatchElevators();
+          }, 430);
+        }, 460);
+      }
+
+      function spawnArrivalAnimation(floor, color, elevatorIndex) {
+        const floorElement = floorElements.get(floor);
+        const person = document.createElement("div");
+
+        person.className = "arrival-person";
+        person.style.setProperty("--arrival-color", color);
+        person.style.left = `${getElevatorLeft(elevatorIndex) + 28}px`;
+
+        floorElement.appendChild(person);
+
+        window.setTimeout(() => {
+          person.remove();
+        }, 1400);
+      }
+
+      function updateStats() {
+        const waiting = Array.from(queues.values()).reduce(
+          (total, queue) => total + queue.length,
+          0
+        );
+
+        const moving = elevators.filter((elevator) => {
+          return elevator.passenger !== null;
+        }).length;
+
+        waitingStat.textContent = String(waiting);
+        movingStat.textContent = String(moving);
+        completedStat.textContent = String(completedTrips);
+      }
+
+      function getElevatorStateText(elevator) {
+        switch (elevator.state) {
+          case "toPickup":
+            return `前往 ${elevator.targetFloor}F 接客`;
+          case "boarding":
+            return "乘客上梯中";
+          case "toDropoff":
+            return `运送至 ${elevator.targetFloor}F`;
+          case "unloading":
+            return "乘客下梯中";
+          default:
+            return "空闲，等待任务";
+        }
+      }
+
+      function getDisplayedFloor(elevator) {
+        if (
+          elevator.state === "toPickup" ||
+          elevator.state === "toDropoff"
+        ) {
+          return `→ ${elevator.targetFloor}F`;
+        }
+
+        return `${elevator.currentFloor}F`;
+      }
+
+      function renderElevatorStatuses() {
+        elevatorStatusList.innerHTML = "";
+
+        elevators.forEach((elevator) => {
+          const card = document.createElement("div");
+          card.className = "elevator-card";
+
+          const badge = document.createElement("div");
+          badge.className = "elevator-badge";
+          badge.textContent = elevator.name;
+
+          const info = document.createElement("div");
+          info.className = "elevator-info";
+
+          const name = document.createElement("div");
+          name.className = "elevator-name";
+          name.textContent = `${elevator.name}号电梯`;
+
+          const state = document.createElement("div");
+          state.className = "elevator-state";
+          state.textContent = getElevatorStateText(elevator);
+
+          const floor = document.createElement("div");
+          floor.className = "elevator-floor";
+          floor.textContent = getDisplayedFloor(elevator);
+
+          info.append(name, state);
+          card.append(badge, info, floor);
+          elevatorStatusList.appendChild(card);
+        });
+      }
+
+      function addLog(message) {
+        const time = new Date().toLocaleTimeString("zh-CN", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        });
+
+        logEntries.unshift({ time, message });
+        logEntries = logEntries.slice(0, 30);
+        renderLog();
+      }
+
+      function renderLog() {
+        eventLog.innerHTML = "";
+
+        if (!logEntries.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty-log";
+          empty.textContent = "尚无运行记录，请先在楼层生成人物。";
+          eventLog.appendChild(empty);
+          return;
+        }
+
+        logEntries.forEach((entry) => {
+          const item = document.createElement("div");
+          item.className = "event-item";
+          item.textContent = `${entry.time}　${entry.message}`;
+          eventLog.appendChild(item);
+        });
+      }
+
+      function resetSimulation() {
+        simulationVersion++;
+
+        elevators.forEach((elevator) => {
+          clearTimeout(elevator.moveTimer);
+        });
+
+        for (let floor = 1; floor <= FLOOR_COUNT; floor++) {
+          queues.set(floor, []);
+        }
+
+        floorPeopleElements.forEach((container) => {
+          container.innerHTML = "";
+        });
+
+        floorElements.forEach((floorElement) => {
+          floorElement
+            .querySelectorAll(".arrival-person")
+            .forEach((element) => element.remove());
+        });
+
+        passengerId = 0;
+        completedTrips = 0;
+        logEntries = [];
+
+        for (let floor = 1; floor <= FLOOR_COUNT; floor++) {
+          updateFloorBadge(floor);
+        }
+
+        initializeElevators();
+        updateStats();
+        renderLog();
+      }
+
+      spawnForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        const floor = Number.parseInt(floorSelect.value, 10);
+        const rawCount = Number.parseInt(peopleCountInput.value, 10);
+        const count = Math.min(12, Math.max(1, rawCount || 1));
+
+        peopleCountInput.value = String(count);
+        spawnPassengers(floor, count);
+      });
+
+      randomButton.addEventListener("click", () => {
+        const floor = Math.floor(Math.random() * FLOOR_COUNT) + 1;
+        const count = Math.floor(Math.random() * 5) + 2;
+
+        floorSelect.value = String(floor);
+        peopleCountInput.value = String(count);
+        spawnPassengers(floor, count);
+      });
+
+      resetButton.addEventListener("click", resetSimulation);
+
+      window.addEventListener("resize", () => {
+        elevators.forEach((elevator) => {
+          const floor =
+            elevator.state === "toPickup" ||
+            elevator.state === "toDropoff"
+              ? elevator.targetFloor
+              : elevator.currentFloor;
+
+          positionElevator(elevator, floor || 1, false);
+        });
+      });
+
+      initializeFloorOptions();
+      initializeFloors();
+      initializeElevators();
+      updateStats();
+      renderLog();
+    })();
+  </script>
+</body>
+</html>

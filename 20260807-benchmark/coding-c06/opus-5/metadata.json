@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c06",
+  "model_alias": "opus-5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "544b1961befba74af0cb15b5096d9a5697d5615faffcfa1c0e8ec85733c693ae",
+  "source_answer_sha256": "03b648889d01d16fb6887a28f9fed1fb55f80eb924f9a46bb3b2c5d43ba48561",
+  "external_urls": [
+    "http://localhost:8000/`。这是纯静态本地服务，不需要账号也不上传任何数据；排行榜只写入本机浏览器的"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

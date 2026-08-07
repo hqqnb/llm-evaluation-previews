@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电梯模拟器 · Elevator Simulator</title>
+<style>
+  :root{
+    --bg1:#0b1020; --bg2:#111a33; --line:rgba(255,255,255,.08);
+    --txt:#e6ecff; --dim:#93a0c4; --accent:#5eead4; --accent2:#818cf8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font:14px/1.5 "Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--txt);
+    background:
+      radial-gradient(900px 600px at 15% -10%, #1b2a55 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, #17304a 0%, transparent 55%),
+      linear-gradient(160deg,var(--bg1),var(--bg2));
+    min-height:100%;
+    display:flex;justify-content:center;
+    padding:24px 16px 40px;
+  }
+  .app{width:min(1000px,100%)}
+  header{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  h1{font-size:20px;margin:0;letter-spacing:.5px}
+  header .sub{color:var(--dim);font-size:12.5px}
+
+  /* ---------- 控制面板 ---------- */
+  .panel{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:12px 14px;margin-bottom:14px;border-radius:14px;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);
+    backdrop-filter:blur(6px);
+  }
+  .fld{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim)}
+  select,input[type=number]{
+    background:#0e1730;color:var(--txt);border:1px solid var(--line);
+    border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;
+  }
+  input[type=number]{width:62px}
+  input[type=range]{width:120px;accent-color:var(--accent)}
+  button{
+    font:inherit;font-size:13px;cursor:pointer;color:#04202a;
+    background:linear-gradient(180deg,#7ff0dd,#38c6b0);
+    border:none;border-radius:9px;padding:7px 13px;font-weight:600;
+    transition:transform .12s ease,filter .15s ease,box-shadow .15s ease;
+    box-shadow:0 4px 14px rgba(56,198,176,.25);
+  }
+  button:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  button:active{transform:translateY(0) scale(.98)}
+  button.ghost{
+    background:rgba(255,255,255,.07);color:var(--txt);
+    border:1px solid var(--line);box-shadow:none;font-weight:500;
+  }
+  button.on{background:linear-gradient(180deg,#a5b4fc,#6366f1);color:#0b1030;box-shadow:0 4px 14px rgba(99,102,241,.3)}
+  .stats{margin-left:auto;display:flex;gap:14px;font-size:12.5px;color:var(--dim)}
+  .stats b{color:var(--accent);font-variant-numeric:tabular-nums}
+
+  /* ---------- 舞台 ---------- */
+  .stage{overflow-x:auto;padding-bottom:6px}
+  .inner-stage{width:640px;margin:0 auto}
+  #heads{position:relative;height:26px;width:640px}
+  .head-chip{
+    position:absolute;bottom:0;width:52px;text-align:center;
+    font-size:10.5px;color:var(--dim);font-variant-numeric:tabular-nums;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);
+    border-radius:7px 7px 0 0;padding:3px 0;white-space:nowrap;
+    transition:color .2s,background .2s;
+  }
+  .head-chip.active{color:#0a1f2a;background:linear-gradient(180deg,#7ff0dd,#3fbfae);border-color:transparent;font-weight:700}
+
+  #building{
+    position:relative;width:640px;height:608px;
+    border-radius:0 0 16px 16px;
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));
+    border:1px solid var(--line);border-top:2px solid rgba(255,255,255,.16);
+    overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.45);
+  }
+  .floor{
+    position:absolute;left:0;right:0;height:76px;
+    border-bottom:1px solid rgba(255,255,255,.07);
+  }
+  .floor:first-child{border-bottom:none}
+  .floor .ground{position:absolute;left:0;right:0;bottom:0;height:3px;
+    background:linear-gradient(90deg,rgba(94,234,212,.35),rgba(129,140,248,.12) 70%,transparent)}
+  .fnum{position:absolute;left:8px;bottom:8px;font-size:12px;color:var(--dim);
+    font-variant-numeric:tabular-nums;letter-spacing:.5px}
+  .badge{
+    position:absolute;left:8px;bottom:28px;min-width:18px;height:16px;padding:0 4px;
+    display:none;align-items:center;justify-content:center;
+    font-size:10px;border-radius:8px;background:rgba(129,140,248,.25);
+    color:#c7d2fe;border:1px solid rgba(129,140,248,.4)
+  }
+  .badge.show{display:flex}
+  .add{
+    position:absolute;left:8px;bottom:48px;width:22px;height:20px;padding:0;
+    font-size:13px;line-height:18px;border-radius:6px;
+    background:rgba(255,255,255,.07);color:var(--dim);border:1px solid var(--line);
+    box-shadow:none;font-weight:600;
+  }
+  .add:hover{color:var(--accent);border-color:rgba(94,234,212,.5)}
+
+  /* ---------- 井道与轿厢 ---------- */
+  .shaft{
+    position:absolute;bottom:0;top:0;
+    background:
+      repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 1px,transparent 1px 76px),
+      linear-gradient(180deg,rgba(0,0,0,.34),rgba(0,0,0,.2));
+    border-left:1px solid var(--line);border-right:1px solid var(--line);
+  }
+  .car{
+    position:absolute;left:4px;bottom:8px;width:44px;height:58px;
+    border-radius:5px;
+    background:linear-gradient(180deg,#e9eefc,#aab6d6);
+    box-shadow:0 0 0 1px rgba(255,255,255,.35), 0 6px 18px rgba(0,0,0,.5), inset 0 0 14px rgba(90,120,180,.35);
+    will-change:transform;
+  }
+  .car .inner{position:absolute;inset:2px;border-radius:4px;overflow:hidden;
+    background:linear-gradient(180deg,#1c2643,#243055)}
+  .car .door{
+    position:absolute;top:2px;bottom:2px;width:20px;
+    background:linear-gradient(180deg,rgba(226,236,255,.92),rgba(150,166,200,.92));
+    box-shadow:inset 0 0 6px rgba(255,255,255,.5);
+    transition:transform .4s cubic-bezier(.4,0,.2,1);
+  }
+  .car .door.l{left:2px;border-radius:3px 0 0 3px}
+  .car .door.r{right:2px;border-radius:0 3px 3px 0}
+  .car.open .door.l{transform:translateX(-19px)}
+  .car.open .door.r{transform:translateX(19px)}
+
+  /* ---------- 人物 ---------- */
+  .person{position:absolute;width:18px;height:34px;z-index:50}
+  .fig{position:absolute;inset:0;transform-origin:50% 100%;animation:pop .38s cubic-bezier(.2,1.5,.4,1)}
+  .person.flip .fig{transform:scaleX(-1)}
+  .head{position:absolute;left:4px;top:0;width:10px;height:10px;border-radius:50%;
+    background:var(--c);box-shadow:0 0 8px var(--c)}
+  .body{position:absolute;left:2px;top:11px;width:14px;height:15px;border-radius:6px 6px 4px 4px;
+    background:linear-gradient(180deg,var(--c),rgba(255,255,255,.15));opacity:.92}
+  .leg{position:absolute;bottom:0;width:4px;height:8px;border-radius:2px;background:#cbd5e1}
+  .leg.l{left:4px}.leg.r{left:10px}
+  .person.walking .leg.l{animation:step .28s infinite alternate}
+  .person.walking .leg.r{animation:step .28s infinite alternate-reverse}
+  .person.idle .fig{animation:bob 2.4s ease-in-out infinite}
+  .person.gone{opacity:0;transform:translateY(-6px);transition:opacity .4s,transform .4s}
+  .person:hover .head{filter:brightness(1.25)}
+  @keyframes step{from{height:8px}to{height:4px}}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+  @keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+
+  /* ---------- 提示框 ---------- */
+  #tip{
+    position:fixed;z-index:999;pointer-events:none;opacity:0;
+    transform:translate(-50%,-124%) scale(.96);
+    transition:opacity .14s ease,transform .14s ease;
+    padding:7px 10px;border-radius:9px;white-space:nowrap;
+    background:rgba(10,16,34,.94);border:1px solid rgba(94,234,212,.4);
+    box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:12px;
+  }
+  #tip.show{opacity:1;transform:translate(-50%,-134%) scale(1)}
+  #tip .big{color:var(--accent);font-weight:700;font-size:13px}
+  #tip .m{color:var(--dim);font-size:11px}
+  footer{margin-top:12px;color:var(--dim);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🛗 电梯模拟器</h1>
+    <span class="sub">3 部电梯 · 每部一次仅载 1 人 · 悬停人物查看目标楼层</span>
+  </header>
+
+  <div class="panel">
+    <div class="fld">楼层
+      <select id="selFloor"></select>
+    </div>
+    <div class="fld">人数
+      <input id="numPeople" type="number" min="1" max="12" value="3">
+    </div>
+    <button id="btnSpawn">生成乘客</button>
+    <button class="ghost" id="btnRandom">随机楼层</button>
+    <button class="ghost" id="btnAuto">自动生成：关</button>
+    <div class="fld">速度
+      <input id="speed" type="range" min="0.6" max="5" step="0.2" value="2">
+      <span id="speedVal" style="color:var(--txt);font-variant-numeric:tabular-nums">2.0</span> 层/秒
+    </div>
+    <button class="ghost" id="btnReset">重置</button>
+    <div class="stats">
+      <span>等待 <b id="sWait">0</b></span>
+      <span>乘梯 <b id="sRide">0</b></span>
+      <span>已送达 <b id="sDone">0</b></span>
+      <span>平均等待 <b id="sAvg">0.0</b>s</span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="inner-stage">
+      <div id="heads"></div>
+      <div id="building"></div>
+    </div>
+  </div>
+
+  <footer>点击每层左侧的 <b>+</b> 可快速在该层添加一名乘客。</footer>
+</div>
+
+<div id="tip"></div>
+
+<script>
+/* ================= 布局常量 ================= */
+const FLOORS = 8;      // 楼层数（索引 0 = F1）
+const FH     = 76;     // 每层高度 px
+const BW     = 640;    // 楼体宽度
+const SW     = 52;     // 井道宽度
+const SG     = 14;     // 井道间距
+const CW     = 44;     // 轿厢宽度
+const PW     = 18;     // 人物宽度
+const N_ELEV = 3;
+
+const SHAFT_START = BW - 26 - (N_ELEV * SW + (N_ELEV - 1) * SG); // 第一个井道左边缘
+const shaftX      = i => SHAFT_START + i * (SW + SG);
+const personInCar = i => shaftX(i) + (SW - CW) / 2 + (CW - PW) / 2; // 人物居中于轿厢时的绝对 left
+const QUEUE_RIGHT = SHAFT_START - 24;  // 队首右边缘
+const EXIT_X      = 46;                // 离场位置
+const WALK_SPEED  = 0.24;              // px/ms
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const floorsPerSec = () => parseFloat(document.getElementById('speed').value);
+
+/* ================= 全局状态 ================= */
+const building = document.getElementById('building');
+const heads    = document.getElementById('heads');
+const tip      = document.getElementById('tip');
+const people   = [];            // 场上所有人物
+const byId     = new Map();
+const elevators = [];
+let uid = 0, delivered = 0, waitSum = 0, gen = 0, autoTimer = null;
+
+/* ================= 构建楼层 ================= */
+const floorEls = [];
+for (let f = 0; f < FLOORS; f++) {
+  const d = document.createElement('div');
+  d.className = 'floor';
+  d.style.bottom = (f * FH) + 'px';
+  d.innerHTML =
+    `<div class="ground"></div>
+     <div class="fnum">F${f + 1}</div>
+     <div class="badge"></div>
+     <button class="add" title="在 F${f + 1} 添加乘客">+</button>`;
+  d.querySelector('.add').onclick = () => { spawn(f, 1); };
+  building.appendChild(d);
+  floorEls.push(d);
+}
+
+const selFloor = document.getElementById('selFloor');
+for (let f = FLOORS - 1; f >= 0; f--) selFloor.add(new Option('F' + (f + 1), f));
+selFloor.value = 0;
+
+/* ================= 电梯 ================= */
+class Elevator {
+  constructor(i) {
+    this.i = i; this.floor = 0; this.state = 'idle'; this.target = null; this.person = null;
+
+    const shaft = document.createElement('div');
+    shaft.className = 'shaft';
+    shaft.style.left = shaftX(i) + 'px';
+    shaft.style.width = SW + 'px';
+    shaft.innerHTML = `<div class="car"><div class="inner"></div><div class="door l"></div><div class="door r"></div></div>`;
+    building.appendChild(shaft);
+
+    this.car   = shaft.querySelector('.car');
+    this.inner = shaft.querySelector('.inner');
+
+    const chip = document.createElement('div');
+    chip.className = 'head-chip';
+    chip.style.left = shaftX(i) + 'px';
+    heads.appendChild(chip);
+    this.head = chip;
+
+    this.jumpTo(0);
+  }
+  jumpTo(f) {
+    this.floor = f;
+    this.car.style.transition = 'none';
+    this.car.style.transform = `translateY(${-f * FH}px)`;
+    void this.car.offsetWidth;
+  }
+  async moveTo(f) {
+    const dist = Math.abs(f - this.floor);
+    if (!dist) return;
+    const dur = (dist / floorsPerSec()) * 1000;
+    this.floor = f;
+    this.car.style.transition = `transform ${dur}ms cubic-bezier(.45,.05,.35,1)`;
+    this.car.style.transform = `translateY(${-f * FH}px)`;
+    await sleep(dur + 90);
+  }
+  doors(open) {
+    this.car.classList.toggle('open', open);
+    return sleep(430);
+  }
+  /** 完整服务流程：接人 -> 送达 -> 空闲 */
+  async serve(p) {
+    const g = gen;
+    this.state = 'busy'; this.target = p.floor;
+
+    await this.moveTo(p.floor);            if (g !== gen) return;
+    await this.doors(true);                if (g !== gen) return;
+
+    // —— 上梯：该乘客离队，后面的人依次向前 ——
+    p.state = 'boarding';
+    waitSum += (performance.now() - p.t0) / 1000;
+    layoutFloor(p.floor); refreshStats();
+    await walkTo(p, personInCar(this.i), p.floor * FH + 10, false);
+    if (g !== gen) return;
+
+    // 交给轿厢承载（随轿厢一起运动）
+    this.inner.appendChild(p.el);
+    p.el.style.transition = 'none';
+    p.el.style.left = ((CW - PW) / 2 - 2) + 'px';
+    p.el.style.bottom = '4px';
+    void p.el.offsetWidth;
+    p.el.classList.remove('walking'); p.el.classList.add('idle');
+    p.state = 'riding'; this.person = p; refreshStats();
+
+    await this.doors(false);               if (g !== gen) return;
+    this.target = p.target;
+    await this.moveTo(p.target);           if (g !== gen) return;
+    await this.doors(true);                if (g !== gen) return;
+
+    // —— 下梯：交还给楼层坐标系后走向出口 ——
+    const f = this.floor;
+    building.appendChild(p.el);
+    p.el.style.transition = 'none';
+    p.el.style.left = personInCar(this.i) + 'px';
+    p.el.style.bottom = (f * FH + 10) + 'px';
+    void p.el.offsetWidth;
+    p.state = 'leaving'; this.person = null; refreshStats();
+    leave(p, f);                           // 不阻塞电梯
+
+    await sleep(320);
+    if (g !== gen) return;
+    await this.doors(false);
+    if (g !== gen) return;
+    this.state = 'idle'; this.target = null;
+    dispatch();
+  }
+}
+for (let i = 0; i < N_ELEV; i++) elevators.push(new Elevator(i));
+
+/* ================= 人物 ================= */
+function spawn(floor, n = 1) {
+  for (let k = 0; k < n; k++) {
+    let target;
+    do { target = Math.floor(Math.random() * FLOORS); } while (target === floor);
+
+    const el = document.createElement('div');
+    el.className = 'person idle';
+    el.style.setProperty('--c', `hsl(${(target * 43 + 165) % 360} 78% 62%)`);
+    el.innerHTML = `<div class="fig"><div class="head"></div><div class="body"></div>
+                    <div class="leg l"></div><div class="leg r"></div></div>`;
+    const p = { id: ++uid, floor, target, el, state: 'waiting', assigned: false, t0: performance.now() };
+    el.dataset.id = p.id;
+    el.style.left = QUEUE_RIGHT + 'px';
+    el.style.bottom = (floor * FH + 10) + 'px';
+    building.appendChild(el);
+    people.push(p); byId.set(String(p.id), p);
+  }
+  layoutFloor(floor); refreshStats(); dispatch();
+}
+
+/** 重排某层等待队列：队首靠近井道，其余依次向左 */
+function layoutFloor(f) {
+  const list = people.filter(p => p.floor === f && p.state === 'waiting');
+  const avail = QUEUE_RIGHT - EXIT_X - PW;
+  const gap = Math.min(24, Math.max(8, avail / Math.max(list.length, 1)));
+  list.forEach((p, idx) => {
+    p.el.style.transition = 'left .5s cubic-bezier(.4,0,.2,1), bottom .3s ease';
+    p.el.style.left = (QUEUE_RIGHT - PW - idx * gap) + 'px';
+    p.el.style.bottom = (f * FH + 10) + 'px';
+    p.el.style.zIndex = 60 - idx;
+    p.el.classList.add('idle');
+  });
+  const b = floorEls[f].querySelector('.badge');
+  b.textContent = list.length;
+  b.classList.toggle('show', list.length > 0);
+}
+
+function walkTo(p, left, bottom, flip) {
+  const cur = parseFloat(p.el.style.left) || 0;
+  const dur = Math.min(1500, Math.max(380, Math.abs(left - cur) / WALK_SPEED));
+  p.el.classList.add('walking'); p.el.classList.remove('idle');
+  p.el.classList.toggle('flip', !!flip);
+  p.el.style.zIndex = 70;
+  p.el.style.transition = `left ${dur}ms ease-in-out, bottom ${dur}ms ease-in-out`;
+  p.el.style.left = left + 'px';
+  p.el.style.bottom = bottom + 'px';
+  return sleep(dur + 30);
+}
+
+async function leave(p, f) {
+  await walkTo(p, EXIT_X, f * FH + 10, true);
+  p.el.classList.add('gone');
+  await sleep(420);
+  p.el.remove(); byId.delete(String(p.id));
+  const i = people.indexOf(p); if (i > -1) people.splice(i, 1);
+  delivered++; refreshStats();
+}
+
+/* ================= 调度 ================= */
+function dispatch() {
+  let idle = elevators.filter(e => e.state === 'idle');
+  while (idle.length) {
+    const waiting = people.filter(p => p.state === 'waiting' && !p.assigned);
+    if (!waiting.length) break;
+    let best = null;
+    for (const e of idle) {
+      for (const p of waiting) {
+        // 同层严格先来后到；已有电梯前往的楼层降低优先级，让三部电梯分散服务
+        const rank = waiting.filter(q => q.floor === p.floor).indexOf(p);
+        const enroute = elevators.filter(x => x.state !== 'idle' && x.target === p.floor).length;
+        const score = Math.abs(e.floor - p.floor) + rank * 100 + enroute * 6;
+        if (!best || score < best.score) best = { score, e, p };
+      }
+    }
+    best.p.assigned = true;
+    best.e.serve(best.p);
+    idle = idle.filter(x => x !== best.e);
+  }
+}
+setInterval(dispatch, 300);
+
+/* ================= 统计 / 指示灯 ================= */
+function refreshStats() {
+  const w = people.filter(p => p.state === 'waiting' || p.state === 'boarding').length;
+  const r = people.filter(p => p.state === 'riding').length;
+  document.getElementById('sWait').textContent = w;
+  document.getElementById('sRide').textContent = r;
+  document.getElementById('sDone').textContent = delivered;
+  const served = delivered + r;
+  document.getElementById('sAvg').textContent = served ? (waitSum / served).toFixed(1) : '0.0';
+  for (let f = 0; f < FLOORS; f++) {
+    const c = people.filter(p => p.floor === f && p.state === 'waiting').length;
+    const b = floorEls[f].querySelector('.badge');
+    b.textContent = c; b.classList.toggle('show', c > 0);
+  }
+}
+
+(function loop() {
+  for (const e of elevators) {
+    const m = new DOMMatrix(getComputedStyle(e.car).transform);
+    const f = -m.m42 / FH;
+    const d = f - (e._last ?? f); e._last = f;
+    const arrow = d > 0.003 ? '↑' : d < -0.003 ? '↓' : '·';
+    e.head.textContent = `E${e.i + 1} ${arrow} F${Math.round(f) + 1}`;
+    e.head.classList.toggle('active', e.state !== 'idle');
+  }
+  requestAnimationFrame(loop);
+})();
+
+/* ================= 悬停提示框 ================= */
+const STATE_TXT = { waiting: '等待电梯', boarding: '正在上梯', riding: '乘梯中', leaving: '已到达' };
+let hovered = null;
+function renderTip() {
+  if (!hovered) return;
+  tip.innerHTML =
+    `<div class="big">目标楼层 F${hovered.target + 1}</div>
+     <div class="m">出发 F${hovered.floor + 1} · ${STATE_TXT[hovered.state] || ''}</div>`;
+}
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest?.('.person');
+  if (!el) return;
+  hovered = byId.get(el.dataset.id);
+  if (!hovered) return;
+  renderTip(); tip.classList.add('show');
+});
+document.addEventListener('mouseout', e => {
+  if (e.target.closest?.('.person')) { hovered = null; tip.classList.remove('show'); }
+});
+document.addEventListener('mousemove', e => {
+  if (!hovered) return;
+  tip.style.left = e.clientX + 'px';
+  tip.style.top = e.clientY + 'px';
+  renderTip();
+});
+
+/* ================= 控件 ================= */
+document.getElementById('btnSpawn').onclick = () =>
+  spawn(+selFloor.value, clamp(+document.getElementById('numPeople').value));
+
+document.getElementById('btnRandom').onclick = () => {
+  const n = clamp(+document.getElementById('numPeople').value);
+  for (let k = 0; k < n; k++) spawn(Math.floor(Math.random() * FLOORS), 1);
+};
+
+const btnAuto = document.getElementById('btnAuto');
+btnAuto.onclick = () => {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  else { autoTimer = setInterval(() => spawn(Math.floor(Math.random() * FLOORS), 1), 2200); }
+  btnAuto.textContent = '自动生成：' + (autoTimer ? '开' : '关');
+  btnAuto.classList.toggle('on', !!autoTimer);
+};
+
+document.getElementById('btnReset').onclick = () => {
+  gen++;                                   // 让进行中的服务流程作废
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; btnAuto.textContent = '自动生成：关'; btnAuto.classList.remove('on'); }
+  people.forEach(p => p.el.remove());
+  people.length = 0; byId.clear();
+  delivered = 0; waitSum = 0;
+  elevators.forEach(e => {
+    e.state = 'idle'; e.target = null; e.person = null;
+    e.inner.innerHTML = ''; e.car.classList.remove('open'); e.jumpTo(0);
+  });
+  hovered = null; tip.classList.remove('show');
+  for (let f = 0; f < FLOORS; f++) layoutFloor(f);
+  refreshStats();
+};
+
+const speed = document.getElementById('speed');
+speed.oninput = () => document.getElementById('speedVal').textContent = (+speed.value).toFixed(1);
+
+function clamp(n) { return Math.max(1, Math.min(12, isFinite(n) ? n : 1)); }
+
+/* 初始演示数据 */
+spawn(0, 3); spawn(4, 2); spawn(6, 1);
+refreshStats();
+</script>
+</body>
+</html>

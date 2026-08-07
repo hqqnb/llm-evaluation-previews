@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>科幻小说《极光》世代飞船 3D 还原</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: "Microsoft YaHei", sans-serif; }
+        #info-panel {
+            position: absolute; top: 15px; left: 15px; color: #e0e0e0;
+            background: rgba(10, 20, 30, 0.75); padding: 15px 20px; border-radius: 8px;
+            max-width: 320px; z-index: 10; pointer-events: none;
+            border: 1px solid #1e90ff; box-shadow: 0 0 15px rgba(30,144,255,0.3);
+        }
+        #info-panel h1 { font-size: 18px; margin: 0 0 10px; color: #66ccff; }
+        #info-panel p { font-size: 13px; line-height: 1.6; margin: 8px 0; }
+        #toggle-btn {
+            position: absolute; top: 15px; right: 15px; z-index: 10;
+            padding: 12px 24px; font-size: 15px; cursor: pointer; font-weight: bold;
+            background-color: #1e90ff; color: #fff; border: none;
+            border-radius: 6px; box-shadow: 0 0 12px #1e90ff; transition: 0.3s;
+        }
+        #toggle-btn:hover { background-color: #007acc; box-shadow: 0 0 20px #007acc; }
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            color: #66ccff; font-size: 22px; z-index: 20; letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">加载《极光》世代飞船中...</div>
+    <div id="info-panel">
+        <h1>《极光》世代飞船 (Starship)</h1>
+        <p>本模型还原了小说中由多个地球生态圈（Biomes）舱体串联而成的世代飞船结构，尾部配备核聚变引擎与辐射屏蔽罐，于深空中以恒定加速度航行。</p>
+        <p><strong>操作指南：</strong></p>
+        <p>🚀 <em>外部视角：</em>鼠标左键拖拽 360° 旋转，滚轮缩放查看飞船各处。</p>
+        <p>🛰️ <em>内部视角：</em>点击右上角按钮进入飞船内部，可探索生态舱内的人造植被与居住模块。</p>
+    </div>
+    <button id="toggle-btn">进入飞船内部</button>
+
+    <!-- 引入 Three.js 和 OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        // ================= 基础场景设置 =================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000005); // 深空背景
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // ================= 光源 =================
+        scene.add(new THREE.AmbientLight(0x222233));
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(200, 300, 150);
+        scene.add(sunLight);
+
+        // ================= 深空星空背景 =================
+        const starsCount = 4000;
+        const starsGeo = new THREE.BufferGeometry();
+        const starsPos = new Float32Array(starsCount * 3);
+        for (let i = 0; i < starsCount * 3; i++) {
+            starsPos[i] = (Math.random() - 0.5) * 1500;
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
+        const starsMat = new THREE.PointsMaterial({ size: 1.8, color: 0xffffff, transparent: true, opacity: 0.85 });
+        const starMesh = new THREE.Points(starsGeo, starsMat);
+        scene.add(starMesh);
+
+        // ================= 构建飞船模型 =================
+        const shipGroup = new THREE.Group();
+        scene.add(shipGroup);
+
+        // 生态舱参数（代表小说中不同的 Biomes）
+        const biomeColors = [0x2266cc, 0x22cc44, 0xcccc22, 0xcc6622, 0xdddddd]; // 海洋、森林、草原、荒漠、冰原
+        const biomes = [];
+        const numBiomes = 5;
+        const bLength = 22;  // 舱体长度
+        const bRadius = 6;   // 舱体半径
+        const bGap = 3;      // 连接间隙
+
+        for (let i = 0; i < numBiomes; i++) {
+            const geo = new THREE.CylinderGeometry(bRadius, bRadius, bLength, 32);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: biomeColors[i], metalness: 0.3, roughness: 0.7, side: THREE.DoubleSide 
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.rotation.z = Math.PI / 2; // 沿 X 轴躺平
+            const xPos = i * (bLength + bGap);
+            mesh.position.x = xPos;
+            shipGroup.add(mesh);
+            biomes.push({ mesh, mat, xPos });
+
+            // 舱体之间的连接通道
+            if (i < numBiomes - 1) {
+                const connGeo = new THREE.CylinderGeometry(2, 2, bGap + 0.5, 16);
+                const connMat = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide });
+                const conn = new THREE.Mesh(connGeo, connMat);
+                conn.rotation.z = Math.PI / 2;
+                conn.position.x = xPos + bLength / 2 + bGap / 2;
+                shipGroup.add(conn);
+            }
+        }
+
+        const shipCenterX = (numBiomes - 1) * (bLength + bGap) / 2;
+
+        // 船首（防撞/雷达罩）
+        const nose = new THREE.Mesh(
+            new THREE.ConeGeometry(bRadius, 12, 32),
+            new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.8, roughness: 0.2 })
+        );
+        nose.rotation.z = -Math.PI / 2;
+        nose.position.x = (numBiomes - 1) * (bLength + bGap) + bLength / 2 + 6;
+        shipGroup.add(nose);
+
+        // 船尾储罐（辐射屏蔽/燃料）
+        const tailBaseX = -bLength / 2;
+        const tank = new THREE.Mesh(
+            new THREE.CylinderGeometry(bRadius * 0.8, bRadius * 0.8, 18, 32),
+            new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.9, roughness: 0.3 })
+        );
+        tank.rotation.z = Math.PI / 2;
+        tank.position.x = tailBaseX - 9;
+        shipGroup.add(tank);
+
+        // 聚变引擎喷口
+        const engine = new THREE.Mesh(
+            new THREE.CylinderGeometry(3.5, 4.5, 8, 32),
+            new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.9, roughness: 0.4 })
+        );
+        engine.rotation.z = Math.PI / 2;
+        engine.position.x = tailBaseX - 18;
+        shipGroup.add(engine);
+
+        // 引擎辉光与粒子尾焰
+        const engineLight = new THREE.PointLight(0x00aaff, 3, 80);
+        engineLight.position.x = tailBaseX - 22;
+        shipGroup.add(engineLight);
+
+        const exhaustCount = 600;
+        const exhaustGeo = new THREE.BufferGeometry();
+        const exhaustPos = new Float32Array(exhaustCount * 3);
+        const exhaustVel = [];
+        for (let i = 0; i < exhaustCount; i++) {
+            exhaustPos[i*3] = tailBaseX - 22 - Math.random() * 15;
+            exhaustPos[i*3+1] = (Math.random() - 0.5) * 5;
+            exhaustPos[i*3+2] = (Math.random() - 0.5) * 5;
+            exhaustVel.push(15 + Math.random() * 25);
+        }
+        exhaustGeo.setAttribute('position', new THREE.BufferAttribute(exhaustPos, 3));
+        const exhaustMat = new THREE.PointsMaterial({ color: 0x66ccff, size: 1.2, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+        const exhaust = new THREE.Points(exhaustGeo, exhaustMat);
+        shipGroup.add(exhaust);
+
+        // ================= 飞船内部构造 (森林生态舱 index=1) =================
+        const interiorGroup = new THREE.Group();
+        const interiorX = biomes[1].xPos;
+        interiorGroup.position.x = interiorX;
+        shipGroup.add(interiorGroup);
+
+        // 生态舱地板
+        const floor = new THREE.Mesh(
+            new THREE.BoxGeometry(bLength - 2, 0.4, bRadius * 1.8),
+            new THREE.MeshStandardMaterial({ color: 0x3a2e22, roughness: 0.9 })
+        );
+        floor.position.y = -bRadius + 0.5;
+        interiorGroup.add(floor);
+
+        // 舱内人造植被（树）与居住模块（建筑）
+        for (let i = 0; i < 20; i++) {
+            const tree = new THREE.Mesh(
+                new THREE.ConeGeometry(0.8, 3 + Math.random() * 3, 8),
+                new THREE.MeshStandardMaterial({ color: 0x22aa33, roughness: 0.8 })
+            );
+            tree.position.set((Math.random() - 0.5) * (bLength - 4), -bRadius + 2 + 1.5, (Math.random() - 0.5) * (bRadius * 1.2));
+            interiorGroup.add(tree);
+        }
+        for (let i = 0; i < 6; i++) {
+            const building = new THREE.Mesh(
+                new THREE.BoxGeometry(2.5, 4, 2.5),
+                new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.5, roughness: 0.5 })
+            );
+            building.position.set((Math.random() - 0.5) * (bLength - 4), -bRadius + 2.5, (Math.random() - 0.5) * (bRadius * 1.0));
+            interiorGroup.add(building);
+        }
+        // 舱内照明
+        const interiorLight = new THREE.PointLight(0xffeebb, 1.2, 40);
+        interiorLight.position.set(0, 0, 0);
+        interiorGroup.add(interiorLight);
+
+        // ================= 视角交互逻辑 =================
+        let isInside = false;
+        const toggleBtn = document.getElementById('toggle-btn');
+
+        // 外部与内部视角参数
+        const externalCamPos = new THREE.Vector3(shipCenterX, 30, 75);
+        const externalTarget = new THREE.Vector3(shipCenterX, 0, 0);
+        const internalCamPos = new THREE.Vector3(interiorX, -2, 3);
+        const internalTarget = new THREE.Vector3(interiorX + 4, -2, 0);
+
+        camera.position.copy(externalCamPos);
+        controls.target.copy(externalTarget);
+        controls.minDistance = 15;
+        controls.maxDistance = 400;
+
+        function switchView() {
+            isInside = !isInside;
+            if (isInside) {
+                toggleBtn.innerText = "返回外部深空";
+                // 将第2个舱材质设为 BackSide，从内部可见舱壁，从外部看暂隐
+                biomes[1].mat.side = THREE.BackSide;
+                controls.minDistance = 1;
+                controls.maxDistance = 12; // 限制活动范围在舱内
+                camera.position.copy(internalCamPos);
+                controls.target.copy(internalTarget);
+            } else {
+                toggleBtn.innerText = "进入飞船内部";
+                biomes[1].mat.side = THREE.DoubleSide;
+                controls.minDistance = 15;
+                controls.maxDistance = 400;
+                camera.position.copy(externalCamPos);
+                controls.target.copy(externalTarget);
+            }
+            controls.update();
+        }
+        toggleBtn.addEventListener('click', switchView);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ================= 动画循环 =================
+        const clock = new THREE.Clock();
+        document.getElementById('loading').style.display = 'none';
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // 引擎闪烁效果
+            engineLight.intensity = 3 + Math.sin(time * 15) * 0.6;
+
+            // 尾焰粒子喷射动画（向 -X 方向）
+            const exPos = exhaustGeo.attributes.position.array;
+            for (let i = 0; i < exhaustCount; i++) {
+                exPos[i*3] -= exhaustVel[i] * delta;
+                if (exPos[i*3] < tailBaseX - 22 - 40) {
+                    exPos[i*3] = tailBaseX - 22 - Math.random() * 2;
+                    exPos[i*3+1] = (Math.random() - 0.5) * 5;
+                    exPos[i*3+2] = (Math.random() - 0.5) * 5;
+                }
+            }
+            exhaustGeo.attributes.position.needsUpdate = true;
+
+            // 星空向后流动（模拟飞船沿 +X 方向深空航行）
+            const stPos = starsGeo.attributes.position.array;
+            for (let i = 0; i < starsCount; i++) {
+                stPos[i*3] -= 25 * delta; 
+                if (stPos[i*3] < -750) stPos[i*3] += 1500;
+            }
+            starsGeo.attributes.position.needsUpdate = true;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#090b10" />
+  <title>双时区 3D 腕表</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --case-size: clamp(278px, 66vw, 410px);
+      --gold: #d7b56d;
+      --gold-light: #fff0bd;
+      --gold-dark: #6f5425;
+      --dial: #10151d;
+      --dial-edge: #252d38;
+      --red: #ee514c;
+      --text: #f5f7fa;
+      --muted: #9ba5b3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: #090b10;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% 36%, #263142 0, #121721 26%, #090b10 63%),
+        linear-gradient(145deg, #0d1017, #050609);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(100%, 1100px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding:
+        max(18px, env(safe-area-inset-top))
+        18px
+        max(32px, env(safe-area-inset-bottom));
+    }
+
+    .title {
+      margin: 4px 0 0;
+      text-align: center;
+      font-size: clamp(24px, 5vw, 38px);
+      font-weight: 760;
+      letter-spacing: 0.03em;
+    }
+
+    .subtitle {
+      margin: 8px auto 0;
+      max-width: 680px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .scene {
+      position: relative;
+      width: var(--case-size);
+      height: calc(var(--case-size) + 365px);
+      min-height: 650px;
+      margin: 20px auto 0;
+      perspective: 1250px;
+      perspective-origin: 50% 48%;
+    }
+
+    .floor-shadow {
+      position: absolute;
+      z-index: 0;
+      left: 50%;
+      top: calc(175px + var(--case-size) * 0.82);
+      width: calc(var(--case-size) * 1.03);
+      height: calc(var(--case-size) * 0.25);
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.7);
+      filter: blur(28px);
+      transform: translateX(-50%) rotate(-4deg);
+    }
+
+    .watch {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      transform-style: preserve-3d;
+      animation: watch-float 5.2s ease-in-out infinite;
+    }
+
+    @keyframes watch-float {
+      0%,
+      100% {
+        transform: rotateX(12deg) rotateY(-7deg) rotateZ(-4deg)
+          translateY(0);
+      }
+      50% {
+        transform: rotateX(14deg) rotateY(-4deg) rotateZ(-3deg)
+          translateY(-7px);
+      }
+    }
+
+    /* 表带 */
+    .strap {
+      position: absolute;
+      z-index: 1;
+      left: 50%;
+      width: 42%;
+      transform: translateX(-50%) translateZ(-16px);
+      border: 1px solid #3a2d23;
+      background:
+        linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.02),
+          rgba(255, 255, 255, 0.14) 15%,
+          transparent 34%,
+          transparent 66%,
+          rgba(255, 255, 255, 0.11) 85%,
+          rgba(0, 0, 0, 0.2)
+        ),
+        repeating-linear-gradient(
+          0deg,
+          #231b17 0,
+          #231b17 9px,
+          #2c211b 10px,
+          #1b1512 11px
+        );
+      box-shadow:
+        inset 8px 0 12px rgba(0, 0, 0, 0.34),
+        inset -8px 0 12px rgba(0, 0, 0, 0.34),
+        0 15px 25px rgba(0, 0, 0, 0.45);
+    }
+
+    .strap::before,
+    .strap::after {
+      content: "";
+      position: absolute;
+      top: 4%;
+      bottom: 4%;
+      width: 1px;
+      opacity: 0.7;
+      background: repeating-linear-gradient(
+        to bottom,
+        #b4986e 0 4px,
+        transparent 4px 8px
+      );
+    }
+
+    .strap::before {
+      left: 9%;
+    }
+
+    .strap::after {
+      right: 9%;
+    }
+
+    .strap-top {
+      top: 0;
+      height: 245px;
+      border-radius: 42px 42px 20px 20px;
+    }
+
+    .strap-bottom {
+      top: calc(155px + var(--case-size));
+      height: 235px;
+      border-radius: 20px 20px 48px 48px;
+    }
+
+    .strap-hole {
+      position: absolute;
+      left: 50%;
+      bottom: 28px;
+      width: 10px;
+      height: 18px;
+      border-radius: 50%;
+      background: #090806;
+      box-shadow:
+        inset 0 2px 4px #000,
+        0 1px 0 rgba(255, 255, 255, 0.12);
+      transform: translateX(-50%);
+    }
+
+    /* 表耳 */
+    .lug {
+      position: absolute;
+      z-index: 2;
+      width: 20%;
+      height: 72px;
+      border: 1px solid #987739;
+      border-radius: 18px;
+      background: linear-gradient(
+        90deg,
+        #58401c,
+        #d3aa59 26%,
+        #fff0b4 48%,
+        #a47730 75%,
+        #453113
+      );
+      box-shadow:
+        inset 0 0 9px rgba(255, 255, 255, 0.35),
+        0 9px 15px rgba(0, 0, 0, 0.4);
+      transform: translateZ(-6px);
+    }
+
+    .lug-tl {
+      top: 145px;
+      left: 9%;
+      transform: rotate(-8deg) translateZ(-6px);
+    }
+
+    .lug-tr {
+      top: 145px;
+      right: 9%;
+      transform: rotate(8deg) translateZ(-6px);
+    }
+
+    .lug-bl {
+      top: calc(128px + var(--case-size));
+      left: 9%;
+      transform: rotate(8deg) translateZ(-6px);
+    }
+
+    .lug-br {
+      top: calc(128px + var(--case-size));
+      right: 9%;
+      transform: rotate(-8deg) translateZ(-6px);
+    }
+
+    /* 表壳 */
+    .case {
+      position: absolute;
+      z-index: 5;
+      top: 170px;
+      left: 0;
+      width: var(--case-size);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      transform-style: preserve-3d;
+      background:
+        radial-gradient(
+          circle at 38% 25%,
+          #fff3bd 0,
+          #d5a956 15%,
+          #75531f 42%,
+          #d8ae5c 67%,
+          #4d3617 100%
+        );
+      border: 1px solid #8c6b2f;
+      box-shadow:
+        inset 0 0 0 5px rgba(255, 241, 184, 0.18),
+        inset -13px -18px 25px rgba(53, 31, 5, 0.55),
+        inset 10px 12px 18px rgba(255, 246, 202, 0.32),
+        0 8px 0 #563d18,
+        0 16px 25px rgba(0, 0, 0, 0.56),
+        0 38px 55px rgba(0, 0, 0, 0.38);
+    }
+
+    .bezel {
+      position: absolute;
+      inset: 4.2%;
+      border-radius: 50%;
+      padding: 3.2%;
+      background:
+        conic-gradient(
+          from 20deg,
+          #b88837,
+          #f8df99,
+          #76501e,
+          #d9ad59,
+          #fff1bc,
+          #6b481a,
+          #c89b4a,
+          #b88837
+        );
+      box-shadow:
+        inset 0 0 8px rgba(255, 255, 255, 0.5),
+        0 0 0 1px #553812,
+        0 5px 9px rgba(0, 0, 0, 0.5);
+      transform: translateZ(10px);
+    }
+
+    .dial {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 50%;
+      background:
+        radial-gradient(
+          circle at 40% 31%,
+          #26303b 0,
+          #151c25 31%,
+          #0d1118 69%,
+          #05070a 100%
+        );
+      border: 2px solid #090b0f;
+      box-shadow:
+        inset 0 0 0 2px #313943,
+        inset 0 0 24px #000,
+        0 0 5px #000;
+      transform-style: preserve-3d;
+    }
+
+    .dial-text {
+      position: absolute;
+      z-index: 4;
+      top: 20%;
+      left: 50%;
+      width: 60%;
+      text-align: center;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .brand {
+      color: #f5e5ba;
+      font-size: clamp(12px, 3vw, 17px);
+      font-weight: 780;
+      letter-spacing: 0.2em;
+      text-shadow: 0 1px 2px #000;
+    }
+
+    .model {
+      margin-top: 4px;
+      color: #8f9aa6;
+      font-size: clamp(7px, 1.8vw, 10px);
+      letter-spacing: 0.15em;
+    }
+
+    /* 刻度 */
+    .ticks,
+    .numbers {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .tick {
+      position: absolute;
+      inset: 0;
+    }
+
+    .tick::after {
+      content: "";
+      position: absolute;
+      top: 3.2%;
+      left: 50%;
+      width: 1px;
+      height: 2.5%;
+      border-radius: 2px;
+      background: #7b8794;
+      box-shadow: 0 0 2px #000;
+      transform: translateX(-50%);
+    }
+
+    .tick.major::after {
+      top: 2.5%;
+      width: 3px;
+      height: 5%;
+      background: linear-gradient(#fff4c6, #b99451);
+      box-shadow:
+        0 0 2px #000,
+        0 0 4px rgba(255, 224, 151, 0.36);
+    }
+
+    .hour-number {
+      position: absolute;
+      z-index: 3;
+      color: #f4e6be;
+      font-size: clamp(18px, 4.5vw, 27px);
+      font-weight: 720;
+      line-height: 1;
+      text-shadow: 0 2px 3px #000;
+      transform: translate(-50%, -50%);
+    }
+
+    /* 日期窗 */
+    .calendar-window {
+      position: absolute;
+      z-index: 6;
+      top: 48%;
+      min-width: 14%;
+      padding: 4px 5px;
+      border: 1px solid #6c5631;
+      border-radius: 3px;
+      color: #151515;
+      background: linear-gradient(#f6f3e8, #c9c4b5);
+      box-shadow:
+        inset 0 0 4px rgba(0, 0, 0, 0.4),
+        0 1px 3px #000;
+      text-align: center;
+      font-size: clamp(8px, 2.1vw, 12px);
+      font-weight: 750;
+      line-height: 1.15;
+    }
+
+    .weekday-window {
+      left: 16%;
+    }
+
+    .date-window {
+      right: 16%;
+    }
+
+    /* 第二时区子表盘 */
+    .subdial {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      top: 68.5%;
+      width: 31%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 1px solid #5f6872;
+      background:
+        radial-gradient(circle, #1c242d, #090c11 72%);
+      box-shadow:
+        inset 0 0 10px #000,
+        0 1px 3px #000;
+      transform: translate(-50%, -50%);
+    }
+
+    .subdial::before {
+      content: "第二时区 · 24H";
+      position: absolute;
+      left: 50%;
+      top: 18%;
+      width: 100%;
+      color: #9fa9b5;
+      font-size: clamp(5px, 1.35vw, 8px);
+      letter-spacing: 0.05em;
+      text-align: center;
+      transform: translateX(-50%);
+    }
+
+    .sub-label {
+      position: absolute;
+      color: #b9c2cc;
+      font-size: clamp(6px, 1.6vw, 9px);
+      font-weight: 700;
+    }
+
+    .sub-0 {
+      top: 3%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .sub-6 {
+      top: 50%;
+      right: 5%;
+      transform: translateY(-50%);
+    }
+
+    .sub-12 {
+      bottom: 3%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .sub-18 {
+      top: 50%;
+      left: 5%;
+      transform: translateY(-50%);
+    }
+
+    .sub-hand {
+      position: absolute;
+      z-index: 3;
+      left: 50%;
+      top: 16%;
+      width: 2px;
+      height: 34%;
+      border-radius: 4px;
+      background: var(--red);
+      box-shadow: 0 0 3px rgba(238, 81, 76, 0.75);
+      transform-origin: 50% 100%;
+    }
+
+    .sub-pin {
+      position: absolute;
+      z-index: 4;
+      left: 50%;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e5c276;
+      box-shadow: 0 0 2px #000;
+      transform: translate(-50%, -50%);
+    }
+
+    /* 指针 */
+    .hands {
+      position: absolute;
+      z-index: 10;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .hand {
+      position: absolute;
+      left: 50%;
+      border-radius: 7px 7px 3px 3px;
+      transform-origin: 50% 100%;
+      will-change: transform;
+    }
+
+    .hour-hand {
+      z-index: 2;
+      top: 27%;
+      width: 4.6%;
+      height: 23%;
+      background:
+        linear-gradient(
+          90deg,
+          #5c441c,
+          #f6df9e 40%,
+          #fff3c1 52%,
+          #8f692c 100%
+        );
+      border: 1px solid #5d4218;
+      box-shadow:
+        2px 3px 4px rgba(0, 0, 0, 0.65),
+        inset 0 0 2px #fff1b9;
+    }
+
+    .minute-hand {
+      z-index: 3;
+      top: 17%;
+      width: 3.3%;
+      height: 33%;
+      background:
+        linear-gradient(
+          90deg,
+          #4d3918,
+          #f5dc96 42%,
+          #fff3c3 53%,
+          #806027
+        );
+      border: 1px solid #594117;
+      box-shadow:
+        2px 4px 5px rgba(0, 0, 0, 0.68),
+        inset 0 0 2px #fff3c4;
+    }
+
+    .second-hand {
+      z-index: 5;
+      top: 12%;
+      width: 1.4%;
+      height: 42%;
+      min-width: 2px;
+      background: linear-gradient(90deg, #8f1d1c, #ff6e68, #9e211f);
+      box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.65);
+      transform-origin: 50% 90.5%;
+    }
+
+    .second-hand::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 86%;
+      width: 350%;
+      height: 18%;
+      border: 2px solid var(--red);
+      border-radius: 50%;
+      transform: translateX(-50%);
+    }
+
+    .center-pin {
+      position: absolute;
+      z-index: 20;
+      left: 50%;
+      top: 50%;
+      width: 7%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 1px solid #72501d;
+      background:
+        radial-gradient(circle at 35% 30%, #fff4c5, #d2a652 40%, #604216 100%);
+      box-shadow:
+        0 2px 4px #000,
+        inset 0 1px 2px rgba(255, 255, 255, 0.6);
+      transform: translate(-50%, -50%);
+    }
+
+    .center-pin::after {
+      content: "";
+      position: absolute;
+      inset: 35%;
+      border-radius: 50%;
+      background: #b72e2b;
+    }
+
+    /* 玻璃层 */
+    .glass {
+      position: absolute;
+      z-index: 30;
+      inset: 0;
+      overflow: hidden;
+      border-radius: 50%;
+      pointer-events: none;
+      background:
+        linear-gradient(
+          120deg,
+          rgba(255, 255, 255, 0.2) 0%,
+          rgba(255, 255, 255, 0.035) 21%,
+          transparent 39%,
+          transparent 72%,
+          rgba(133, 197, 255, 0.08) 100%
+        );
+      box-shadow:
+        inset 12px 12px 20px rgba(255, 255, 255, 0.06),
+        inset -10px -13px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .glass::before {
+      content: "";
+      position: absolute;
+      left: 14%;
+      top: 3%;
+      width: 32%;
+      height: 83%;
+      border-radius: 50%;
+      background: linear-gradient(
+        100deg,
+        rgba(255, 255, 255, 0.17),
+        transparent 64%
+      );
+      transform: rotate(25deg);
+      filter: blur(1px);
+    }
+
+    /* 表冠 */
+    .crown-neck {
+      position: absolute;
+      z-index: 3;
+      top: calc(170px + var(--case-size) * 0.44);
+      right: -5%;
+      width: 12%;
+      height: calc(var(--case-size) * 0.12);
+      border-radius: 5px;
+      background: linear-gradient(#e1bd72, #68471b);
+      box-shadow: 0 5px 7px rgba(0, 0, 0, 0.5);
+      transform: translateZ(2px);
+    }
+
+    .crown {
+      position: absolute;
+      z-index: 4;
+      top: calc(170px + var(--case-size) * 0.415);
+      right: -12%;
+      width: 10%;
+      height: calc(var(--case-size) * 0.17);
+      border: 1px solid #76521f;
+      border-radius: 8px;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          #76521f 0 2px,
+          #e4bf73 2px 4px,
+          #9c7231 4px 6px
+        );
+      box-shadow:
+        inset 0 0 4px rgba(255, 255, 255, 0.4),
+        3px 7px 9px rgba(0, 0, 0, 0.45);
+      transform: translateZ(3px);
+    }
+
+    /* 控制面板 */
+    .panel {
+      width: min(100%, 760px);
+      margin: 6px auto 0;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 18px;
+      background: rgba(15, 19, 27, 0.78);
+      box-shadow:
+        0 18px 50px rgba(0, 0, 0, 0.36),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(14px);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .control {
+      min-width: 0;
+    }
+
+    .control label {
+      display: block;
+      margin-bottom: 7px;
+      color: #b6c0cb;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    select {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 38px 0 12px;
+      border: 1px solid #394351;
+      border-radius: 10px;
+      outline: none;
+      color: #f2f5f8;
+      background: #111720;
+    }
+
+    select:focus {
+      border-color: #c5a156;
+      box-shadow: 0 0 0 3px rgba(197, 161, 86, 0.16);
+    }
+
+    .readouts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .readout {
+      min-width: 0;
+      padding: 12px;
+      border-radius: 12px;
+      background: #0a0e14;
+      border: 1px solid #242d38;
+    }
+
+    .readout-name {
+      overflow: hidden;
+      color: #8f9aa7;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .readout-time {
+      margin-top: 4px;
+      color: #f5e3b5;
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(21px, 5vw, 31px);
+      font-weight: 760;
+      letter-spacing: 0.05em;
+    }
+
+    .readout-date {
+      margin-top: 3px;
+      color: #aeb7c2;
+      font-size: 12px;
+    }
+
+    .test-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .test-button {
+      flex: 0 0 auto;
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid #92713a;
+      border-radius: 9px;
+      color: #19140b;
+      background: linear-gradient(#efd492, #bd934b);
+      cursor: pointer;
+      font-weight: 750;
+    }
+
+    .test-button:hover {
+      filter: brightness(1.08);
+    }
+
+    .test-button:active {
+      transform: translateY(1px);
+    }
+
+    .test-result {
+      min-width: 0;
+      color: #98a3b0;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .test-result.success {
+      color: #75dda0;
+    }
+
+    .test-result.failure {
+      color: #ff8181;
+    }
+
+    .noscript {
+      max-width: 700px;
+      margin: 20px auto;
+      padding: 16px;
+      color: #ffaaaa;
+      background: #301515;
+      border-radius: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .app {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .scene {
+        margin-top: 8px;
+      }
+
+      .controls,
+      .readouts {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      .test-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .watch {
+        animation: none;
+        transform: rotateX(12deg) rotateY(-7deg) rotateZ(-4deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <h1 class="title">双时区 3D 腕表</h1>
+    <p class="subtitle">
+      主表盘显示第一时区，6 点位的 24 小时子表盘显示第二时区。
+      所有指针均根据当前时间连续、平滑运行。
+    </p>
+
+    <section class="scene" aria-label="3D 双时区腕表">
+      <div class="floor-shadow"></div>
+
+      <div class="watch">
+        <div class="strap strap-top"></div>
+        <div class="strap strap-bottom">
+          <div class="strap-hole"></div>
+        </div>
+
+        <div class="lug lug-tl"></div>
+        <div class="lug lug-tr"></div>
+        <div class="lug lug-bl"></div>
+        <div class="lug lug-br"></div>
+
+        <div class="crown-neck"></div>
+        <div class="crown"></div>
+
+        <div class="case">
+          <div class="bezel">
+            <div class="dial">
+              <div id="ticks" class="ticks" aria-hidden="true"></div>
+              <div id="numbers" class="numbers" aria-hidden="true"></div>
+
+              <div class="dial-text">
+                <div class="brand">CHRONOS</div>
+                <div class="model">DUAL TIME · AUTOMATIC</div>
+              </div>
+
+              <div
+                id="weekdayWindow"
+                class="calendar-window weekday-window"
+                aria-label="星期"
+              >
+                周一
+              </div>
+
+              <div
+                id="dateWindow"
+                class="calendar-window date-window"
+                aria-label="日期"
+              >
+                01月01日
+              </div>
+
+              <div class="subdial" aria-label="第二时区 24 小时子表盘">
+                <span class="sub-label sub-0">0</span>
+                <span class="sub-label sub-6">6</span>
+                <span class="sub-label sub-12">12</span>
+                <span class="sub-label sub-18">18</span>
+                <div id="subHand" class="sub-hand"></div>
+                <div class="sub-pin"></div>
+              </div>
+
+              <div class="hands" aria-hidden="true">
+                <div id="hourHand" class="hand hour-hand"></div>
+                <div id="minuteHand" class="hand minute-hand"></div>
+                <div id="secondHand" class="hand second-hand"></div>
+                <div class="center-pin"></div>
+              </div>
+
+              <div class="glass"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="时区设置">
+      <div class="controls">
+        <div class="control">
+          <label for="primaryZone">第一时区 / 主表盘</label>
+          <select id="primaryZone"></select>
+        </div>
+
+        <div class="control">
+          <label for="secondaryZone">第二时区 / 24 小时子表盘</label>
+          <select id="secondaryZone"></select>
+        </div>
+      </div>
+
+      <div class="readouts" aria-live="polite">
+        <div class="readout">
+          <div id="primaryName" class="readout-name">本地时区</div>
+          <div id="primaryTime" class="readout-time">00:00:00</div>
+          <div id="primaryDate" class="readout-date">正在同步时间……</div>
+        </div>
+
+        <div class="readout">
+          <div id="secondaryName" class="readout-name">第二时区</div>
+          <div id="secondaryTime" class="readout-time">00:00:00</div>
+          <div id="secondaryDate" class="readout-date">正在同步时间……</div>
+        </div>
+      </div>
+
+      <div class="test-row">
+        <button id="testButton" class="test-button" type="button">
+          运行自检
+        </button>
+        <div id="testResult" class="test-result">
+          可检查指针角度、时区格式化、刻度数量和动画状态。
+        </div>
+      </div>
+    </section>
+
+    <noscript>
+      <div class="noscript">
+        此腕表需要 JavaScript 才能读取当前时间并驱动指针，请启用 JavaScript。
+      </div>
+    </noscript>
+  </main>
+
+  <script>
+    "use strict";
+
+    const $ = (selector) => document.querySelector(selector);
+
+    const elements = {
+      ticks: $("#ticks"),
+      numbers: $("#numbers"),
+      hourHand: $("#hourHand"),
+      minuteHand: $("#minuteHand"),
+      secondHand: $("#secondHand"),
+      subHand: $("#subHand"),
+      weekdayWindow: $("#weekdayWindow"),
+      dateWindow: $("#dateWindow"),
+      primaryZone: $("#primaryZone"),
+      secondaryZone: $("#secondaryZone"),
+      primaryName: $("#primaryName"),
+      secondaryName: $("#secondaryName"),
+      primaryTime: $("#primaryTime"),
+      secondaryTime: $("#secondaryTime"),
+      primaryDate: $("#primaryDate"),
+      secondaryDate: $("#secondaryDate"),
+      testButton: $("#testButton"),
+      testResult: $("#testResult")
+    };
+
+    const localZone =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "本地时区";
+
+    const zoneOptions = [
+      ["local", `本地时间 · ${localZone}`],
+      ["UTC", "UTC · 协调世界时"],
+      ["Asia/Shanghai", "上海 / 北京"],
+      ["Asia/Hong_Kong", "香港"],
+      ["Asia/Tokyo", "东京"],
+      ["Asia/Singapore", "新加坡"],
+      ["Asia/Kolkata", "印度"],
+      ["Asia/Dubai", "迪拜"],
+      ["Europe/London", "伦敦"],
+      ["Europe/Paris", "巴黎"],
+      ["Europe/Berlin", "柏林"],
+      ["America/New_York", "纽约"],
+      ["America/Chicago", "芝加哥"],
+      ["America/Denver", "丹佛"],
+      ["America/Los_Angeles", "洛杉矶"],
+      ["America/Toronto", "多伦多"],
+      ["America/Sao_Paulo", "圣保罗"],
+      ["Australia/Sydney", "悉尼"],
+      ["Pacific/Auckland", "奥克兰"]
+    ];
+
+    function populateZoneSelect(select) {
+      for (const [value, label] of zoneOptions) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        select.appendChild(option);
+      }
+    }
+
+    populateZoneSelect(elements.primaryZone);
+    populateZoneSelect(elements.secondaryZone);
+
+    elements.primaryZone.value = "local";
+    elements.secondaryZone.value =
+      localZone === "Asia/Shanghai" ? "UTC" : "Asia/Shanghai";
+
+    function createDialMarks() {
+      const fragment = document.createDocumentFragment();
+
+      for (let i = 0; i < 60; i += 1) {
+        const tick = document.createElement("div");
+        tick.className = i % 5 === 0 ? "tick major" : "tick";
+        tick.style.transform = `rotate(${i * 6}deg)`;
+        fragment.appendChild(tick);
+      }
+
+      elements.ticks.appendChild(fragment);
+
+      const numberData = [
+        { label: "12", angle: 0 },
+        { label: "3", angle: 90 },
+        { label: "6", angle: 180 },
+        { label: "9", angle: 270 }
+      ];
+
+      for (const item of numberData) {
+        const number = document.createElement("div");
+        const radians = (item.angle * Math.PI) / 180;
+        const radius = 39;
+
+        number.className = "hour-number";
+        number.textContent = item.label;
+        number.style.left = `${50 + Math.sin(radians) * radius}%`;
+        number.style.top = `${50 - Math.cos(radians) * radius}%`;
+
+        elements.numbers.appendChild(number);
+      }
+    }
+
+    createDialMarks();
+
+    function normalize(value, range) {
+      return ((value % range) + range) % range;
+    }
+
+    /**
+     * 根据从当天 00:00:00 开始的秒数计算指针角度。
+     */
+    function calculateAngles(totalSeconds) {
+      const daySeconds = normalize(totalSeconds, 86400);
+
+      return {
+        second: normalize(daySeconds, 60) * 6,
+        minute: normalize(daySeconds, 3600) * 0.1,
+        hour: normalize(daySeconds, 43200) / 120,
+        sub24: daySeconds / 240
+      };
+    }
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatDigital(totalSeconds) {
+      const daySeconds = normalize(Math.floor(totalSeconds), 86400);
+      const hour = Math.floor(daySeconds / 3600);
+      const minute = Math.floor((daySeconds % 3600) / 60);
+      const second = daySeconds % 60;
+
+      return `${pad2(hour)}:${pad2(minute)}:${pad2(second)}`;
+    }
+
+    function getTimeZoneOption(zone) {
+      return zone === "local" ? undefined : zone;
+    }
+
+    function getZoneDisplayName(zone) {
+      if (zone === "local") {
+        return `本地时间 · ${localZone}`;
+      }
+
+      const item = zoneOptions.find(([value]) => value === zone);
+      return item ? `${item[1]} · ${zone}` : zone;
+    }
+
+    class ZonedClock {
+      constructor(zone) {
+        this.zone = zone;
+        this.anchorEpoch = 0;
+        this.baseTotalSeconds = 0;
+        this.dateText = "";
+        this.shortDate = "";
+        this.weekday = "";
+        this.createFormatters();
+        this.sync(Date.now());
+      }
+
+      createFormatters() {
+        const timeZone = getTimeZoneOption(this.zone);
+
+        this.partsFormatter = new Intl.DateTimeFormat("en-CA", {
+          timeZone,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hourCycle: "h23"
+        });
+
+        this.dateFormatter = new Intl.DateTimeFormat("zh-CN", {
+          timeZone,
+          year: "numeric",
+          month: "long",
+          day: "2-digit",
+          weekday: "long"
+        });
+
+        this.shortDateFormatter = new Intl.DateTimeFormat("zh-CN", {
+          timeZone,
+          month: "2-digit",
+          day: "2-digit"
+        });
+
+        this.weekdayFormatter = new Intl.DateTimeFormat("zh-CN", {
+          timeZone,
+          weekday: "short"
+        });
+      }
+
+      setZone(zone) {
+        this.zone = zone;
+        this.createFormatters();
+        this.sync(Date.now());
+      }
+
+      sync(epoch) {
+        const date = new Date(epoch);
+        const values = {};
+
+        for (const part of this.partsFormatter.formatToParts(date)) {
+          if (part.type !== "literal") {
+            values[part.type] = part.value;
+          }
+        }
+
+        const hour = Number(values.hour) % 24;
+        const minute = Number(values.minute);
+        const second = Number(values.second);
+
+        this.anchorEpoch = epoch;
+        this.baseTotalSeconds =
+          hour * 3600 +
+          minute * 60 +
+          second +
+          date.getMilliseconds() / 1000;
+
+        this.dateText = this.dateFormatter.format(date);
+        this.shortDate = this.shortDateFormatter.format(date);
+        this.weekday = this.weekdayFormatter.format(date);
+      }
+
+      getTotalSeconds(epoch) {
+        return this.baseTotalSeconds + (epoch - this.anchorEpoch) / 1000;
+      }
+    }
+
+    let primaryClock = new ZonedClock(elements.primaryZone.value);
+    let secondaryClock = new ZonedClock(elements.secondaryZone.value);
+    let lastReadoutKey = "";
+    let renderedFrameCount = 0;
+    let lastFrameEpoch = Date.now();
+
+    function setHandRotation(element, degrees) {
+      element.style.transform =
+        `translateX(-50%) rotate(${degrees.toFixed(4)}deg)`;
+    }
+
+    function updateReadouts(now, primaryTotal, secondaryTotal) {
+      const key =
+        `${Math.floor(now / 1000)}|` +
+        `${primaryClock.zone}|${secondaryClock.zone}`;
+
+      if (key === lastReadoutKey) {
+        return;
+      }
+
+      lastReadoutKey = key;
+
+      elements.primaryName.textContent =
+        getZoneDisplayName(primaryClock.zone);
+      elements.secondaryName.textContent =
+        getZoneDisplayName(secondaryClock.zone);
+
+      elements.primaryTime.textContent = formatDigital(primaryTotal);
+      elements.secondaryTime.textContent = formatDigital(secondaryTotal);
+
+      elements.primaryDate.textContent = primaryClock.dateText;
+      elements.secondaryDate.textContent = secondaryClock.dateText;
+
+      elements.weekdayWindow.textContent = primaryClock.weekday;
+      elements.dateWindow.textContent = primaryClock.shortDate;
+    }
+
+    function animationLoop() {
+      const now = Date.now();
+
+      // 每秒重新读取一次目标时区的日历时间，以处理日期变化及夏令时。
+      if (now - primaryClock.anchorEpoch >= 1000) {
+        primaryClock.sync(now);
+      }
+
+      if (now - secondaryClock.anchorEpoch >= 1000) {
+        secondaryClock.sync(now);
+      }
+
+      const primaryTotal = primaryClock.getTotalSeconds(now);
+      const secondaryTotal = secondaryClock.getTotalSeconds(now);
+
+      const primaryAngles = calculateAngles(primaryTotal);
+      const secondaryAngles = calculateAngles(secondaryTotal);
+
+      setHandRotation(elements.hourHand, primaryAngles.hour);
+      setHandRotation(elements.minuteHand, primaryAngles.minute);
+      setHandRotation(elements.secondHand, primaryAngles.second);
+      setHandRotation(elements.subHand, secondaryAngles.sub24);
+
+      updateReadouts(now, primaryTotal, secondaryTotal);
+
+      renderedFrameCount += 1;
+      lastFrameEpoch = now;
+
+      requestAnimationFrame(animationLoop);
+    }
+
+    elements.primaryZone.addEventListener("change", () => {
+      primaryClock.setZone(elements.primaryZone.value);
+      lastReadoutKey = "";
+    });
+
+    elements.secondaryZone.addEventListener("change", () => {
+      secondaryClock.setZone(elements.secondaryZone.value);
+      lastReadoutKey = "";
+    });
+
+    function nearlyEqual(actual, expected, tolerance = 0.001) {
+      return Math.abs(actual - expected) <= tolerance;
+    }
+
+    function runSelfTest() {
+      const results = [];
+
+      function assert(condition, description) {
+        results.push({
+          success: Boolean(condition),
+          description
+        });
+      }
+
+      // 固定时间：03:15:30.500
+      const testSeconds = 3 * 3600 + 15 * 60 + 30.5;
+      const angles = calculateAngles(testSeconds);
+
+      assert(
+        nearlyEqual(angles.second, 183),
+        `秒针角度应为 183°，实际 ${angles.second.toFixed(3)}°`
+      );
+
+      assert(
+        nearlyEqual(angles.minute, 93.05),
+        `分针角度应为 93.05°，实际 ${angles.minute.toFixed(3)}°`
+      );
+
+      assert(
+        nearlyEqual(angles.hour, 97.7541667),
+        `时针角度应约为 97.754°，实际 ${angles.hour.toFixed(3)}°`
+      );
+
+      assert(
+        nearlyEqual(angles.sub24, 48.8770833),
+        `24 小时指针角度应约为 48.877°，实际 ${angles.sub24.toFixed(3)}°`
+      );
+
+      assert(
+        document.querySelectorAll(".tick").length === 60,
+        "表盘应包含 60 个分钟刻度"
+      );
+
+      assert(
+        document.querySelectorAll(".tick.major").length === 12,
+        "表盘应包含 12 个主要小时刻度"
+      );
+
+      let utcTestPassed = false;
+
+      try {
+        const utcFormatter = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "UTC",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hourCycle: "h23"
+        });
+
+        const parts = {};
+        for (const part of utcFormatter.formatToParts(
+          new Date("2024-01-01T03:15:30.000Z")
+        )) {
+          if (part.type !== "literal") {
+            parts[part.type] = part.value;
+          }
+        }
+
+        utcTestPassed =
+          Number(parts.hour) === 3 &&
+          Number(parts.minute) === 15 &&
+          Number(parts.second) === 30;
+      } catch {
+        utcTestPassed = false;
+      }
+
+      assert(utcTestPassed, "Intl UTC 时区格式化应正常工作");
+
+      assert(
+        renderedFrameCount > 0 &&
+          Date.now() - lastFrameEpoch < 1000,
+        "requestAnimationFrame 动画循环应处于运行状态"
+      );
+
+      const failed = results.filter((item) => !item.success);
+
+      elements.testResult.classList.remove("success", "failure");
+
+      if (failed.length === 0) {
+        elements.testResult.classList.add("success");
+        elements.testResult.textContent =
+          `自检通过：共 ${results.length} 项，指针计算、时区格式化、` +
+          `刻度结构和动画循环均正常。`;
+      } else {
+        elements.testResult.classList.add("failure");
+        elements.testResult.textContent =
+          `自检失败 ${failed.length} 项：` +
+          failed.map((item) => item.description).join("；");
+      }
+
+      return {
+        passed: failed.length === 0,
+        results
+      };
+    }
+
+    elements.testButton.addEventListener("click", runSelfTest);
+
+    // 提供给浏览器控制台或自动化测试使用。
+    window.watchApp = {
+      calculateAngles,
+      formatDigital,
+      runSelfTest,
+      getState() {
+        const now = Date.now();
+
+        return {
+          primaryZone: primaryClock.zone,
+          secondaryZone: secondaryClock.zone,
+          primaryTime: formatDigital(
+            primaryClock.getTotalSeconds(now)
+          ),
+          secondaryTime: formatDigital(
+            secondaryClock.getTotalSeconds(now)
+          ),
+          renderedFrameCount
+        };
+      }
+    };
+
+    requestAnimationFrame(animationLoop);
+  </script>
+</body>
+</html>

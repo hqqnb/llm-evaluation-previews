@@ -1,0 +1,393 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="900"
+  height="520"
+  viewBox="0 0 900 520"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">Animated SVG of a giraffe driving a tiny car</title>
+  <desc id="desc">
+    A cartoon giraffe driving a tiny red car on a moving road with spinning wheels and exhaust animation.
+  </desc>
+
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9ee7ff"/>
+      <stop offset="100%" stop-color="#e7fbff"/>
+    </linearGradient>
+
+    <linearGradient id="carBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6b61"/>
+      <stop offset="100%" stop-color="#d9362c"/>
+    </linearGradient>
+
+    <radialGradient id="wheelGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#777"/>
+      <stop offset="45%" stop-color="#333"/>
+      <stop offset="100%" stop-color="#111"/>
+    </radialGradient>
+
+    <style>
+      <![CDATA[
+        .car-group {
+          transform-origin: 450px 330px;
+          animation: carBob 0.75s ease-in-out infinite alternate;
+        }
+
+        @keyframes carBob {
+          from { transform: translateY(0); }
+          to { transform: translateY(-8px); }
+        }
+
+        .wheel {
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: spin 0.65s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .road-lines {
+          animation: roadMove 1s linear infinite;
+        }
+
+        @keyframes roadMove {
+          from { transform: translateX(0); }
+          to { transform: translateX(-160px); }
+        }
+
+        .exhaust {
+          opacity: 0;
+          animation: puff 1.3s ease-out infinite;
+        }
+
+        .exhaust:nth-of-type(2) {
+          animation-delay: 0.35s;
+        }
+
+        .exhaust:nth-of-type(3) {
+          animation-delay: 0.7s;
+        }
+
+        @keyframes puff {
+          0% {
+            transform: translate(0, 0) scale(0.3);
+            opacity: 0.7;
+          }
+          60% {
+            opacity: 0.45;
+          }
+          100% {
+            transform: translate(-75px, -25px) scale(1.4);
+            opacity: 0;
+          }
+        }
+
+        .giraffe-head {
+          transform-origin: 555px 145px;
+          animation: nod 1.6s ease-in-out infinite;
+        }
+
+        @keyframes nod {
+          0%, 100% { transform: rotate(0deg); }
+          50% { transform: rotate(5deg); }
+        }
+
+        .tail {
+          transform-origin: 646px 279px;
+          animation: tailWag 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes tailWag {
+          from { transform: rotate(-12deg); }
+          to { transform: rotate(18deg); }
+        }
+
+        .cloud {
+          animation: cloudDrift 12s linear infinite;
+        }
+
+        .cloud.slow {
+          animation-duration: 18s;
+        }
+
+        @keyframes cloudDrift {
+          from { transform: translateX(920px); }
+          to { transform: translateX(-260px); }
+        }
+
+        .sun-ray {
+          transform-origin: 92px 88px;
+          animation: raySpin 12s linear infinite;
+        }
+
+        @keyframes raySpin {
+          to { transform: rotate(360deg); }
+        }
+
+        .blink {
+          animation: blink 3.2s infinite;
+          transform-origin: center;
+        }
+
+        @keyframes blink {
+          0%, 92%, 100% { transform: scaleY(1); }
+          95% { transform: scaleY(0.1); }
+        }
+      ]]>
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="520" fill="url(#sky)"/>
+
+  <!-- Sun -->
+  <g transform="translate(92 88)">
+    <g class="sun-ray">
+      <line x1="0" y1="-58" x2="0" y2="-78" stroke="#ffd95c" stroke-width="7" stroke-linecap="round"/>
+      <line x1="0" y1="58" x2="0" y2="78" stroke="#ffd95c" stroke-width="7" stroke-linecap="round"/>
+      <line x1="-58" y1="0" x2="-78" y2="0" stroke="#ffd95c" stroke-width="7" stroke-linecap="round"/>
+      <line x1="58" y1="0" x2="78" y2="0" stroke="#ffd95c" stroke-width="7" stroke-linecap="round"/>
+      <line x1="-42" y1="-42" x2="-58" y2="-58" stroke="#ffd95c" stroke-width="7" stroke-linecap="round"/>
+      <line x1="42" y1="-42" x2="58" y2="-58" stroke="#ffd95c" stroke-width="7" stroke-linecap="round"/>
+      <line x1="-42" y1="42" x2="-58" y2="58" stroke="#ffd95c" stroke-width="7" stroke-linecap="round"/>
+      <line x1="42" y1="42" x2="58" y2="58" stroke="#ffd95c" stroke-width="7" stroke-linecap="round"/>
+    </g>
+    <circle r="46" fill="#ffcf42"/>
+    <circle cx="-14" cy="-12" r="6" fill="#fff3a3" opacity="0.55"/>
+  </g>
+
+  <!-- Clouds -->
+  <g class="cloud" opacity="0.85">
+    <ellipse cx="0" cy="95" rx="46" ry="22" fill="#fff"/>
+    <ellipse cx="38" cy="88" rx="34" ry="26" fill="#fff"/>
+    <ellipse cx="72" cy="96" rx="48" ry="22" fill="#fff"/>
+  </g>
+
+  <g class="cloud slow" opacity="0.7" transform="translate(0 70)">
+    <ellipse cx="0" cy="120" rx="38" ry="18" fill="#fff"/>
+    <ellipse cx="32" cy="111" rx="28" ry="22" fill="#fff"/>
+    <ellipse cx="64" cy="121" rx="42" ry="18" fill="#fff"/>
+  </g>
+
+  <!-- Distant hills -->
+  <path d="M0 315 C120 240 220 305 330 252 C450 195 560 310 680 250 C790 195 850 255 900 230 L900 520 L0 520 Z"
+        fill="#b9e889" opacity="0.85"/>
+  <path d="M0 342 C130 286 240 345 365 294 C485 246 590 355 735 292 C825 252 875 294 900 285 L900 520 L0 520 Z"
+        fill="#8ed46a" opacity="0.9"/>
+
+  <!-- Road -->
+  <rect x="0" y="370" width="900" height="150" fill="#575757"/>
+  <rect x="0" y="370" width="900" height="18" fill="#6a6a6a"/>
+  <rect x="0" y="505" width="900" height="15" fill="#333"/>
+
+  <g class="road-lines">
+    <rect x="0" y="435" width="90" height="12" rx="6" fill="#f7e86d"/>
+    <rect x="160" y="435" width="90" height="12" rx="6" fill="#f7e86d"/>
+    <rect x="320" y="435" width="90" height="12" rx="6" fill="#f7e86d"/>
+    <rect x="480" y="435" width="90" height="12" rx="6" fill="#f7e86d"/>
+    <rect x="640" y="435" width="90" height="12" rx="6" fill="#f7e86d"/>
+    <rect x="800" y="435" width="90" height="12" rx="6" fill="#f7e86d"/>
+    <rect x="960" y="435" width="90" height="12" rx="6" fill="#f7e86d"/>
+  </g>
+
+  <!-- Exhaust puffs -->
+  <g transform="translate(270 342)">
+    <circle class="exhaust" cx="0" cy="0" r="12" fill="#d8d8d8"/>
+    <circle class="exhaust" cx="10" cy="8" r="10" fill="#cfcfcf"/>
+    <circle class="exhaust" cx="-6" cy="12" r="8" fill="#e6e6e6"/>
+  </g>
+
+  <!-- Car and giraffe -->
+  <g class="car-group">
+
+    <!-- Tiny car shadow -->
+    <ellipse cx="458" cy="405" rx="190" ry="24" fill="#000" opacity="0.18"/>
+
+    <!-- Car body -->
+    <path
+      d="M282 319
+         C300 279 338 260 393 260
+         L500 260
+         C555 260 601 283 622 323
+         L658 333
+         C672 337 681 350 679 365
+         L674 387
+         C672 399 660 407 647 407
+         L291 407
+         C276 407 264 397 262 382
+         L257 356
+         C254 339 265 323 282 319 Z"
+      fill="url(#carBody)"
+      stroke="#9c1e18"
+      stroke-width="5"
+      stroke-linejoin="round"
+    />
+
+    <!-- Hood shine -->
+    <path d="M306 318 C334 292 391 285 445 289" fill="none" stroke="#ffaaa4" stroke-width="9" stroke-linecap="round" opacity="0.55"/>
+
+    <!-- Window -->
+    <path
+      d="M399 273
+         L503 273
+         C536 273 561 291 575 317
+         L389 317
+         C383 300 386 283 399 273 Z"
+      fill="#bdf5ff"
+      stroke="#2d7890"
+      stroke-width="5"
+      stroke-linejoin="round"
+    />
+
+    <!-- Door -->
+    <path d="M475 320 L475 399" stroke="#9c1e18" stroke-width="4" opacity="0.65"/>
+    <circle cx="492" cy="354" r="5" fill="#ffd6d2"/>
+
+    <!-- Headlights -->
+    <ellipse cx="649" cy="351" rx="17" ry="10" fill="#fff0a6" stroke="#b47e00" stroke-width="3"/>
+    <ellipse cx="283" cy="352" rx="13" ry="8" fill="#ffb1ab" opacity="0.75"/>
+
+    <!-- Bumpers -->
+    <rect x="247" y="375" width="45" height="18" rx="8" fill="#323232"/>
+    <rect x="650" y="374" width="42" height="18" rx="8" fill="#323232"/>
+
+    <!-- Wheels -->
+    <g class="wheel">
+      <circle cx="350" cy="405" r="46" fill="url(#wheelGrad)"/>
+      <circle cx="350" cy="405" r="24" fill="#bcbcbc"/>
+      <circle cx="350" cy="405" r="8" fill="#555"/>
+      <line x1="350" y1="381" x2="350" y2="429" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+      <line x1="326" y1="405" x2="374" y2="405" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+      <line x1="333" y1="388" x2="367" y2="422" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+      <line x1="367" y1="388" x2="333" y2="422" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+    </g>
+
+    <g class="wheel">
+      <circle cx="586" cy="405" r="46" fill="url(#wheelGrad)"/>
+      <circle cx="586" cy="405" r="24" fill="#bcbcbc"/>
+      <circle cx="586" cy="405" r="8" fill="#555"/>
+      <line x1="586" y1="381" x2="586" y2="429" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+      <line x1="562" y1="405" x2="610" y2="405" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+      <line x1="569" y1="388" x2="603" y2="422" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+      <line x1="603" y1="388" x2="569" y2="422" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+    </g>
+
+    <!-- Giraffe body inside car -->
+    <g>
+      <!-- body -->
+      <ellipse cx="463" cy="293" rx="58" ry="38" fill="#e6ad48" stroke="#8a5a20" stroke-width="4"/>
+
+      <!-- spots on body -->
+      <circle cx="435" cy="288" r="9" fill="#8b5529"/>
+      <circle cx="466" cy="306" r="11" fill="#8b5529"/>
+      <circle cx="493" cy="284" r="8" fill="#8b5529"/>
+
+      <!-- long neck -->
+      <path
+        d="M505 276
+           C508 238 511 201 520 163
+           C524 145 550 149 550 168
+           C549 209 543 247 538 285 Z"
+        fill="#e6ad48"
+        stroke="#8a5a20"
+        stroke-width="4"
+        stroke-linejoin="round"
+      />
+
+      <!-- neck spots -->
+      <ellipse cx="527" cy="181" rx="8" ry="12" fill="#8b5529"/>
+      <ellipse cx="522" cy="216" rx="9" ry="13" fill="#8b5529"/>
+      <ellipse cx="530" cy="252" rx="8" ry="12" fill="#8b5529"/>
+
+      <!-- head group -->
+      <g class="giraffe-head">
+        <!-- head -->
+        <path
+          d="M521 141
+             C520 119 535 104 558 104
+             L596 104
+             C617 104 631 119 631 138
+             C631 157 615 169 593 169
+             L554 169
+             C535 169 522 160 521 141 Z"
+          fill="#e6ad48"
+          stroke="#8a5a20"
+          stroke-width="4"
+          stroke-linejoin="round"
+        />
+
+        <!-- muzzle -->
+        <ellipse cx="610" cy="144" rx="29" ry="20" fill="#f2c878" stroke="#8a5a20" stroke-width="3"/>
+        <circle cx="619" cy="142" r="3" fill="#4a2d17"/>
+        <circle cx="602" cy="142" r="3" fill="#4a2d17"/>
+
+        <!-- ears -->
+        <path d="M541 111 C525 92 512 100 518 124 C529 128 537 122 541 111 Z"
+              fill="#e6ad48" stroke="#8a5a20" stroke-width="3"/>
+        <path d="M586 108 C596 87 612 94 609 119 C599 126 590 121 586 108 Z"
+              fill="#e6ad48" stroke="#8a5a20" stroke-width="3"/>
+
+        <!-- ossicones -->
+        <line x1="548" y1="104" x2="544" y2="78" stroke="#8a5a20" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="543" cy="74" r="8" fill="#8b5529"/>
+        <line x1="578" y1="104" x2="582" y2="78" stroke="#8a5a20" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="583" cy="74" r="8" fill="#8b5529"/>
+
+        <!-- eye -->
+        <g class="blink">
+          <ellipse cx="570" cy="132" rx="6" ry="8" fill="#1c1c1c"/>
+          <circle cx="572" cy="129" r="2" fill="#fff"/>
+        </g>
+
+        <!-- smile -->
+        <path d="M604 155 Q613 163 624 154" fill="none" stroke="#6b381b" stroke-width="3" stroke-linecap="round"/>
+
+        <!-- head spots -->
+        <circle cx="548" cy="124" r="7" fill="#8b5529"/>
+        <circle cx="587" cy="150" r="6" fill="#8b5529"/>
+      </g>
+
+      <!-- steering wheel -->
+      <g transform="translate(532 312) rotate(-18)">
+        <circle cx="0" cy="0" r="24" fill="none" stroke="#222" stroke-width="6"/>
+        <line x1="0" y1="0" x2="0" y2="-22" stroke="#222" stroke-width="4" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="-19" y2="12" stroke="#222" stroke-width="4" stroke-linecap="round"/>
+        <line x1="0" y1="0" x2="19" y2="12" stroke="#222" stroke-width="4" stroke-linecap="round"/>
+      </g>
+
+      <!-- giraffe arm/leg holding wheel -->
+      <path d="M503 300 C521 300 531 305 543 319"
+            fill="none" stroke="#e6ad48" stroke-width="13" stroke-linecap="round"/>
+      <path d="M503 300 C521 300 531 305 543 319"
+            fill="none" stroke="#8a5a20" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+
+      <!-- tail -->
+      <g class="tail">
+        <path d="M414 286 C382 274 363 278 347 292"
+              fill="none" stroke="#8a5a20" stroke-width="6" stroke-linecap="round"/>
+        <path d="M346 292 C335 291 329 300 333 311 C344 309 351 303 346 292 Z"
+              fill="#8b5529"/>
+      </g>
+    </g>
+
+    <!-- windshield highlight -->
+    <path d="M410 282 L448 310" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.7"/>
+  </g>
+
+  <!-- Decorative text -->
+  <text
+    x="450"
+    y="54"
+    text-anchor="middle"
+    font-family="Comic Sans MS, Trebuchet MS, Arial, sans-serif"
+    font-size="30"
+    font-weight="700"
+    fill="#4a7d2d"
+  >
+    Tiny Car Safari!
+  </text>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c06",
+  "model_alias": "hy3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "a2cdd8445d6cc25ef1ccc7718b75a573f4bcd1e21ee89c2dfc3f6f305995f917",
+  "source_answer_sha256": "0b84b4396105da34650ee8c7a0c9426643ef4fd48f19a4abe18e625bfbf55bbe",
+  "external_urls": [],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

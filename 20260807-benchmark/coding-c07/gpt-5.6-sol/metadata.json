@@ -1,0 +1,21 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "gpt-5.6-sol",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "702e5f463c9771f7f259032c200f23cb4cbc027c45a8f103b8950598cfc26108",
+  "source_answer_sha256": "58b996974bf6113bb3efbf896cae87029c655c066c03fac21b80526a6b360713",
+  "external_urls": [
+    "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/",
+    "https://cdn.jsdelivr.net/npm/d3-geo@3/+esm",
+    "https://cdn.jsdelivr.net/npm/topojson-client@3/+esm",
+    "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+    "https://threejs.org/examples/textures/planets/earth_lights_2048.png",
+    "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json",
+    "http://localhost:8080",
+    "http://localhost:3000"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

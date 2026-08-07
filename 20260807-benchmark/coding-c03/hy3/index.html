@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 隐形眼镜盒</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #f5f5f5; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: #333;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+        #info strong { font-size: 20px; }
+        #info p { margin: 8px 0 0 0; font-size: 14px; color: #555; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <strong>3D 隐形眼镜盒模型</strong>
+        <p>点击盒盖 (L 或 R) 将其打开 / 关闭。拖拽可旋转视角，滚轮可缩放。</p>
+    </div>
+
+    <!-- 引入 Three.js 和 OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // 1. 场景、相机、渲染器初始化
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf5f5f5);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 7, 8);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 0.5, 0);
+
+        // 2. 灯光设置
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(5, 10, 7);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 50;
+        dirLight.shadow.camera.left = -10;
+        dirLight.shadow.camera.right = 10;
+        dirLight.shadow.camera.top = 10;
+        dirLight.shadow.camera.bottom = -10;
+        scene.add(dirLight);
+
+        // 3. 地面（仅接收阴影，保持背景干净）
+        const groundGeo = new THREE.PlaneGeometry(50, 50);
+        const groundMat = new THREE.ShadowMaterial({ opacity: 0.15 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = 0;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // 4. 构建眼镜盒底座与左右凹槽
+        const baseGroup = new THREE.Group();
+
+        const baseGeo = new THREE.BoxGeometry(5, 0.5, 3);
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.5 });
+        const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+        baseMesh.position.y = 0.25; // 底板顶部在 y=0.5
+        baseMesh.receiveShadow = true;
+        baseMesh.castShadow = true;
+        baseGroup.add(baseMesh);
+
+        const slotGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.2, 32);
+        const slotMat = new THREE.MeshStandardMaterial({ color: 0x81d4fa, roughness: 0.2 }); // 淡蓝护理液感
+        
+        const leftSlot = new THREE.Mesh(slotGeo, slotMat);
+        leftSlot.position.set(-1.2, 0.4, 0); // 凹槽顶部与底板齐平
+        leftSlot.receiveShadow = true;
+        baseGroup.add(leftSlot);
+
+        const rightSlot = new THREE.Mesh(slotGeo, slotMat.clone());
+        rightSlot.position.set(1.2, 0.4, 0);
+        rightSlot.receiveShadow = true;
+        baseGroup.add(rightSlot);
+
+        scene.add(baseGroup);
+
+        // 5. 动态生成带有醒目 L 和 R 文字的纹理
+        function createTextTexture(text, bgColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, 256, 256);
+            ctx.beginPath();
+            ctx.arc(128, 128, 120, 0, Math.PI * 2);
+            ctx.fillStyle = bgColor; // 醒目背景色
+            ctx.fill();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 140px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 128, 138);
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const leftTex = createTextTexture('L', '#ef5350'); // 红色标签
+        const rightTex = createTextTexture('R', '#42a5f5'); // 蓝色标签
+
+        // 6. 构建盒盖（带有后部铰链翻转机制）
+        const lidHeight = 0.3;
+        const lidRadius = 1.2;
+
+        function createLid(texture, xPos, isLeft) {
+            // 铰链放在盖子后侧边缘，用于实现翻盖效果
+            const hinge = new THREE.Group();
+            hinge.position.set(xPos, 0.5, -lidRadius);
+            
+            const sideMat = new THREE.MeshStandardMaterial({ 
+                color: isLeft ? 0xffebee : 0xe3f2fd, 
+                roughness: 0.3 
+            });
+            const plainMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+            const lidMat = [sideMat, plainMat, plainMat];
+            
+            const lidGeo = new THREE.CylinderGeometry(lidRadius, lidRadius, lidHeight, 32);
+            const lidMesh = new THREE.Mesh(lidGeo, lidMat);
+            // 将盖子 Mesh 放在铰链组的前方，使旋转铰链时像翻书一样翻开
+            lidMesh.position.set(0, lidHeight / 2, lidRadius);
+            lidMesh.castShadow = true;
+            lidMesh.receiveShadow = true;
+            
+            // 添加醒目的文字标签平面贴在盖子顶部
+            const labelGeo = new THREE.PlaneGeometry(lidRadius * 1.6, lidRadius * 1.6);
+            const labelMat = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+            const labelMesh = new THREE.Mesh(labelGeo, labelMat);
+            labelMesh.rotation.x = -Math.PI / 2; 
+            labelMesh.position.y = lidHeight / 2 + 0.01; // 防止深度冲突(Z-fighting)
+            lidMesh.add(labelMesh);
+            
+            lidMesh.userData = { hinge: hinge, isOpen: false, targetRot: 0 };
+            
+            hinge.add(lidMesh);
+            scene.add(hinge);
+            
+            return lidMesh;
+        }
+
+        const leftLid = createLid(leftTex, -1.2, true);
+        const rightLid = createLid(rightTex, 1.2, false);
+
+        // 7. 鼠标点击射线检测（Raycaster）
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let mouseDownPos = new THREE.Vector2();
+
+        window.addEventListener('pointerdown', (e) => {
+            mouseDownPos.set(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            // 如果是拖拽旋转视角，则忽略点击
+            const dist = Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y);
+            if (dist > 5) return; 
+            
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects([leftLid, rightLid], true);
+            
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                // 向上遍历找到持有铰链数据的盖子本体
+                while (obj && !(obj.userData && obj.userData.hinge)) {
+                    obj = obj.parent;
+                }
+                if (obj && obj.userData.hinge) {
+                    // 切换开合状态，设定目标旋转角度
+                    obj.userData.isOpen = !obj.userData.isOpen;
+                    obj.userData.targetRot = obj.userData.isOpen ? -Math.PI / 2 : 0;
+                }
+            }
+        });
+
+        // 8. 窗口尺寸自适应
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 9. 动画渲染循环
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 平滑插值动画实现盖子开合
+            [leftLid, rightLid].forEach(lid => {
+                const hinge = lid.userData.hinge;
+                if (Math.abs(hinge.rotation.x - lid.userData.targetRot) > 0.001) {
+                    hinge.rotation.x += (lid.userData.targetRot - hinge.rotation.x) * 0.15;
+                } else {
+                    hinge.rotation.x = lid.userData.targetRot;
+                }
+            });
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c02",
+  "model_alias": "opus-5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "7d896d033b4b49dd8f2ff2453f7525b746955b44db8477daa9cea3276802d42d",
+  "source_answer_sha256": "b7818f8348a5d07f369c7c8275cfa70c2c474f013b02f88a102925d11797d240",
+  "external_urls": [
+    "http://localhost:8000/elevator-simulator.html`"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

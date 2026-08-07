@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c04",
+  "model_alias": "gpt-5.5",
+  "artifact_type": "svg",
+  "artifact_file": "answer.svg",
+  "artifact_sha256": "8ad116a48927c8ce9bacc76c1bb31ef6a2f798dd8e2676e058dc8d56ff69240e",
+  "source_answer_sha256": "6dfa2111e5d560c15bc38d387476d41f481cf69487fa3febde3e8c828cdd0e70",
+  "external_urls": [
+    "http://www.w3.org/2000/svg"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

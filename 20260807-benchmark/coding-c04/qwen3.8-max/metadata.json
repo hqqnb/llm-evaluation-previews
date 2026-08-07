@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c04",
+  "model_alias": "qwen3.8-max",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "2d1867be174bfea2a55612fa0f5e12626b5ffe738496100b2ac31ad2ae782ebe",
+  "source_answer_sha256": "051a043715cd84c42fa85e356cb954079c99f6480cbb3375a9b91f1d0d61da9e",
+  "external_urls": [
+    "http://www.w3.org/2000/svg",
+    "http://www.w3.org/1999/xlink"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

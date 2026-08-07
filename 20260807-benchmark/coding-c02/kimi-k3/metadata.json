@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c02",
+  "model_alias": "kimi-k3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "5f2ba7a089cc944500657e79ba032c5490bec3b4089f3bc7582e54591b840a94",
+  "source_answer_sha256": "4425a455c4370fc1438a89b1b3e1766236816749aee96399d2aa30dc62676b27",
+  "external_urls": [],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

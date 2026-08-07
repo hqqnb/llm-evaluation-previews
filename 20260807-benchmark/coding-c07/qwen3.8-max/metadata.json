@@ -1,0 +1,22 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "qwen3.8-max",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "590cec7379af059185a36f56a9a7530dd3b1cf7d4ef4a4d93e35adc182e102ad",
+  "source_answer_sha256": "bb9645091525d21de557c791a43a339fa21e063de314e3cb83578a2f85fed855",
+  "external_urls": [
+    "https://fonts.googleapis.com",
+    "https://fonts.gstatic.com",
+    "https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm",
+    "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json",
+    "https://unpkg.com/world-atlas@2.0.2/countries-110m.json",
+    "https://cdn.jsdelivr.net/npm/three-globe@2/",
+    "https://unpkg.com/three-globe@2/"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c05",
+  "model_alias": "hy3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "e1a24e3312a674e8068297e936138a91b3c3d8631376d8377393065c766271f2",
+  "source_answer_sha256": "e51f437081f17463da85668b183ea63797729f22cafc6e4d638a20164176a9f8",
+  "external_urls": [
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

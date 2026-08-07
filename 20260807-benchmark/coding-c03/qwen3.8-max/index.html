@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>隐形眼镜盒 · 3D 交互模型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --disp:'ZCOOL QingKe HuangYou','Noto Sans SC',sans-serif;
+    --body:'Noto Sans SC',system-ui,-apple-system,sans-serif;
+    --aqua:#7fd6e8; --ink:#e7f5f3;
+    --lc:#4b93ff; --rc:#ff5d76;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:var(--body); color:var(--ink); overflow:hidden;
+    background:
+      radial-gradient(1100px 700px at 16% -10%, rgba(126,222,240,.16), transparent 60%),
+      radial-gradient(900px 620px at 88% 112%, rgba(24,105,125,.38), transparent 62%),
+      linear-gradient(160deg,#0a3540 0%,#07242d 55%,#051a21 100%);
+  }
+  #scene{position:fixed;inset:0;display:block;cursor:grab}
+  #scene:active{cursor:grabbing}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:2;
+    background:radial-gradient(120% 92% at 50% 42%, transparent 55%, rgba(2,12,16,.55) 100%)}
+  .watermark{position:fixed;right:-14px;bottom:-52px;z-index:0;pointer-events:none;user-select:none;
+    font-family:var(--disp);font-size:min(32vw,290px);line-height:1;color:rgba(127,214,232,.055)}
+
+  /* ---------- HUD ---------- */
+  .hud-item{animation:rise .9s cubic-bezier(.22,.75,.25,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}}
+  @keyframes riseC{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+
+  header{position:fixed;top:30px;left:34px;z-index:10;pointer-events:none;max-width:min(46vw,460px)}
+  .eyebrow{font-size:11px;font-weight:600;letter-spacing:.44em;color:var(--aqua);margin-bottom:13px}
+  h1{font-family:var(--disp);font-weight:400;font-size:clamp(34px,4.8vw,56px);
+     letter-spacing:.05em;text-shadow:0 6px 34px rgba(0,0,0,.4)}
+  .tag{display:inline-grid;place-items:center;width:.6em;height:.6em;border-radius:.16em;
+       font-family:var(--body);font-weight:900;font-size:.4em;color:#fff;
+       vertical-align:.42em;margin-left:.3em;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  .tag.l{background:#2f7ff0}.tag.r{background:#f0475f}
+  .sub{margin-top:11px;font-size:13px;letter-spacing:.1em;color:rgba(214,240,240,.62)}
+
+  .chips{position:fixed;top:32px;right:32px;z-index:10;display:flex;flex-direction:column;gap:10px}
+  .chip{display:flex;align-items:center;gap:10px;min-width:186px;padding:10px 14px;border-radius:12px;
+    background:rgba(7,32,40,.62);border:1px solid rgba(127,214,232,.18);
+    font-size:13px;letter-spacing:.05em;
+    transition:transform .25s,border-color .3s,background .3s}
+  .chip:hover{transform:translateY(-2px)}
+  .chip b{font-family:var(--disp);font-weight:400;font-size:21px;color:var(--c);width:15px;text-align:center}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:#3d5b64;transition:background .3s,box-shadow .3s}
+  .chip .st{margin-left:auto;font-size:12px;color:rgba(214,240,240,.55);transition:color .3s}
+  .chip.open{border-color:rgba(255,255,255,.14);border-left:3px solid var(--c);background:rgba(10,42,54,.78)}
+  .chip.open .dot{background:var(--c);box-shadow:0 0 12px var(--c);animation:pulse 1.5s ease-in-out infinite}
+  .chip.open .st{color:var(--c);font-weight:700}
+  @keyframes pulse{50%{opacity:.45}}
+
+  .hint{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:10;
+    display:flex;gap:12px;align-items:center;padding:10px 22px;border-radius:999px;
+    background:rgba(7,32,40,.6);border:1px solid rgba(127,214,232,.16);
+    font-size:12.5px;letter-spacing:.07em;color:rgba(214,240,240,.78);
+    animation:riseC .9s .35s cubic-bezier(.22,.75,.25,1) both}
+  .hint i{opacity:.3;font-style:normal}
+
+  .actions{position:fixed;right:32px;bottom:26px;z-index:10;display:flex;gap:10px}
+  .actions button{font-family:var(--body);font-size:13px;font-weight:700;letter-spacing:.12em;
+    padding:11px 20px;border-radius:999px;cursor:pointer;
+    border:1px solid rgba(127,214,232,.35);background:rgba(10,44,54,.72);color:#dff6f6;
+    transition:transform .22s,box-shadow .25s,border-color .25s,background .25s}
+  .actions button:hover{transform:translateY(-2px);border-color:var(--aqua);
+    background:rgba(16,64,78,.9);box-shadow:0 10px 26px rgba(18,110,130,.35)}
+  .actions button:active{transform:translateY(0) scale(.96)}
+  #btnOpen{background:#155a6d;border-color:rgba(127,214,232,.55)}
+
+  #tip{position:fixed;left:0;top:0;z-index:30;pointer-events:none;white-space:nowrap;
+    opacity:0;transform:translate(-50%,-145%) scale(.92);
+    transition:opacity .15s,transform .18s;
+    background:rgba(6,26,33,.94);border:1px solid rgba(127,214,232,.4);
+    padding:7px 13px;border-radius:9px;font-size:12.5px;letter-spacing:.07em}
+  #tip.on{opacity:1;transform:translate(-50%,-145%) scale(1)}
+  #tip b{color:var(--aqua)}
+
+  #loader{position:fixed;inset:0;z-index:50;display:grid;place-items:center;
+    background:linear-gradient(160deg,#0a3540,#051a21);transition:opacity .7s}
+  #loader.done{opacity:0;pointer-events:none}
+  .spinner{width:46px;height:46px;margin:0 auto 18px;border-radius:50%;
+    border:3px solid rgba(127,214,232,.18);border-top-color:var(--aqua);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #loaderText{font-size:13px;letter-spacing:.22em;color:rgba(214,240,240,.72);text-align:center;line-height:2}
+
+  @media (max-width:700px){
+    header{left:20px;top:20px;max-width:70vw}
+    .chips{top:auto;bottom:92px;right:16px}
+    .chip{min-width:160px;padding:8px 12px}
+    .actions{right:16px;bottom:24px}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div class="vignette"></div>
+<div class="watermark">L/R</div>
+
+<header class="hud-item">
+  <div class="eyebrow">THREE.JS · INTERACTIVE MODEL</div>
+  <h1>隐形眼镜盒<span class="tag l">L</span><span class="tag r">R</span></h1>
+  <p class="sub">双仓护理盒 · 点击 L / R 瓶盖即可开合</p>
+</header>
+
+<div class="chips hud-item" style="animation-delay:.15s">
+  <div class="chip" id="chipL" style="--c:var(--lc)"><span class="dot"></span><b>L</b>左眼<span class="st">已关闭</span></div>
+  <div class="chip" id="chipR" style="--c:var(--rc)"><span class="dot"></span><b>R</b>右眼<span class="st">已关闭</span></div>
+</div>
+
+<div class="hint"><span>🖱 拖拽旋转</span><i>·</i><span>⇅ 滚轮缩放</span><i>·</i><span>👆 点击瓶盖开合</span></div>
+
+<div class="actions hud-item" style="animation-delay:.25s">
+  <button id="btnOpen">全部打开</button>
+  <button id="btnClose">全部关闭</button>
+</div>
+
+<div id="tip"></div>
+
+<div id="loader"><div><div class="spinner"></div><p id="loaderText">正在准备 3D 场景 …</p></div></div>
+
+<script>
+  /* CDN 加载失败兜底提示 */
+  window.addEventListener('load',()=>{ setTimeout(()=>{
+    if(!window.__booted){
+      const el=document.getElementById('loaderText');
+      if(el) el.innerHTML='Three.js 加载失败。<br>本页面需联网访问 cdn.jsdelivr.net 与 Google Fonts，请检查网络后刷新。';
+    }
+  },9000); });
+</script>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ================= 基础 ================= */
+const canvas = document.getElementById('scene');
+let renderer;
+try{
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+}catch(e){
+  document.getElementById('loaderText').innerHTML='当前浏览器不支持 WebGL。';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, .1, 100);
+camera.position.set(5.4,4.6,7.6);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture;
+pmrem.dispose();
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0,1.15,0);
+controls.enableDamping = true; controls.dampingFactor = .06;
+controls.enablePan = false;
+controls.minDistance = 4.5; controls.maxDistance = 15;
+controls.maxPolarAngle = 1.52;
+controls.autoRotate = true; controls.autoRotateSpeed = .9;
+let idleTimer=null;
+controls.addEventListener('start',()=>{ controls.autoRotate=false; clearTimeout(idleTimer); });
+controls.addEventListener('end',()=>{ idleTimer=setTimeout(()=>controls.autoRotate=true,2600); });
+
+/* ================= 灯光 ================= */
+scene.add(new THREE.HemisphereLight(0xcfeef7, 0x0c333d, .55));
+const key = new THREE.DirectionalLight(0xffffff, 1.5);
+key.position.set(5,9,4); key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.camera.left=key.shadow.camera.bottom=-6;
+key.shadow.camera.right=key.shadow.camera.top=6;
+key.shadow.camera.near=1; key.shadow.camera.far=25;
+key.shadow.bias=-0.0004;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x7fd8ff,.7); rim.position.set(-6,4,-5); scene.add(rim);
+
+/* ================= 画布纹理工具 ================= */
+function capTopTexture(letter,bg,fg){
+  const s=512,c=document.createElement('canvas'); c.width=c.height=s;
+  const g=c.getContext('2d');
+  const grad=g.createRadialGradient(s/2,s/2,60,s/2,s/2,s/2);
+  grad.addColorStop(0,'#ffffff'); grad.addColorStop(.6,bg); grad.addColorStop(1,bg);
+  g.fillStyle=grad; g.fillRect(0,0,s,s);
+  g.strokeStyle=fg; g.lineWidth=14; g.globalAlpha=.92;
+  g.beginPath(); g.arc(s/2,s/2,224,0,Math.PI*2); g.stroke();
+  g.globalAlpha=.5; g.lineWidth=6;
+  for(let i=0;i<12;i++){ const a=i/12*Math.PI*2;
+    g.beginPath();
+    g.moveTo(s/2+Math.cos(a)*194,s/2+Math.sin(a)*194);
+    g.lineTo(s/2+Math.cos(a)*208,s/2+Math.sin(a)*208);
+    g.stroke(); }
+  g.globalAlpha=1; g.fillStyle=fg;
+  g.font='900 300px "Arial Black","Helvetica Neue",sans-serif';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.shadowColor='rgba(0,0,0,.2)'; g.shadowBlur=16; g.shadowOffsetY=8;
+  g.fillText(letter,s/2,s/2+16);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8;
+  return t;
+}
+function knurlTexture(){
+  const c=document.createElement('canvas'); c.width=1024; c.height=64;
+  const g=c.getContext('2d');
+  g.fillStyle='#ffffff'; g.fillRect(0,0,1024,64);
+  for(let x=0;x<1024;x+=32){
+    const gr=g.createLinearGradient(x,0,x+32,0);
+    gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(.5,'rgba(0,0,0,.3)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=gr; g.fillRect(x,0,32,64);
+  }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
+  return t;
+}
+const decals=[];
+function decalTexture(letter,fg,cn){
+  const c=document.createElement('canvas'); c.width=c.height=256;
+  const draw=()=>{ const g=c.getContext('2d');
+    g.clearRect(0,0,256,256); g.textAlign='center';
+    g.fillStyle=fg; g.font='900 128px "Arial Black",sans-serif';
+    g.textBaseline='alphabetic'; g.fillText(letter,128,132);
+    g.globalAlpha=.85; g.font='700 44px "Noto Sans SC",sans-serif';
+    g.fillText(cn,128,192); };
+  draw();
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
+  decals.push({draw,t});
+  return t;
+}
+document.fonts && document.fonts.ready.then(()=>decals.forEach(d=>{d.draw(); d.t.needsUpdate=true;}));
+
+/* ================= 展台 ================= */
+const pedestal=new THREE.Mesh(
+  new THREE.CylinderGeometry(3.3,3.55,.5,96),
+  new THREE.MeshStandardMaterial({color:0x0e3a46,roughness:.35,metalness:.2,envMapIntensity:.6}));
+pedestal.position.y=-.25; pedestal.receiveShadow=true; scene.add(pedestal);
+const glowRing=new THREE.Mesh(
+  new THREE.TorusGeometry(3.32,.018,12,128),
+  new THREE.MeshBasicMaterial({color:0x6fd6e8,transparent:true,opacity:.45}));
+glowRing.rotation.x=Math.PI/2; glowRing.position.y=.02; scene.add(glowRing);
+
+/* ================= 眼镜盒 ================= */
+const caseGroup=new THREE.Group(); scene.add(caseGroup);
+
+const BODY_H=1.5, BEV=.16, topY=BODY_H+2*BEV;   // 顶面高度 1.82
+const WELL_X=1.15, HOLE_R=.8;
+
+function roundedRect(w,h,r){
+  const s=new THREE.Shape(), hw=w/2, hh=h/2;
+  s.moveTo(-hw+r,-hh);
+  s.lineTo(hw-r,-hh);  s.absarc(hw-r,-hh,r,-Math.PI/2,0,false);
+  s.lineTo(hw,hh-r);   s.absarc(hw-r,hh-r,r,0,Math.PI/2,false);
+  s.lineTo(-hw+r,hh);  s.absarc(-hw+r,hh-r,r,Math.PI/2,Math.PI,false);
+  s.lineTo(-hw,-hh+r); s.absarc(-hw+r,-hh+r,r,Math.PI,Math.PI*1.5,false);
+  return s;
+}
+const shape=roundedRect(4.8,2.9,1.42);
+[-WELL_X,WELL_X].forEach(x=>{ const p=new THREE.Path(); p.absarc(x,0,HOLE_R,0,Math.PI*2,true); shape.holes.push(p); });
+const bodyGeo=new THREE.ExtrudeGeometry(shape,{depth:BODY_H,bevelEnabled:true,bevelThickness:BEV,bevelSize:BEV,bevelSegments:6,curveSegments:48,steps:1});
+bodyGeo.rotateX(-Math.PI/2); bodyGeo.translate(0,BEV,0);
+const body=new THREE.Mesh(bodyGeo,new THREE.MeshPhysicalMaterial({
+  color:0xf4fbfa,roughness:.32,clearcoat:1,clearcoatRoughness:.25,envMapIntensity:.8}));
+body.castShadow=body.receiveShadow=true; caseGroup.add(body);
+
+/* 瓶身正面 L/R 印刷 */
+[['L','#2f7ff0','左眼',-WELL_X],['R','#f0475f','右眼',WELL_X]].forEach(([l,fg,cn,x])=>{
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(.52,.52),
+    new THREE.MeshBasicMaterial({map:decalTexture(l,fg,cn),transparent:true}));
+  m.position.set(x,.91,1.617); caseGroup.add(m);
+});
+
+/* 水槽、护理液、镜片、井口 */
+const knurl=knurlTexture();
+const caps=[], pickMeshes=[];
+const CFG=[
+  {key:'L',x:-WELL_X,capColor:0xeef5ff,bg:'#e8f2ff',fg:'#1f6fe0',accent:0x2f7ff0,cn:'左眼',chip:document.getElementById('chipL')},
+  {key:'R',x: WELL_X,capColor:0xfff0f3,bg:'#ffeef1',fg:'#e63b55',accent:0xf0475f,cn:'右眼',chip:document.getElementById('chipR')},
+];
+
+CFG.forEach((cfg,i)=>{
+  const x=cfg.x;
+  /* 井壁与井底 */
+  const wall=new THREE.Mesh(new THREE.CylinderGeometry(HOLE_R,HOLE_R,.95,64,1,true),
+    new THREE.MeshStandardMaterial({color:0xbfdfe2,roughness:.6,side:THREE.DoubleSide}));
+  wall.position.set(x,topY-.475,0); caseGroup.add(wall);
+  const bottom=new THREE.Mesh(new THREE.CircleGeometry(HOLE_R,64),
+    new THREE.MeshStandardMaterial({color:0xa8cdd2,roughness:.7}));
+  bottom.rotation.x=-Math.PI/2; bottom.position.set(x,topY-.92,0); caseGroup.add(bottom);
+  /* 井口圈 */
+  const rimT=new THREE.Mesh(new THREE.TorusGeometry(.82,.055,20,72),
+    new THREE.MeshPhysicalMaterial({color:0xf7fdfc,roughness:.3,clearcoat:1,envMapIntensity:.8}));
+  rimT.rotation.x=Math.PI/2; rimT.position.set(x,topY+.01,0); rimT.castShadow=true; caseGroup.add(rimT);
+  /* 护理液 */
+  const waterMat=new THREE.MeshPhysicalMaterial({color:0x8fd9ec,roughness:.08,transparent:true,opacity:.8,clearcoat:1,envMapIntensity:1.2});
+  const water=new THREE.Mesh(new THREE.CircleGeometry(.79,48),waterMat);
+  water.rotation.x=-Math.PI/2; water.position.set(x,topY-.22,0); caseGroup.add(water);
+  /* 隐形镜片（碗形） */
+  const lens=new THREE.Mesh(new THREE.SphereGeometry(.42,48,24,0,Math.PI*2,0,.95),
+    new THREE.MeshPhysicalMaterial({color:0xbfeaff,transparent:true,opacity:.55,roughness:.05,clearcoat:1,side:THREE.DoubleSide,envMapIntensity:1.1}));
+  lens.rotation.x=Math.PI; lens.position.set(x,topY-.13,0); caseGroup.add(lens);
+
+  /* ---- 瓶盖 ---- */
+  const baseY=topY+.27;
+  const g=new THREE.Group(); g.position.set(x,baseY,0);
+  const sideMat=new THREE.MeshStandardMaterial({color:cfg.capColor,map:knurl,roughness:.4,envMapIntensity:.9,
+    emissive:new THREE.Color(cfg.accent),emissiveIntensity:0});
+  const topMat=new THREE.MeshStandardMaterial({map:capTopTexture(cfg.key,cfg.bg,cfg.fg),roughness:.35,envMapIntensity:.8,
+    emissive:new THREE.Color(cfg.accent),emissiveIntensity:0});
+  const botMat=new THREE.MeshStandardMaterial({color:cfg.capColor,roughness:.5});
+  const cyl=new THREE.Mesh(new THREE.CylinderGeometry(.9,.97,.44,64),[sideMat,topMat,botMat]);
+  cyl.castShadow=true; cyl.userData.ci=i; g.add(cyl); pickMeshes.push(cyl);
+  const edge=new THREE.Mesh(new THREE.TorusGeometry(.9,.045,16,72),
+    new THREE.MeshStandardMaterial({color:cfg.capColor,roughness:.35,envMapIntensity:.9}));
+  edge.rotation.x=Math.PI/2; edge.position.y=.22; edge.castShadow=true; g.add(edge);
+  const band=new THREE.Mesh(new THREE.TorusGeometry(.945,.03,12,72),
+    new THREE.MeshStandardMaterial({color:cfg.accent,roughness:.3,envMapIntensity:.9}));
+  band.rotation.x=Math.PI/2; band.position.y=.04; g.add(band);
+  const plug=new THREE.Mesh(new THREE.CylinderGeometry(.55,.5,.14,48),
+    new THREE.MeshStandardMaterial({color:0xd8e6ea,roughness:.5}));
+  plug.position.y=-.26; g.add(plug);
+  caseGroup.add(g);
+
+  caps.push({cfg,group:g,baseY,lens,waterMat,lensBaseY:topY-.13,
+    open:false,target:0,anim:0,hover:false,hoverA:0,sideMat,topMat,phase:i*2.1});
+});
+
+/* ================= 环境粒子 ================= */
+const N=150, pPos=new Float32Array(N*3), pSpd=new Float32Array(N);
+for(let i=0;i<N;i++){
+  pPos[i*3]=(Math.random()-.5)*13; pPos[i*3+1]=Math.random()*6.5; pPos[i*3+2]=(Math.random()-.5)*13;
+  pSpd[i]=.12+Math.random()*.3;
+}
+const pGeo=new THREE.BufferGeometry();
+pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+const points=new THREE.Points(pGeo,new THREE.PointsMaterial({
+  color:0x8fd8ee,size:.05,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));
+scene.add(points);
+
+/* ================= 交互 ================= */
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+let hover=null, isDown=false, downX=0, downY=0;
+const tip=document.getElementById('tip');
+
+function pick(e){
+  const r=canvas.getBoundingClientRect();
+  ndc.x=((e.clientX-r.left)/r.width)*2-1;
+  ndc.y=-((e.clientY-r.top)/r.height)*2+1;
+  ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObjects(pickMeshes,false);
+  return hit.length?hit[0].object.userData.ci:null;
+}
+function refreshTip(){
+  if(hover==null||isDown){ tip.classList.remove('on'); return; }
+  const c=caps[hover];
+  tip.innerHTML=`<b>${c.cfg.key} · ${c.cfg.cn}</b> — 点击${c.open?'关闭':'打开'}`;
+  tip.classList.add('on');
+}
+function updateHUD(){
+  caps.forEach(c=>{
+    c.chip.classList.toggle('open',c.open);
+    c.chip.querySelector('.st').textContent=c.open?'已打开':'已关闭';
+  });
+}
+function toggle(i,silent){
+  const c=caps[i]; c.open=!c.open; c.target=c.open?1:0;
+  if(!silent) pop(c.open);
+  updateHUD(); refreshTip();
+}
+function setAll(open){
+  let changed=false;
+  caps.forEach(c=>{ if(c.open!==open){ c.open=open; c.target=open?1:0; changed=true; } });
+  if(changed){ pop(open); updateHUD(); refreshTip(); }
+}
+document.getElementById('btnOpen').onclick=()=>setAll(true);
+document.getElementById('btnClose').onclick=()=>setAll(false);
+
+canvas.addEventListener('pointermove',e=>{
+  hover=pick(e);
+  caps.forEach((c,i)=>c.hover=(i===hover));
+  canvas.style.cursor=hover!=null?'pointer':(isDown?'grabbing':'grab');
+  tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px';
+  refreshTip();
+});
+canvas.addEventListener('pointerdown',e=>{ isDown=true; downX=e.clientX; downY=e.clientY; refreshTip(); });
+canvas.addEventListener('pointerup',e=>{
+  isDown=false;
+  if(Math.hypot(e.clientX-downX,e.clientY-downY)<7){
+    const ci=pick(e); if(ci!=null) toggle(ci);
+  }
+  refreshTip();
+});
+canvas.addEventListener('pointerleave',()=>{ hover=null; caps.forEach(c=>c.hover=false); refreshTip(); });
+
+/* 开合音效 */
+let AC=null;
+function pop(open){
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended') AC.resume();
+    const t0=AC.currentTime;
+    [[open?240:520, open?660:170,.16,'sine',.16],[open?360:780, open?990:255,.12,'triangle',.06]]
+    .forEach(([f0,f1,dur,type,vol])=>{
+      const o=AC.createOscillator(), g=AC.createGain();
+      o.type=type;
+      o.frequency.setValueAtTime(f0,t0);
+      o.frequency.exponentialRampToValueAtTime(f1,t0+dur);
+      g.gain.setValueAtTime(.0001,t0);
+      g.gain.exponentialRampToValueAtTime(vol,t0+.015);
+      g.gain.exponentialRampToValueAtTime(.0001,t0+dur+.08);
+      o.connect(g); g.connect(AC.destination);
+      o.start(t0); o.stop(t0+dur+.1);
+    });
+  }catch(e){}
+}
+
+/* ================= 主循环 ================= */
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+const clock=new THREE.Clock();
+const introStart=performance.now();
+let booted=false;
+
+function tick(){
+  requestAnimationFrame(tick);
+  const dt=Math.min(clock.getDelta(),.05), t=clock.elapsedTime;
+
+  /* 入场动画 */
+  const it=Math.min((performance.now()-introStart)/1100,1), e=1-Math.pow(1-it,3);
+  caseGroup.scale.setScalar(.72+.28*e);
+  caseGroup.rotation.y=(1-e)*-.5;
+  caseGroup.position.y=(1-e)*-.4+Math.sin(t*.8)*.03*e;
+
+  /* 瓶盖开合动画（旋拧 + 升起 + 微倾悬浮） */
+  caps.forEach((c,i)=>{
+    c.anim+=(c.target-c.anim)*(1-Math.exp(-dt*3.2));
+    const a=c.anim;
+    c.group.position.y=c.baseY+a*1.5+Math.sin(t*1.8+c.phase)*.05*a;
+    c.group.rotation.y=a*Math.PI*3;
+    c.group.rotation.z=a*.22*(i?-1:1);
+    c.group.rotation.x=a*.1;
+    c.hoverA+=((c.hover?1:0)-c.hoverA)*(1-Math.exp(-dt*10));
+    c.group.scale.setScalar(1+c.hoverA*.05);
+    c.sideMat.emissiveIntensity=c.hoverA*.35;
+    c.topMat.emissiveIntensity=c.hoverA*.3;
+    /* 镜片随开盖微微浮起 */
+    c.lens.position.y=c.lensBaseY+a*.1+Math.sin(t*2+c.phase)*.02;
+    c.lens.rotation.y=t*.4+c.phase;
+    c.waterMat.opacity=.76+.07*Math.sin(t*2.2+c.phase);
+  });
+
+  /* 粒子上升 */
+  const arr=pGeo.attributes.position.array;
+  for(let i=0;i<N;i++){
+    arr[i*3+1]+=pSpd[i]*dt;
+    if(arr[i*3+1]>6.5) arr[i*3+1]=0;
+  }
+  pGeo.attributes.position.needsUpdate=true;
+
+  glowRing.material.opacity=.35+.18*Math.sin(t*1.5);
+  controls.update();
+  renderer.render(scene,camera);
+
+  if(!booted){ booted=true; window.__booted=true; document.getElementById('loader').classList.add('done'); }
+}
+updateHUD();
+tick();
+</script>
+</body>
+</html>

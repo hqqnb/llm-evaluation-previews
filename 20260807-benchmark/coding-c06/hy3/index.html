@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>弓箭射击模拟游戏</title>
+<style>
+  body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #2c3e50; color: #ecf0f1; display: flex; flex-direction: column; align-items: center; }
+  h2 { margin: 15px 0; }
+  canvas { background: linear-gradient(#87CEEB, #e0f6ff); display: block; border: 2px solid #34495e; border-radius: 4px; cursor: crosshair; }
+  #ui { width: 804px; display: flex; justify-content: space-between; margin-top: 15px; }
+  .panel { background: #34495e; padding: 15px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+  .panel.left { flex: 1; margin-right: 10px; }
+  .panel.right { flex: 1; margin-left: 10px; }
+  p { margin: 8px 0; font-size: 14px; }
+  button { padding: 8px 16px; margin-top: 15px; cursor: pointer; background: #e67e22; border: none; color: white; border-radius: 4px; font-weight: bold; }
+  button:hover { background: #d35400; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid #2c3e50; padding: 6px 8px; text-align: left; }
+  th { background: #2c3e50; }
+  #message { color: #f1c40f; margin-top: 10px; font-weight: bold; min-height: 20px; }
+</style>
+</head>
+<body>
+<h2>🏹 弓箭射击模拟游戏</h2>
+<canvas id="gameCanvas" width="800" height="500"></canvas>
+<div id="ui">
+  <div class="panel left">
+    <h3>游戏状态</h3>
+    <p>计时: <span id="timer">0.00</span> 秒</p>
+    <p>剩余靶子: <span id="targetsLeft">4</span> / 4</p>
+    <p><strong>操作说明:</strong> 在画布上按住鼠标左键蓄力，松开射箭。注意箭矢受重力影响，需稍微向上瞄准！</p>
+    <div id="message"></div>
+    <button id="restartBtn">重新开始游戏</button>
+  </div>
+  <div class="panel right">
+    <h3>🏆 排行榜 (用时越短越好)</h3>
+    <table id="leaderboard">
+      <thead><tr><th>排名</th><th>玩家</th><th>时间(秒)</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const timerEl = document.getElementById('timer');
+const targetsLeftEl = document.getElementById('targetsLeft');
+const messageEl = document.getElementById('message');
+const restartBtn = document.getElementById('restartBtn');
+
+let targets = [];
+let arrows = [];
+let archer = { x: 400, y: 480 };
+let mousePos = { x: 400, y: 100 };
+let isCharging = false;
+let chargeStart = 0;
+let gameState = 'ready'; // ready, playing, finished
+let startTime = null;
+let targetsLeft = 4;
+const GRAVITY = 0.15;
+
+// 初始化/重置游戏
+function resetGame() {
+  targets = [
+    { x: 120 + Math.random()*80, y: 80 + Math.random()*100, r: 28, hit: false },
+    { x: 320 + Math.random()*80, y: 120 + Math.random()*100, r: 28, hit: false },
+    { x: 520 + Math.random()*80, y: 80 + Math.random()*100, r: 28, hit: false },
+    { x: 700, y: 150 + Math.random()*150, r: 28, hit: false }
+  ];
+  arrows = [];
+  targetsLeft = 4;
+  targetsLeftEl.textContent = targetsLeft;
+  startTime = null;
+  gameState = 'ready';
+  timerEl.textContent = '0.00';
+  messageEl.textContent = '准备就绪！按住鼠标左键蓄力，松开射箭。';
+}
+
+// 渲染排行榜
+function renderLeaderboard() {
+  let lb = JSON.parse(localStorage.getItem('archery_lb') || '[]');
+  let tbody = document.querySelector('#leaderboard tbody');
+  tbody.innerHTML = '';
+  if (lb.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3">暂无记录，快来创造纪录！</td></tr>';
+    return;
+  }
+  lb.forEach((entry, i) => {
+    let tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${entry.name}</td><td>${entry.time.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// 保存成绩
+function saveScore(name, time) {
+  let lb = JSON.parse(localStorage.getItem('archery_lb') || '[]');
+  lb.push({ name, time });
+  lb.sort((a, b) => a.time - b.time); // 时间越短名次越高
+  lb = lb.slice(0, 10); // 保留前10名
+  localStorage.setItem('archery_lb', JSON.stringify(lb));
+}
+
+// 游戏结束处理
+function endGame() {
+  gameState = 'finished';
+  let finalTime = (performance.now() - startTime) / 1000;
+  let name = prompt(`🎯 恭喜！你击中了所有靶子，用时 ${finalTime.toFixed(2)} 秒。\n请输入你的名字记录到排行榜：`, '神射手');
+  if (name) saveScore(name, finalTime);
+  renderLeaderboard();
+  messageEl.textContent = '游戏结束！点击“重新开始游戏”再玩一次。';
+}
+
+// 鼠标事件
+function getMousePos(e) {
+  let rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+canvas.addEventListener('mousemove', e => { mousePos = getMousePos(e); });
+canvas.addEventListener('mousedown', e => {
+  if (gameState === 'finished') return;
+  isCharging = true;
+  chargeStart = performance.now();
+});
+window.addEventListener('mouseup', e => {
+  if (!isCharging) return;
+  isCharging = false;
+  let charge = Math.min((performance.now() - chargeStart) / 1000, 1.0);
+  let angle = Math.atan2(mousePos.y - (archer.y - 10), mousePos.x - archer.x);
+  let speed = 8 + charge * 12; // 蓄力决定初速度
+  let vx = Math.cos(angle) * speed;
+  let vy = Math.sin(angle) * speed;
+  arrows.push({ x: archer.x, y: archer.y - 10, vx, vy, stuck: false });
+  if (gameState === 'ready') {
+    gameState = 'playing';
+    startTime = performance.now();
+  }
+});
+restartBtn.addEventListener('click', resetGame);
+
+// 游戏主循环
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update() {
+  if (gameState === 'playing' && startTime) {
+    let elapsed = (performance.now() - startTime) / 1000;
+    timerEl.textContent = elapsed.toFixed(2);
+  }
+  // 更新箭矢
+  for (let i = arrows.length - 1; i >= 0; i--) {
+    let a = arrows[i];
+    if (!a.stuck) {
+      a.vy += GRAVITY;
+      a.x += a.vx;
+      a.y += a.vy;
+      // 出界移除
+      if (a.x < 0 || a.x > canvas.width || a.y > canvas.height) {
+        arrows.splice(i, 1);
+        continue;
+      }
+      // 碰撞检测
+      for (let t of targets) {
+        if (!t.hit) {
+          let dx = a.x - t.x, dy = a.y - t.y;
+          if (dx*dx + dy*dy <= t.r*t.r) {
+            t.hit = true;
+            a.stuck = true; // 箭停留在靶上
+            targetsLeft--;
+            targetsLeftEl.textContent = targetsLeft;
+            if (targetsLeft === 0 && gameState === 'playing') endGame();
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 画靶子
+  for (let t of targets) {
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI*2);
+    ctx.fillStyle = t.hit ? '#95a5a6' : '#fff'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#2c3e50'; ctx.stroke();
+
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r*0.66, 0, Math.PI*2);
+    ctx.fillStyle = t.hit ? '#7f8c8d' : '#2ecc71'; ctx.fill();
+
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r*0.33, 0, Math.PI*2);
+    ctx.fillStyle = t.hit ? '#34495e' : '#e74c3c'; ctx.fill();
+  }
+
+  // 画弓箭手
+  ctx.fillStyle = '#2c3e50';
+  ctx.fillRect(archer.x - 8, archer.y - 20, 16, 30);
+  ctx.beginPath(); ctx.arc(archer.x, archer.y - 10, 14, -Math.PI/2.5, Math.PI/2.5);
+  ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 3; ctx.stroke();
+
+  // 画瞄准线
+  if (gameState !== 'finished' && mousePos) {
+    ctx.beginPath(); ctx.moveTo(archer.x, archer.y - 10); ctx.lineTo(mousePos.x, mousePos.y);
+    ctx.strokeStyle = 'rgba(44,62,80,0.4)'; ctx.setLineDash([5,5]); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // 画蓄力条
+  if (isCharging) {
+    let charge = Math.min((performance.now() - chargeStart) / 1000, 1.0);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(archer.x - 20, archer.y + 20, 40, 8);
+    ctx.fillStyle = '#e74c3c'; ctx.fillRect(archer.x - 20, archer.y + 20, 40 * charge, 8);
+  }
+
+  // 画箭矢
+  for (let a of arrows) {
+    let angle = Math.atan2(a.vy, a.vx);
+    let tailX = a.x - Math.cos(angle)*18, tailY = a.y - Math.sin(angle)*18;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(tailX, tailY);
+    ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(a.x, a.y, 3, 0, Math.PI*2); ctx.fillStyle = '#2c3e50'; ctx.fill();
+  }
+}
+
+// 启动
+resetGame();
+renderLeaderboard();
+loop();
+</script>
+</body>
+</html>

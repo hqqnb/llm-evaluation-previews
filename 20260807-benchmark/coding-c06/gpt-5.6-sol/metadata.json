@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c06",
+  "model_alias": "gpt-5.6-sol",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "68e25e91fd17549536baf5f043d2f8b078edeceae854c9cf7f5d687b536b7b36",
+  "source_answer_sha256": "1fd104837f3d2725a7522015b142a1ed2ae332af19d9bdc81ebab88cadbb173e",
+  "external_urls": [
+    "http://localhost:8080"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

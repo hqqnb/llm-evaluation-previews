@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c02",
+  "model_alias": "glm-5.2",
+  "artifact_type": "svg",
+  "artifact_file": "answer.svg",
+  "artifact_sha256": "f80de3a4b3cf759a364cf8428554d5bfc1564f8df605d7cb91cc658ba725bf04",
+  "source_answer_sha256": "7e375a24db5aa5263a305b8422b63d37a03d984e3665614524a2f4df89fd0614",
+  "external_urls": [
+    "https://fonts.googleapis.com",
+    "https://fonts.gstatic.com",
+    "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

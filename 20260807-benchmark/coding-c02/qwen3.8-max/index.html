@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电梯模拟器 · LIFT SIM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070f18; --p0:#0f1822; --p1:#131f2b; --line:#22303d;
+  --ink:#e9f1f7; --mut:#8ba0b2;
+  --amber:#ffb703; --amber2:#ffd166; --coral:#ff6b5e; --teal:#43d9c9; --blue:#7cc4ff;
+  --disp:'Bungee','Outfit','PingFang SC','Microsoft YaHei',sans-serif;
+  --body:'Outfit','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;overflow:hidden}
+
+.app{display:grid;grid-template-columns:302px 1fr;height:100vh}
+
+/* ============ 控制面板 ============ */
+.panel{background:linear-gradient(180deg,var(--p0),#0b131c);border-right:1px solid #1d2a36;
+  padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;user-select:none;z-index:10}
+.panel::-webkit-scrollbar{width:6px}
+.panel::-webkit-scrollbar-thumb{background:#26374a;border-radius:3px}
+
+.p-head{display:flex;gap:12px;align-items:center}
+.logo{width:40px;height:40px;border-radius:10px;flex:none;
+  background:linear-gradient(180deg,#ffcf3f,#ffb703);color:#241a02;
+  display:grid;place-items:center;font-weight:900;font-size:13px;line-height:1;
+  box-shadow:0 6px 16px rgba(255,183,3,.28), inset 0 -3px 0 rgba(0,0,0,.18)}
+.p-head h1{font-size:22px;font-weight:800;letter-spacing:1px}
+.p-head .sub{font-size:10px;color:var(--mut);letter-spacing:3px;margin-top:2px}
+
+.sec{background:var(--p1);border:1px solid var(--line);border-radius:12px;padding:14px}
+.sec-t{font-size:11px;color:var(--mut);letter-spacing:3px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sec-t::before{content:'';width:14px;height:3px;border-radius:2px;background:var(--amber)}
+
+.floors{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.fbtn{height:38px;border-radius:9px;border:1px solid var(--line);background:#18242f;color:var(--mut);
+  font-family:var(--disp);font-size:15px;cursor:pointer;transition:.18s}
+.fbtn:hover{transform:translateY(-1px);border-color:#3a4c5d;color:var(--ink);background:#1d2c39}
+.fbtn:active{transform:translateY(1px)}
+.fbtn.sel{background:linear-gradient(180deg,#ffcf3f,#ffb703);color:#241a02;border-color:#b98300;
+  box-shadow:0 4px 14px rgba(255,183,3,.3)}
+
+.row{display:flex;gap:8px;margin-bottom:8px}
+.stepper{display:flex;align-items:center;background:#0d1620;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stepper button{width:34px;height:40px;border:none;background:transparent;color:var(--ink);font-size:18px;cursor:pointer;transition:.15s}
+.stepper button:hover{background:#1c2a37;color:var(--amber2)}
+.stepper .num{width:38px;text-align:center;font-family:var(--disp);font-size:19px;color:var(--amber2)}
+
+.btn{flex:1;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#18242f;color:var(--ink);
+  font-family:var(--body);font-weight:700;font-size:13px;cursor:pointer;transition:.18s;letter-spacing:1px}
+.btn:hover{transform:translateY(-1px);border-color:#3a4c5d;background:#1d2c39}
+.btn:active{transform:translateY(1px) scale(.98)}
+.btn.primary{background:linear-gradient(180deg,#ffcf3f,#ffb703);color:#241a02;border-color:#b98300;
+  box-shadow:0 6px 16px rgba(255,183,3,.25);font-weight:800}
+.btn.primary:hover{box-shadow:0 9px 22px rgba(255,183,3,.4);filter:brightness(1.05)}
+.btn.warn:hover{border-color:#7a3b34;color:#ff9d92;background:#241518}
+
+.toast{min-height:18px;font-size:12px;color:var(--amber2);opacity:0;transform:translateY(-3px);transition:.3s;margin-top:2px}
+.toast.show{opacity:1;transform:none}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{background:#0d1620;border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center}
+.stat b{display:block;font-family:var(--disp);font-size:24px;line-height:1.1}
+.stat span{font-size:11px;color:var(--mut)}
+.stat.w b{color:var(--amber2)} .stat.r b{color:var(--blue)} .stat.d b{color:var(--teal)}
+.stat b.bump{animation:bump .35s ease}
+@keyframes bump{40%{transform:scale(1.3)}}
+
+.erow{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0d1620;border:1px solid var(--line);
+  border-radius:10px;margin-bottom:6px}
+.edot{width:10px;height:10px;border-radius:50%;flex:none;transition:.3s}
+.edot.on{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 4px rgba(255,255,255,.08)}}
+.emeta{flex:1;min-width:0}
+.emeta b{font-size:12px;display:block}
+.emeta .es{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.ef{font-family:var(--disp);font-size:13px;color:var(--amber2)}
+
+.p-foot{font-size:11px;color:var(--mut);line-height:1.7;margin-top:auto;padding-top:8px;border-top:1px dashed #1e2c39}
+.p-foot em{color:var(--amber2);font-style:normal}
+
+/* ============ 舞台 / 天空 ============ */
+.stage{position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#060d19 0%,#0b2033 34%,#123c52 58%,#3d4a45 78%,#8a4f2e 96%,#b06232 100%)}
+.stage::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:6;
+  background:radial-gradient(120% 95% at 50% 38%,transparent 55%,rgba(0,0,0,.4))}
+.stars{position:absolute;inset:0 0 40% 0;z-index:0}
+.star{position:absolute;background:#cfe6ff;border-radius:50%;animation:twk var(--d) ease-in-out infinite}
+@keyframes twk{50%{opacity:.12;transform:scale(.6)}}
+.moon{position:absolute;top:56px;right:11%;width:52px;height:52px;border-radius:50%;z-index:0;
+  background:radial-gradient(circle at 36% 34%,#fff8e2,#ffe9b0 62%,#f2c76a);
+  box-shadow:0 0 46px 12px rgba(255,230,160,.22)}
+.cloud{position:absolute;height:40px;border-radius:40px;background:rgba(178,208,232,.09);filter:blur(3px);
+  animation:drift linear infinite;z-index:0}
+@keyframes drift{from{transform:translateX(-320px)}to{transform:translateX(calc(100vw + 320px))}}
+
+.scene{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);transform-origin:center;will-change:transform;z-index:2}
+
+/* 远景 */
+.skyline{position:absolute;left:-30px;right:-30px;bottom:52px;display:flex;align-items:flex-end;gap:6px;z-index:0}
+.sb{background:#0b1a28;border-radius:2px 2px 0 0;flex:none;position:relative}
+.sb.lit::after{content:'';position:absolute;inset:6px 4px;opacity:.5;
+  background-image:radial-gradient(rgba(255,200,120,.4) 1px,transparent 1.6px);background-size:9px 13px}
+.fog{position:absolute;left:0;right:0;bottom:56px;height:120px;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(8,16,26,.85))}
+
+/* 地面与街景 */
+.ground{position:absolute;left:0;right:0;bottom:0;height:56px;z-index:1;
+  background:linear-gradient(180deg,#15222e,#0a1219);border-top:2px solid #24384a}
+.bush{position:absolute;z-index:3;width:48px;height:22px;border-radius:14px 14px 4px 4px;
+  background:#173226;box-shadow:inset 0 5px 0 rgba(120,200,150,.12)}
+.lamp{position:absolute;z-index:3;width:4px;height:96px;background:#2e3d4b;border-radius:2px}
+.lamp .head{position:absolute;top:-4px;left:-9px;width:22px;height:9px;background:#3a4a58;border-radius:4px}
+.lamp .glow{position:absolute;top:4px;left:-27px;width:58px;height:130px;pointer-events:none;
+  background:radial-gradient(ellipse at top,rgba(255,205,110,.22),transparent 70%)}
+
+/* ============ 大楼 ============ */
+.building{position:absolute;z-index:2;border-radius:3px 3px 0 0;
+  background:linear-gradient(90deg,#1f2b37,#283644 7%,#283644 93%,#1c2834);
+  box-shadow:0 34px 70px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.03)}
+.building::before,.building::after{content:'';position:absolute;top:0;bottom:0;width:6px;background:rgba(0,0,0,.28)}
+.building::before{left:0}.building::after{right:0}
+
+.floor{position:absolute;left:0;width:100%;cursor:pointer}
+.room{position:absolute;top:0;height:71px;border-radius:2px;
+  background:linear-gradient(180deg,#243548,#1d2b3a);
+  box-shadow:inset 0 7px 12px rgba(0,0,0,.4)}
+.room::after{content:'';position:absolute;inset:0;opacity:var(--glow,.5);pointer-events:none;
+  background:radial-gradient(62% 90% at 68% 12%,rgba(255,190,100,.24),transparent 70%)}
+.floor:hover .room{filter:brightness(1.3)}
+.slab{position:absolute;bottom:0;left:0;right:0;height:13px;
+  background:linear-gradient(180deg,#4a5c6e,#33424f 45%,#2a3743);border-top:2px solid #5d7082}
+.fno{position:absolute;right:14px;top:6px;font-family:var(--disp);font-size:30px;color:rgba(233,241,247,.07);pointer-events:none}
+.win{position:absolute;right:72px;top:14px;width:46px;height:30px;border-radius:3px;pointer-events:none;
+  border:2px solid #16222d;background:linear-gradient(180deg,#ffca7a,#e8933f);box-shadow:0 0 14px rgba(255,180,80,.25)}
+.call{position:absolute;left:306px;top:25px;width:10px;height:20px;border-radius:6px;background:#0d1620;
+  border:1px solid #22303d;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.call i{width:4px;height:4px;border-radius:50%;background:#2c3d4d;transition:.3s}
+.call.on i{background:var(--amber);box-shadow:0 0 8px var(--amber);animation:pulse 1s infinite}
+
+/* 电梯井 */
+.shaftblock{position:absolute;top:0;bottom:0;background:#0b1219;border:1px solid #1e2c39;border-radius:6px;
+  box-shadow:inset 0 0 26px rgba(0,0,0,.65);overflow:hidden;z-index:3}
+.shaft{position:absolute;top:6px;bottom:6px;border-inline:1px solid #142029;
+  background:linear-gradient(180deg,#0a1017,#0d151d)}
+.shaft::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,transparent 0 82px,rgba(120,160,190,.07) 82px 84px)}
+.rail{position:absolute;top:0;bottom:0;width:2px;background:#16212c}
+.cable{position:absolute;top:0;left:50%;width:2px;margin-left:-1px;background:linear-gradient(#43566a,#22303c);z-index:1}
+.cw{position:absolute;right:3px;width:10px;height:34px;background:#26333f;border:1px solid #38495a;border-radius:2px;z-index:1}
+
+.car{position:absolute;left:50%;margin-left:-34px;width:68px;height:58px;z-index:2;will-change:transform}
+.car::after{content:'';position:absolute;bottom:-4px;left:8px;right:8px;height:7px;
+  background:radial-gradient(ellipse,rgba(0,0,0,.55),transparent 70%)}
+.car-led{height:8px;background:var(--c);border-radius:4px 4px 0 0;box-shadow:0 0 12px var(--c);
+  display:flex;align-items:center;justify-content:center}
+.car-led span{font-family:var(--disp);font-size:7px;color:rgba(0,0,0,.55);line-height:1}
+.car-in{position:absolute;top:8px;left:4px;right:4px;bottom:4px;overflow:hidden;border-radius:0 0 4px 4px;
+  background:linear-gradient(180deg,#20303e,#131d26);border:2px solid #45586a;border-top:none;transition:.3s}
+.car.has-pax .car-in{box-shadow:inset 0 0 16px rgba(255,190,90,.35);background:linear-gradient(180deg,#2c3a44,#1a252e)}
+
+.rider{position:absolute;bottom:2px;left:50%;transform:translateX(-50%) scale(.8);width:18px;height:34px;display:none}
+.car.has-pax .rider{display:block}
+
+.du{position:absolute;z-index:3}
+.d-frame{position:absolute;inset:0;border:2px solid #2e3f4f;border-radius:3px;background:#04080c;overflow:hidden}
+.d-panel{position:absolute;top:0;bottom:0;width:50.5%;will-change:transform;
+  background:linear-gradient(180deg,#5d7082,#3a4a59 60%,#2f3d4b);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.d-panel.l{left:0;border-right:1px solid #1a2530}
+.d-panel.r{right:0;border-left:1px solid #1a2530}
+
+/* 屋顶 */
+.roof{position:absolute;z-index:2}
+.parapet{position:absolute;bottom:0;left:-6px;right:-6px;height:16px;background:#33424f;border-radius:4px 4px 0 0;
+  box-shadow:0 -2px 0 rgba(255,255,255,.07)}
+.sign{position:absolute;right:36px;bottom:22px;padding:7px 15px;background:#0d151d;border:2px solid #24303c;border-radius:8px;
+  font-family:var(--disp);font-size:20px;letter-spacing:3px;color:var(--amber);
+  text-shadow:0 0 14px rgba(255,183,3,.6);box-shadow:0 0 26px rgba(255,183,3,.12);animation:neon 5s infinite}
+@keyframes neon{0%,93%,97%,100%{opacity:1}94%,96%{opacity:.55}}
+.ant{position:absolute;bottom:16px;width:3px;height:54px;background:#45586a;border-radius:2px}
+.ant::after{content:'';position:absolute;top:-7px;left:-3px;width:9px;height:9px;border-radius:50%;
+  background:#ff5346;box-shadow:0 0 10px #ff5346;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.15}}
+.vent{position:absolute;bottom:16px;width:26px;height:14px;background:#2c3a47;border-radius:3px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.3)}
+.ind{position:absolute;width:52px;height:36px;background:#0b131c;border:1px solid #243444;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 5px 12px rgba(0,0,0,.45)}
+.ind b{font-family:var(--disp);font-size:17px;color:var(--amber2);font-weight:400}
+.ind i{font-style:normal;font-size:11px;width:12px;text-align:center}
+
+/* ============ 小人 ============ */
+.people-layer{position:absolute;left:0;width:100%;z-index:6}
+.person{position:absolute;left:0;top:0;width:24px;will-change:transform;
+  transition:transform .55s cubic-bezier(.3,.7,.3,1)}
+.person.free{transition:none}
+.p-pos{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:20px;height:100%}
+.pop .p-pos{animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:translateX(-50%) scale(0)}to{transform:translateX(-50%) scale(1)}}
+.p-inner{width:100%;height:100%;animation:bob 2.6s ease-in-out infinite;transition:filter .2s}
+@keyframes bob{50%{transform:translateY(-1.5px)}}
+.walking .p-inner{animation:walkbob .3s linear infinite}
+@keyframes walkbob{50%{transform:translateY(-2px) rotate(2deg)}}
+.p-head{width:11px;height:11px;border-radius:50%;background:#ffd9b3;margin:0 auto;
+  box-shadow:inset -2px -2px 0 rgba(0,0,0,.15)}
+.p-body{width:16px;height:calc(100% - 13px);margin:1px auto 0;background:var(--pc);
+  border-radius:7px 7px 4px 4px;box-shadow:inset -3px -3px 0 rgba(0,0,0,.18)}
+.person:hover .p-inner{filter:brightness(1.2) drop-shadow(0 0 6px rgba(255,215,120,.7))}
+.person::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 9px);left:50%;
+  transform:translateX(-50%) translateY(5px);background:#0d1720;color:var(--amber2);
+  border:1px solid #2c3d4d;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:600;
+  white-space:nowrap;opacity:0;pointer-events:none;transition:.18s;z-index:99}
+.person::before{content:'';position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-top-color:#2c3d4d;opacity:0;transition:.18s;pointer-events:none;z-index:99}
+.person:hover::after,.person:hover::before{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.rider .p-head{width:10px;height:10px}
+.rider .p-body{width:14px;height:20px}
+
+@media (max-width:960px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .panel{max-height:46vh;border-right:none;border-bottom:1px solid #1d2a36}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="panel">
+    <header class="p-head">
+      <div class="logo">▲<br>▼</div>
+      <div><h1>电梯模拟器</h1><div class="sub">ELEVATOR SIM · 3 CARS / 8 FLOORS</div></div>
+    </header>
+
+    <section class="sec">
+      <div class="sec-t">生成乘客</div>
+      <div class="floors" id="floorBtns"></div>
+      <div class="row">
+        <div class="stepper">
+          <button id="minus">−</button><div class="num" id="numVal">3</div><button id="plus">＋</button>
+        </div>
+        <button class="btn primary" id="spawnBtn">生成乘客</button>
+      </div>
+      <div class="row">
+        <button class="btn" id="randBtn">🎲 随机生成</button>
+        <button class="btn warn" id="resetBtn">清空重置</button>
+      </div>
+      <div class="toast" id="toast"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-t">运行状态</div>
+      <div class="stats">
+        <div class="stat w"><b id="stWait">0</b><span>等待</span></div>
+        <div class="stat r"><b id="stRide">0</b><span>运送中</span></div>
+        <div class="stat d"><b id="stDone">0</b><span>已送达</span></div>
+      </div>
+      <div id="elist"></div>
+    </section>
+
+    <footer class="p-foot">每部电梯一次只能搭载 <em>1 人</em>；其余乘客原地排队，任意一部电梯到达后依次上车。<br>💡 将鼠标悬停在小人上，可查看 TA 的<em>目标楼层</em>。点击大楼楼层也可快速选中。</footer>
+  </aside>
+
+  <main class="stage" id="stage">
+    <div class="stars" id="stars"></div>
+    <div class="moon"></div>
+    <div class="cloud" style="top:12%;width:190px;animation-duration:150s;animation-delay:-40s"></div>
+    <div class="cloud" style="top:24%;width:140px;animation-duration:110s;animation-delay:-90s"></div>
+    <div class="cloud" style="top:6%;width:230px;animation-duration:190s;animation-delay:-10s"></div>
+    <div class="scene" id="scene"></div>
+  </main>
+</div>
+
+<script>
+'use strict';
+/* ================= 常量 ================= */
+const FLOORS=8, FLOOR_H=84, SLAB=13, ROOM_H=FLOOR_H-SLAB;
+const SHAFT_W=80, SHAFT_GAP=12, SB_PAD=10, SB_X=14;
+const SB_W=SHAFT_W*3+SHAFT_GAP*2+SB_PAD*2;
+const HALL_X=SB_X+SB_W+8, BUILDING_W=780;
+const CAR_W=68, CAR_H=58, DOOR_W=72, DOOR_H=62;
+const QUEUE_X0=HALL_X+26, SPACING=30, MAX_Q=15;
+const ROOF_H=88, GROUND_H=56;
+const SCENE_W=900, SCENE_H=ROOF_H+FLOORS*FLOOR_H+GROUND_H, BL=(SCENE_W-BUILDING_W)/2;
+const TRACK_H=FLOORS*FLOOR_H;
+const CAR_BASE=(FLOORS-1)*FLOOR_H+(ROOM_H-CAR_H);
+const SPEED=175, WALK=95, DOOR_SPEED=2.6;
+const E_COLORS=['#ffb703','#ff6b5e','#4cc9f0'];
+const P_COLORS=['#ffd166','#ff8f6b','#63d3b6','#7cc4ff','#e78fb3','#d4e09b'];
+const STXT={IDLE:'待机',TO_PICKUP:'前往接客',BOARDING:'开门上客',DEPART:'关门出发',
+            TO_DEST:'载客运行',ALIGHT:'开门下客',CLOSE:'关门'};
+
+const floorTop=f=>(FLOORS-f)*FLOOR_H;
+const carTopY=f=>(FLOORS-f)*FLOOR_H+(ROOM_H-CAR_H);
+const shaftLeft=i=>SB_PAD+i*(SHAFT_W+SHAFT_GAP);
+const shaftCX=i=>SB_X+shaftLeft(i)+SHAFT_W/2;
+const easeIO=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const $=s=>document.querySelector(s);
+const div=c=>{const d=document.createElement('div');if(c)d.className=c;return d;};
+
+/* ================= 状态 ================= */
+const queues=Array.from({length:FLOORS+1},()=>[]);
+const peopleLayers=[], lamps=[], doorRefs=[[],[],[]];
+const elevators=[];
+const anims=[];
+let delivered=0, selectedFloor=3, numVal=3;
+const pending=[];
+
+/* ================= 场景搭建 ================= */
+function buildScene(){
+  const scene=$('#scene');
+  scene.style.width=SCENE_W+'px'; scene.style.height=SCENE_H+'px';
+
+  // 远景剪影
+  const sk=div('skyline');
+  for(let i=0;i<24;i++){
+    const b=div('sb');
+    b.style.width=ri(26,64)+'px'; b.style.height=ri(50,240)+'px'; b.style.opacity=rnd(.55,.95);
+    if(Math.random()<.6)b.classList.add('lit');
+    sk.append(b);
+  }
+  scene.append(sk, div('fog'));
+
+  // 屋顶
+  const roof=div('roof');
+  Object.assign(roof.style,{left:BL+'px',top:'0',width:BUILDING_W+'px',height:ROOF_H+'px'});
+  roof.append(div('parapet'));
+  const sign=div('sign'); sign.textContent='LIFT·SIM'; roof.append(sign);
+  const ant=div('ant'); ant.style.left='352px'; roof.append(ant);
+  const v1=div('vent'); v1.style.left='300px'; const v2=div('vent'); v2.style.left='396px';
+  roof.append(v1,v2);
+  for(let i=0;i<3;i++){
+    const ind=div('ind');
+    ind.style.left=(shaftCX(i)-26)+'px'; ind.style.top=(ROOF_H-52)+'px';
+    ind.innerHTML=`<b>1</b><i style="color:${E_COLORS[i]}">·</i>`;
+    roof.append(ind);
+    elevators.push({i,y:carTopY(1),state:'IDLE',doors:0,tween:null,assigned:-1,
+      passenger:null,bsy:false,floor:1,dir:0,
+      indF:ind.querySelector('b'),indA:ind.querySelector('i')});
+  }
+  scene.append(roof);
+
+  // 大楼主体
+  const bld=div('building');
+  Object.assign(bld.style,{left:BL+'px',top:ROOF_H+'px',width:BUILDING_W+'px',height:TRACK_H+'px'});
+
+  for(let f=1;f<=FLOORS;f++){
+    const fu=div('floor');
+    fu.style.top=floorTop(f)+'px'; fu.style.height=FLOOR_H+'px';
+    const room=div('room');
+    room.style.left=(SB_X+SB_W)+'px'; room.style.right='10px';
+    room.style.setProperty('--glow',rnd(.3,.9).toFixed(2));
+    const slab=div('slab');
+    const fno=div('fno'); fno.textContent=f;
+    const win=div('win'); win.style.opacity=rnd(.2,.65).toFixed(2);
+    const call=div('call'); call.append(document.createElement('i')); lamps[f]=call;
+    fu.append(room,slab,fno,win,call);
+    fu.addEventListener('click',()=>selectFloor(f));
+    bld.append(fu);
+  }
+
+  // 电梯井
+  const sb=div('shaftblock');
+  Object.assign(sb.style,{left:SB_X+'px',width:SB_W+'px'});
+  for(let i=0;i<3;i++){
+    const sh=div('shaft');
+    Object.assign(sh.style,{left:shaftLeft(i)+'px',width:SHAFT_W+'px'});
+    const r1=div('rail'); r1.style.left='16px';
+    const r2=div('rail'); r2.style.right='16px';
+    const cable=div('cable'), cw=div('cw');
+    const car=div('car'); car.style.setProperty('--c',E_COLORS[i]);
+    car.innerHTML=`<div class="car-led"><span>${i+1}</span></div>
+      <div class="car-in"><div class="rider"><div class="p-head"></div><div class="p-body"></div></div></div>`;
+    sh.append(r1,r2,cable,cw,car);
+    for(let f=1;f<=FLOORS;f++){
+      const du=div('du');
+      Object.assign(du.style,{left:((SHAFT_W-DOOR_W)/2)+'px',top:(floorTop(f)+(ROOM_H-DOOR_H))+'px',
+        width:DOOR_W+'px',height:DOOR_H+'px'});
+      const fr=div('d-frame'), l=div('d-panel l'), r=div('d-panel r');
+      fr.append(l,r); du.append(fr); sh.append(du);
+      doorRefs[i][f]={l,r};
+    }
+    sb.append(sh);
+    const e=elevators[i];
+    e.carEl=car; e.cableEl=cable; e.cwEl=cw; e.riderEl=car.querySelector('.rider');
+  }
+  bld.append(sb);
+
+  for(let f=1;f<=FLOORS;f++){
+    const pl=div('people-layer');
+    pl.style.top=floorTop(f)+'px'; pl.style.height=ROOM_H+'px';
+    bld.append(pl); peopleLayers[f]=pl;
+  }
+  scene.append(bld);
+
+  // 地面街景
+  const g=div('ground'); scene.append(g);
+  const b1=div('bush'); b1.style.left=(BL-34)+'px'; b1.style.bottom=(GROUND_H-8)+'px';
+  const b2=div('bush'); b2.style.left=(BL+BUILDING_W-14)+'px'; b2.style.bottom=(GROUND_H-8)+'px';
+  const lp=div('lamp'); lp.style.left=(BL+BUILDING_W+34)+'px'; lp.style.bottom=GROUND_H+'px';
+  lp.innerHTML='<div class="head"></div><div class="glow"></div>';
+  scene.append(b1,b2,lp);
+
+  // 星星
+  const stars=$('#stars');
+  for(let i=0;i<80;i++){
+    const s=div('star'); const sz=rnd(1,2.4);
+    Object.assign(s.style,{width:sz+'px',height:sz+'px',left:rnd(0,100)+'%',top:rnd(0,100)+'%'});
+    s.style.setProperty('--d',rnd(1.6,4.5).toFixed(2)+'s');
+    s.style.animationDelay=(-rnd(0,4)).toFixed(2)+'s';
+    stars.append(s);
+  }
+}
+
+/* ================= 面板 ================= */
+function buildPanel(){
+  const fb=$('#floorBtns');
+  for(let f=1;f<=FLOORS;f++){
+    const b=document.createElement('button');
+    b.className='fbtn'; b.textContent=f; b.dataset.f=f;
+    b.addEventListener('click',()=>selectFloor(f));
+    fb.append(b);
+  }
+  const el=$('#elist');
+  elevators.forEach(e=>{
+    const row=div('erow');
+    row.innerHTML=`<span class="edot" style="background:${E_COLORS[e.i]};box-shadow:0 0 8px ${E_COLORS[e.i]}"></span>
+      <div class="emeta"><b>${e.i+1} 号梯</b><span class="es">待机</span></div><span class="ef">1F</span>`;
+    el.append(row);
+    e.dotEl=row.querySelector('.edot'); e.stEl=row.querySelector('.es'); e.efEl=row.querySelector('.ef');
+    e._c='';
+  });
+  selectFloor(3);
+}
+function selectFloor(f){
+  selectedFloor=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.toggle('sel',+b.dataset.f===f));
+}
+
+let toastTimer=null;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* ================= 小人 ================= */
+function makePersonEl(color,h,tip){
+  const p=div('person');
+  p.style.setProperty('--pc',color); p.style.height=h+'px';
+  if(tip)p.setAttribute('data-tip',tip);
+  p.innerHTML=`<div class="p-pos"><div class="p-inner"><div class="p-head"></div><div class="p-body"></div></div></div>`;
+  const inner=p.querySelector('.p-inner');
+  inner.style.animationDuration=rnd(2.2,3.2).toFixed(2)+'s';
+  inner.style.animationDelay=(-rnd(0,3)).toFixed(2)+'s';
+  return p;
+}
+function createPerson(f){
+  if(queues[f].length>=MAX_Q)return false;
+  let d; do{d=ri(1,FLOORS);}while(d===f);
+  const color=P_COLORS[ri(0,P_COLORS.length-1)], h=ri(33,41);
+  const el=makePersonEl(color,h,`目标楼层 ${d}F`);
+  const x=QUEUE_X0+queues[f].length*SPACING, y=ROOM_H-h;
+  el.classList.add('free');
+  el.style.transform=`translate(${x}px,${y}px)`;
+  peopleLayers[f].append(el);
+  void el.offsetWidth;
+  el.classList.remove('free'); el.classList.add('pop');
+  queues[f].push({el,x,y,h,color,dest:d});
+  return true;
+}
+function layoutQueue(f){
+  queues[f].forEach((p,i)=>{
+    p.x=QUEUE_X0+i*SPACING;
+    p.el.style.transform=`translate(${p.x}px,${p.y}px)`;
+  });
+}
+function addAnim(o){o.t=0;anims.push(o);}
+function stepAnims(dt){
+  for(let i=anims.length-1;i>=0;i--){
+    const o=anims[i]; o.t+=dt;
+    const k=Math.min(1,o.t/o.dur);
+    o.step(easeIO(k));
+    if(k>=1){anims.splice(i,1); o.done&&o.done();}
+  }
+}
+function walkIn(p,e,done){
+  const x0=p.x, x1=shaftCX(e.i)-12;
+  p.el.classList.add('free','walking');
+  addAnim({dur:Math.max(.55,Math.abs(x1-x0)/WALK),
+    step:k=>{p.el.style.transform=`translate(${x0+(x1-x0)*k}px,${p.y}px)`;},
+    done});
+}
+function walkOut(e,p,done){
+  const f=p.dest, x0=shaftCX(e.i)-12, y=ROOM_H-p.h;
+  const el=makePersonEl(p.color,p.h,`已到达 ${f}F`);
+  el.classList.add('free','walking');
+  el.style.transform=`translate(${x0}px,${y}px)`;
+  peopleLayers[f].append(el);
+  const x1=HALL_X+30+rnd(0,90);
+  addAnim({dur:Math.max(.55,Math.abs(x1-x0)/WALK),
+    step:k=>{el.style.transform=`translate(${x0+(x1-x0)*k}px,${y}px)`;},
+    done:()=>{
+      el.classList.remove('walking');
+      delivered++;
+      addAnim({dur:.45,step:k=>{el.style.opacity=1-k;},done:()=>{el.remove();done();}});
+    }});
+}
+
+/* ================= 电梯逻辑 ================= */
+const incoming=f=>elevators.filter(o=>o.assigned===f).length;
+function startMove(e,y){
+  e.tween={from:e.y,to:y,t:0,dur:Math.max(.45,Math.abs(y-e.y)/SPEED)};
+  e.dir=y<e.y?1:-1;
+}
+function tryDispatch(e){
+  if(e.tween)return;
+  const cur=(CAR_BASE-e.y)/FLOOR_H+1;
+  let best=-1,bd=1e9;
+  for(let f=1;f<=FLOORS;f++){
+    if(queues[f].length-incoming(f)>0){
+      const d=Math.abs(cur-f);
+      if(d<bd-1e-6||(Math.abs(d-bd)<1e-6&&Math.random()<.5)){bd=d;best=f;}
+    }
+  }
+  if(best>0){e.assigned=best;e.state='TO_PICKUP';startMove(e,carTopY(best));}
+}
+function arrive(e){
+  if(e.state==='TO_PICKUP'){
+    const f=e.assigned;
+    if(!queues[f].length){e.assigned=-1;e.state='IDLE';}
+    else{e.floor=f;e.bsy=false;e.state='BOARDING';}
+  }else if(e.state==='TO_DEST'){
+    e.floor=e.passenger.dest;e.bsy=false;e.state='ALIGHT';
+  }
+}
+function setRider(e,on){
+  e.carEl.classList.toggle('has-pax',on);
+  if(on&&e.passenger){
+    e.riderEl.style.setProperty('--pc',e.passenger.color);
+    e.riderEl.style.height=Math.round(e.passenger.h*.8)+'px';
+  }
+}
+function beginBoard(e){
+  const p=queues[e.floor].shift();
+  e.assigned=-1;
+  layoutQueue(e.floor);
+  walkIn(p,e,()=>{
+    p.el.remove();
+    e.passenger={color:p.color,h:p.h,dest:p.dest};
+    setRider(e,true);
+    e.state='DEPART';
+  });
+}
+function beginAlight(e){
+  const p=e.passenger;
+  walkOut(e,p,()=>{setRider(e,false);e.passenger=null;e.state='CLOSE';});
+}
+function updateElevator(e,dt){
+  const open=(e.state==='BOARDING'||e.state==='ALIGHT');
+  if(open)e.doors=Math.min(1,e.doors+DOOR_SPEED*dt);
+  else e.doors=Math.max(0,e.doors-DOOR_SPEED*dt);
+
+  if(e.tween){
+    e.tween.t+=dt;
+    const k=Math.min(1,e.tween.t/e.tween.dur);
+    e.y=e.tween.from+(e.tween.to-e.tween.from)*easeIO(k);
+    if(k>=1){e.tween=null;e.dir=0;arrive(e);}
+  }
+  switch(e.state){
+    case 'IDLE': tryDispatch(e); break;
+    case 'BOARDING': if(e.doors>=.97&&!e.bsy){e.bsy=true;beginBoard(e);} break;
+    case 'DEPART': if(e.doors<=.03&&!e.tween){startMove(e,carTopY(e.passenger.dest));e.state='TO_DEST';} break;
+    case 'ALIGHT': if(e.doors>=.97&&!e.bsy){e.bsy=true;beginAlight(e);} break;
+    case 'CLOSE': if(e.doors<=.03)e.state='IDLE'; break;
+  }
+}
+
+/* ================= 渲染 & HUD ================= */
+function render(){
+  elevators.forEach(e=>{
+    e.carEl.style.transform=`translateY(${e.y}px)`;
+    e.cableEl.style.height=e.y+'px';
+    e.cwEl.style.top=((TRACK_H-CAR_H)-e.y)+'px';
+    const d=doorRefs[e.i][e.floor], tx=(e.doors*100).toFixed(2);
+    d.l.style.transform=`translateX(${-tx}%)`;
+    d.r.style.transform=`translateX(${tx}%)`;
+    const nf=Math.min(FLOORS,Math.max(1,Math.round((CAR_BASE-e.y)/FLOOR_H+1)));
+    e.indF.textContent=nf;
+    e.indA.textContent=e.tween?(e.dir>0?'▲':'▼'):'·';
+  });
+  for(let f=1;f<=FLOORS;f++)lamps[f].classList.toggle('on',queues[f].length>0);
+}
+function setStat(el,v){
+  if(el.textContent!=String(v)){
+    el.textContent=v;
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  }
+}
+function updateHUD(){
+  let waiting=0; queues.forEach(q=>waiting+=q.length);
+  setStat($('#stWait'),waiting);
+  setStat($('#stRide'),elevators.filter(e=>e.passenger).length);
+  setStat($('#stDone'),delivered);
+  elevators.forEach(e=>{
+    const extra=e.state==='TO_PICKUP'?` · ${e.assigned}F`:e.state==='TO_DEST'?` · ${e.passenger.dest}F`:'';
+    const s=STXT[e.state]+extra;
+    if(s!==e._c){e._c=s;e.stEl.textContent=s;}
+    const nf=Math.min(FLOORS,Math.max(1,Math.round((CAR_BASE-e.y)/FLOOR_H+1)))+'F';
+    if(e.efEl.textContent!==nf)e.efEl.textContent=nf;
+    e.dotEl.classList.toggle('on',e.state!=='IDLE');
+  });
+}
+
+/* ================= 交互 ================= */
+function spawn(f,n,silent){
+  if(!silent)toast(`正在 ${f}F 生成 ${n} 名乘客…`);
+  for(let k=0;k<n;k++){
+    pending.push(setTimeout(()=>{createPerson(f);},k*140));
+  }
+}
+function reset(){
+  pending.forEach(clearTimeout); pending.length=0;
+  anims.length=0;
+  queues.forEach(q=>{q.forEach(p=>p.el.remove());q.length=0;});
+  elevators.forEach(e=>{
+    Object.assign(e,{y:carTopY(1),state:'IDLE',doors:0,tween:null,assigned:-1,
+      passenger:null,bsy:false,floor:1,dir:0});
+    setRider(e,false);
+  });
+  delivered=0;
+  toast('已重置模拟');
+}
+
+$('#spawnBtn').addEventListener('click',()=>spawn(selectedFloor,numVal));
+$('#randBtn').addEventListener('click',()=>{
+  const f=ri(1,FLOORS),n=ri(1,3);
+  toast(`随机：${f}F 来了 ${n} 人`);
+  spawn(f,n,true);
+});
+$('#resetBtn').addEventListener('click',reset);
+$('#minus').addEventListener('click',()=>{numVal=Math.max(1,numVal-1);$('#numVal').textContent=numVal;});
+$('#plus').addEventListener('click',()=>{numVal=Math.min(10,numVal+1);$('#numVal').textContent=numVal;});
+
+/* ================= 主循环 ================= */
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000); last=now;
+  stepAnims(dt);
+  elevators.forEach(e=>updateElevator(e,dt));
+  render();
+  updateHUD();
+  requestAnimationFrame(loop);
+}
+
+function fit(){
+  const r=$('#stage').getBoundingClientRect();
+  const s=Math.min((r.width-26)/SCENE_W,(r.height-26)/SCENE_H,1.18);
+  $('#scene').style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+window.addEventListener('resize',fit);
+
+/* ================= 启动 ================= */
+buildScene();
+buildPanel();
+fit();
+requestAnimationFrame(loop);
+setTimeout(()=>{spawn(2,2,true);spawn(5,1,true);},400);
+setTimeout(()=>spawn(7,2,true),1000);
+</script>
+</body>
+</html>

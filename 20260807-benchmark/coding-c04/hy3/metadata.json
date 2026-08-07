@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c04",
+  "model_alias": "hy3",
+  "artifact_type": "svg",
+  "artifact_file": "answer.svg",
+  "artifact_sha256": "5a9254574f2bea62fa698311432f1efa288cd484ff3aa117bf8934eb3a21c437",
+  "source_answer_sha256": "ff943888af13aab9937c3cac638d7d35b5fc40745d3ba8b638a429646a27bffa",
+  "external_urls": [
+    "http://www.w3.org/2000/svg"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

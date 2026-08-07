@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c01",
+  "model_alias": "kimi-k3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "2c5cd92d52ddcfa96e674cc9b5369a5c7e7c8d9c58eb32ab56087c3929f1ca50",
+  "source_answer_sha256": "9f739c099d59aa810348a3fa9d3c975c836e59bdc09607dba4320faf31b371be",
+  "external_urls": [
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+    "http://localhost:8000/aurora.html`"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

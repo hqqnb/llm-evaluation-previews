@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c02",
+  "model_alias": "deepseek-v4-flash",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "ebad8715855ece2f6e4e6fbac8895a6ef569dfe2e7604e43cbb485596ca89a1c",
+  "source_answer_sha256": "184ee7ecc8cdebf5497656da3046b3dbc268950351413546abaacda1b1b2fd43",
+  "external_urls": [],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

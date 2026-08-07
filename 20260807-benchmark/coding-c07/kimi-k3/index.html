@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>3D 全球数据可视化地球仪</title>
+<style>
+:root{--accent:#4fc3f7;--panel:rgba(8,16,30,.78);--border:rgba(110,180,255,.16);--text:#dce8f5;--muted:#8aa3bd;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#04070f;color:var(--text);font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;}
+#scene{position:fixed;inset:0;display:block;}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--border);border-radius:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.45);z-index:10;}
+#controlPanel{top:18px;left:18px;width:266px;padding:16px 18px;}
+#controlPanel h1{font-size:16px;font-weight:600;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+#controlPanel h1 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+.seg{display:flex;gap:6px;margin-bottom:10px;}
+.seg button{flex:1;padding:7px 0;font-size:13px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;transition:.2s;}
+.seg button:hover{color:var(--text);border-color:rgba(110,180,255,.4);}
+.seg button.active{background:linear-gradient(135deg,rgba(79,195,247,.25),rgba(79,195,247,.08));color:var(--accent);border-color:rgba(79,195,247,.55);}
+.metric-desc{font-size:12px;color:var(--muted);line-height:1.5;min-height:34px;margin-bottom:10px;}
+.legend{margin:4px 0 12px;}
+.legend-bar{height:9px;border-radius:5px;margin-bottom:5px;border:1px solid rgba(255,255,255,.08);}
+.legend-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:10px;}
+.toggles label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none;}
+.toggles input{accent-color:var(--accent);cursor:pointer;}
+.note{font-size:11px;color:#63788f;line-height:1.7;border-top:1px solid rgba(255,255,255,.06);padding-top:9px;}
+#timeline{left:50%;bottom:20px;transform:translateX(-50%);display:flex;align-items:center;gap:14px;padding:12px 20px;min-width:min(640px,92vw);}
+#playBtn{width:38px;height:38px;border-radius:50%;border:1px solid rgba(79,195,247,.5);background:rgba(79,195,247,.12);color:var(--accent);font-size:15px;cursor:pointer;transition:.2s;flex:none;}
+#playBtn:hover{background:rgba(79,195,247,.25);box-shadow:0 0 14px rgba(79,195,247,.3);}
+#yearLabel{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 16px rgba(79,195,247,.6);min-width:64px;text-align:center;}
+.tl-right{flex:1;display:flex;flex-direction:column;gap:4px;}
+#yearSlider{width:100%;appearance:none;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--accent) var(--fill,100%),rgba(255,255,255,.12) var(--fill,100%));outline:none;cursor:pointer;}
+#yearSlider::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 0 10px rgba(79,195,247,.8);cursor:pointer;}
+#yearSlider::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--accent);cursor:pointer;}
+.tl-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);}
+#popup{position:fixed;z-index:20;width:240px;background:var(--panel);border:1px solid rgba(110,180,255,.25);border-radius:12px;backdrop-filter:blur(14px);padding:12px 14px;transform:translate(-50%,calc(-100% - 18px));box-shadow:0 10px 36px rgba(0,0,0,.55);display:none;}
+#popup::after{content:'';position:absolute;left:50%;bottom:-7px;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:var(--panel);border-right:1px solid rgba(110,180,255,.25);border-bottom:1px solid rgba(110,180,255,.25);}
+.pop-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.pop-title{font-size:15px;font-weight:600;}
+.pop-title .en{font-size:11px;color:var(--muted);font-weight:400;margin-left:4px;}
+.pop-sub{font-size:11px;color:var(--accent);margin-top:2px;}
+.pop-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;padding:0 2px;}
+.pop-close:hover{color:#fff;}
+.pop-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;font-size:12px;margin-bottom:2px;}
+.pop-row.active{background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.25);}
+.pop-row .k{width:44px;color:var(--muted);flex:none;}
+.pop-row .bar{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;}
+.pop-row .bar i{display:block;height:100%;border-radius:3px;}
+.pop-row .v{width:92px;text-align:right;font-variant-numeric:tabular-nums;flex:none;color:#fff;}
+#tooltip{position:fixed;z-index:25;pointer-events:none;background:rgba(10,20,36,.92);border:1px solid rgba(110,180,255,.35);border-radius:8px;padding:7px 11px;font-size:12px;line-height:1.6;display:none;box-shadow:0 6px 20px rgba(0,0,0,.5);max-width:260px;}
+#tooltip .tt-title{color:var(--accent);font-weight:600;}
+#loading{position:fixed;inset:0;z-index:100;background:#04070f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .6s;}
+#loading.hide{opacity:0;pointer-events:none;}
+.spinner{width:52px;height:52px;border-radius:50%;border:3px solid rgba(79,195,247,.15);border-top-color:var(--accent);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loading p{font-size:13px;color:var(--muted);letter-spacing:1px;}
+#toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:60;background:rgba(120,40,40,.9);border:1px solid rgba(255,120,120,.4);padding:8px 16px;border-radius:8px;font-size:12px;display:none;}
+@media(max-width:640px){#controlPanel{width:214px;padding:12px;}#timeline{min-width:94vw;padding:10px 12px;gap:8px;}}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "topojson-client":"https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm"
+}}
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="controlPanel" class="panel">
+  <h1><span class="dot"></span>全球数据地球仪</h1>
+  <div class="seg" id="metricSeg">
+    <button data-m="gdp" class="active">GDP</button>
+    <button data-m="pop">人口</button>
+    <button data-m="flights">航班量</button>
+  </div>
+  <div class="metric-desc" id="metricDesc"></div>
+  <div class="legend">
+    <div class="legend-bar" id="legendBar"></div>
+    <div class="legend-labels"><span id="legendMin"></span><span id="legendMax"></span></div>
+  </div>
+  <div class="toggles">
+    <label><input type="checkbox" id="tglRotate" checked>自动旋转</label>
+    <label><input type="checkbox" id="tglHeat" checked>热力图层</label>
+    <label><input type="checkbox" id="tglRoutes" checked>航线</label>
+    <label><input type="checkbox" id="tglCities" checked>城市标记</label>
+  </div>
+  <div class="note">拖拽旋转 · 滚轮缩放 · 点击城市查看详情 · 悬停航线查看航班<br>数据为示例模拟数据（2000–2024）</div>
+</div>
+
+<div id="timeline" class="panel">
+  <button id="playBtn" title="播放/暂停">▶</button>
+  <div id="yearLabel">2024</div>
+  <div class="tl-right">
+    <input type="range" id="yearSlider" min="2000" max="2024" step="1" value="2024"/>
+    <div class="tl-labels"><span>2000</span><span>2024</span></div>
+  </div>
+</div>
+
+<div id="popup"></div>
+<div id="tooltip"></div>
+<div id="loading"><div class="spinner"></div><p>正在加载地球纹理与地理数据…</p></div>
+<div id="toast"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { feature as topoFeature } from 'topojson-client';
+
+/* ================= 配置与数据 ================= */
+const YEAR_MIN=2000, YEAR_MAX=2024, GLOBE_R=1;
+const METRICS={
+  gdp:{name:'GDP',css:'#ffc857',color:0xffc857,growth:0.032,
+       desc:'国家：国内生产总值（万亿美元，对数色阶）· 城市：大都市区 GDP（十亿美元）',
+       fmtC:v=>v>=1?v.toFixed(2)+' 万亿':(v*1000).toFixed(0)+' 十亿',
+       fmtCity:v=>v>=1000?(v/1000).toFixed(2)+' 万亿美元':v.toFixed(0)+' 十亿美元'},
+  pop:{name:'人口',css:'#4fc3f7',color:0x4fc3f7,growth:0.012,
+       desc:'国家：总人口（对数色阶）· 城市：大都市区人口（百万）',
+       fmtC:v=>v>=100?(v/100).toFixed(2)+' 亿':v.toFixed(1)+' 百万',
+       fmtCity:v=>v.toFixed(1)+' 百万'},
+  flights:{name:'航班量',css:'#f06292',color:0xf06292,growth:0.036,
+       desc:'国家：年起降架次（万架次，对数色阶）· 城市：日均航班班次',
+       fmtC:v=>v.toFixed(0)+' 万架次',
+       fmtCity:v=>Math.round(v)+' 架次/日'}
+};
+const RANGES={gdp:[0.02,30],pop:[0.5,1500],flights:[1,1100]};
+const CITY_MAX={gdp:2100,pop:38,flights:1400};
+const STOPS=[[0,[13,32,68]],[0.25,[14,84,120]],[0.45,[16,140,130]],[0.62,[80,170,90]],[0.78,[210,190,70]],[0.9,[235,120,50]],[1,[214,40,57]]];
+
+/* 国家数据：ISO 数字码(不补零) -> g:GDP万亿$ p:人口百万 f:航班万架次 (2024基准), g? 为可选年增长覆盖 */
+const COUNTRIES={
+ '840':{g:27.4,p:335,f:980},'156':{g:17.8,p:1412,f:520,gg:0.105,pg:0.004,fg:0.085},
+ '392':{g:4.2,p:125,f:130,gg:0.005,pg:-0.002},'276':{g:4.5,p:84,f:190,gg:0.015,pg:0.002},
+ '826':{g:3.3,p:67,f:200,gg:0.018},'356':{g:3.6,p:1420,f:110,gg:0.07,pg:0.011,fg:0.07},
+ '250':{g:3.0,p:68,f:160,gg:0.014},'380':{g:2.2,p:59,f:140,gg:0.008},
+ '76':{g:2.1,p:216,f:90,gg:0.02,pg:0.007},'124':{g:2.1,p:39,f:95,gg:0.02,pg:0.009},
+ '643':{g:2.0,p:144,f:85,gg:0.01,pg:-0.001},'410':{g:1.7,p:52,f:70,gg:0.025,pg:0.001},
+ '36':{g:1.7,p:26,f:75,gg:0.022,pg:0.012},'724':{g:1.6,p:48,f:170,gg:0.015},
+ '484':{g:1.8,p:128,f:90,gg:0.02,pg:0.008},'360':{g:1.4,p:275,f:85,gg:0.045,pg:0.008},
+ '528':{g:1.1,p:18,f:70,gg:0.018},'682':{g:1.1,p:37,f:60,gg:0.025,pg:0.018},
+ '792':{g:1.1,p:85,f:180,gg:0.035,pg:0.01,fg:0.05},'756':{g:0.9,p:8.8,f:55,gg:0.015},
+ '616':{g:0.8,p:38,f:45,gg:0.03},'32':{g:0.6,p:46,f:40,gg:0.01,pg:0.008},
+ '710':{g:0.38,p:60,f:25,gg:0.015,pg:0.012},'818':{g:0.4,p:112,f:30,gg:0.04,pg:0.016},
+ '566':{g:0.36,p:223,f:12,gg:0.03,pg:0.026},'784':{g:0.5,p:9.5,f:95,gg:0.035,pg:0.015,fg:0.06},
+ '752':{g:0.6,p:10.5,f:40,gg:0.018},'702':{g:0.5,p:6,f:65,gg:0.04,pg:0.008,fg:0.045},
+ '704':{g:0.43,p:98,f:35,gg:0.075,pg:0.009,fg:0.09},'764':{g:0.5,p:72,f:75,gg:0.03,pg:0.003},
+ '458':{g:0.4,p:34,f:50,gg:0.04,pg:0.013},'608':{g:0.44,p:117,f:30,gg:0.05,pg:0.016},
+ '586':{g:0.34,p:240,f:18,gg:0.035,pg:0.02},'50':{g:0.45,p:173,f:12,gg:0.06,pg:0.011},
+ '364':{g:0.4,p:89,f:20,gg:0.025,pg:0.007},'398':{g:0.26,p:19,f:10,gg:0.03,pg:0.011},
+ '170':{g:0.36,p:52,f:30,gg:0.03,pg:0.008},'152':{g:0.33,p:19.6,f:25,gg:0.025,pg:0.007},
+ '604':{g:0.27,p:34,f:20,gg:0.035,pg:0.01},'372':{g:0.55,p:5.3,f:30,gg:0.04,pg:0.012},
+ '620':{g:0.29,p:10.4,f:35,gg:0.015},'300':{g:0.24,p:10.4,f:25,gg:0.012},
+ '40':{g:0.52,p:9.1,f:35,gg:0.016},'56':{g:0.63,p:11.7,f:40,gg:0.016},
+ '208':{g:0.41,p:5.9,f:30,gg:0.017},'578':{g:0.58,p:5.5,f:30,gg:0.015},
+ '246':{g:0.3,p:5.6,f:25,gg:0.015},'203':{g:0.33,p:10.5,f:20,gg:0.02},
+ '376':{g:0.51,p:9.8,f:25,gg:0.03,pg:0.019},'554':{g:0.25,p:5.2,f:20,gg:0.02,pg:0.009},
+ '12':{g:0.24,p:45,f:10,gg:0.02,pg:0.018},'504':{g:0.15,p:37,f:15,gg:0.03,pg:0.012},
+ '404':{g:0.11,p:55,f:8,gg:0.045,pg:0.02},'231':{g:0.16,p:126,f:8,gg:0.08,pg:0.025},
+ '834':{g:0.08,p:67,f:4,gg:0.05,pg:0.03},'800':{g:0.05,p:48,f:3,gg:0.05,pg:0.03},
+ '24':{g:0.09,p:36,f:4,gg:0.03,pg:0.032},'180':{g:0.07,p:102,f:3,gg:0.035,pg:0.033},
+ '144':{g:0.08,p:22,f:6,gg:0.03,pg:0.008}
+};
+const NAME_FIX={'France':'250','Norway':'578'};
+
+/* 城市: g GDP十亿$ p 人口百万 f 日均班次 */
+const CITIES=[
+ {name:'纽约',en:'New York',country:'美国',lat:40.71,lon:-74.00,g:2100,p:19.5,f:1200},
+ {name:'洛杉矶',en:'Los Angeles',country:'美国',lat:34.05,lon:-118.24,g:1200,p:12.5,f:1100},
+ {name:'芝加哥',en:'Chicago',country:'美国',lat:41.88,lon:-87.63,g:750,p:8.9,f:1400},
+ {name:'多伦多',en:'Toronto',country:'加拿大',lat:43.65,lon:-79.38,g:400,p:6.4,f:700},
+ {name:'墨西哥城',en:'Mexico City',country:'墨西哥',lat:19.43,lon:-99.13,g:400,p:22.3,f:600},
+ {name:'圣保罗',en:'São Paulo',country:'巴西',lat:-23.55,lon:-46.63,g:500,p:22.6,f:700},
+ {name:'伦敦',en:'London',country:'英国',lat:51.50,lon:-0.12,g:900,p:14.3,f:1100},
+ {name:'巴黎',en:'Paris',country:'法国',lat:48.85,lon:2.35,g:850,p:11.0,f:950},
+ {name:'法兰克福',en:'Frankfurt',country:'德国',lat:50.11,lon:8.68,g:300,p:5.8,f:800},
+ {name:'莫斯科',en:'Moscow',country:'俄罗斯',lat:55.76,lon:37.62,g:450,p:12.5,f:650},
+ {name:'伊斯坦布尔',en:'Istanbul',country:'土耳其',lat:41.01,lon:28.98,g:300,p:15.8,f:900},
+ {name:'开罗',en:'Cairo',country:'埃及',lat:30.04,lon:31.24,g:150,p:21.8,f:350},
+ {name:'约翰内斯堡',en:'Johannesburg',country:'南非',lat:-26.20,lon:28.05,g:120,p:6.2,f:300},
+ {name:'迪拜',en:'Dubai',country:'阿联酋',lat:25.20,lon:55.27,g:130,p:3.6,f:900,gg:0.06,pg:0.03,fg:0.07},
+ {name:'孟买',en:'Mumbai',country:'印度',lat:19.08,lon:72.88,g:350,p:21.3,f:550,gg:0.06,fg:0.06},
+ {name:'德里',en:'Delhi',country:'印度',lat:28.61,lon:77.21,g:330,p:32.9,f:700,gg:0.06,fg:0.06},
+ {name:'新加坡',en:'Singapore',country:'新加坡',lat:1.35,lon:103.82,g:420,p:6.0,f:650,gg:0.04},
+ {name:'曼谷',en:'Bangkok',country:'泰国',lat:13.76,lon:100.50,g:250,p:11.0,f:550},
+ {name:'香港',en:'Hong Kong',country:'中国',lat:22.32,lon:114.17,g:400,p:7.5,f:700,gg:0.03},
+ {name:'北京',en:'Beijing',country:'中国',lat:39.90,lon:116.40,g:680,p:21.5,f:900,gg:0.09,fg:0.08},
+ {name:'上海',en:'Shanghai',country:'中国',lat:31.23,lon:121.47,g:700,p:29.0,f:800,gg:0.09,fg:0.08},
+ {name:'首尔',en:'Seoul',country:'韩国',lat:37.57,lon:126.98,g:800,p:26.0,f:700,gg:0.025},
+ {name:'东京',en:'Tokyo',country:'日本',lat:35.68,lon:139.69,g:1800,p:37.4,f:900,gg:0.005},
+ {name:'悉尼',en:'Sydney',country:'澳大利亚',lat:-33.87,lon:151.21,g:400,p:5.3,f:500}
+];
+/* 航线: [起点, 终点, 2024基准日均班次] */
+const ROUTES=[
+ ['纽约','伦敦',28],['纽约','巴黎',12],['纽约','东京',8],['芝加哥','纽约',30],
+ ['洛杉矶','东京',10],['洛杉矶','墨西哥城',12],['悉尼','洛杉矶',6],
+ ['伦敦','迪拜',14],['伦敦','新加坡',9],['伦敦','多伦多',8],
+ ['巴黎','开罗',6],['法兰克福','北京',7],['法兰克福','伊斯坦布尔',9],
+ ['莫斯科','伊斯坦布尔',10],['伊斯坦布尔','迪拜',8],
+ ['迪拜','孟买',18],['迪拜','德里',12],['迪拜','约翰内斯堡',5],
+ ['东京','上海',15],['东京','香港',16],['上海','新加坡',12],
+ ['香港','新加坡',14],['新加坡','悉尼',10],['曼谷','新加坡',15],
+ ['首尔','上海',18],['圣保罗','墨西哥城',8],['北京','新加坡',10]
+];
+
+/* ================= 工具函数 ================= */
+const K2={gdp:'g',pop:'p',flights:'f'}, GK2={gdp:'gg',pop:'pg',flights:'fg'};
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0)/4294967295;}
+function countryValue(idKey,m,year){
+  const d=COUNTRIES[idKey];
+  if(d){const b=d[K2[m]];if(b==null)return null;const gr=d[GK2[m]]??METRICS[m].growth;return b*Math.pow(1+gr,year-YEAR_MAX);}
+  const r=hashStr(idKey+'|'+m);
+  const base=m==='gdp'?0.02+0.15*r:m==='pop'?0.6+20*r:1.5+12*r;
+  return base*Math.pow(1+METRICS[m].growth,year-YEAR_MAX);
+}
+function cityValue(c,m,year){const gr=c[GK2[m]]??METRICS[m].growth;return c[K2[m]]*Math.pow(1+gr,year-YEAR_MAX);}
+function normVal(m,v){const[a,b]=RANGES[m];return Math.min(1,Math.max(0,(Math.log10(v)-Math.log10(a))/(Math.log10(b)-Math.log10(a))));}
+function colorAt(t){for(let i=0;i<STOPS.length-1;i++){const[t0,c0]=STOPS[i],[t1,c1]=STOPS[i+1];if(t>=t0&&t<=t1){const k=(t-t0)/(t1-t0);return[c0[0]+(c1[0]-c0[0])*k,c0[1]+(c1[1]-c0[1])*k,c0[2]+(c1[2]-c0[2])*k];}}return STOPS[STOPS.length-1][1];}
+function latLonToVec3(lat,lon,r){const phi=(90-lat)*Math.PI/180,theta=(lon+180)*Math.PI/180;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ================= 回退纹理（离线时） ================= */
+const FALLBACK_BLOBS=[[-100,45,26],[-60,-15,18],[15,50,14],[15,5,20],[90,45,30],[105,10,12],[134,-25,13]];
+function onFallbackLand(u,v){const lon=u*360-180,lat=90-v*180;
+  if(v<0.06||v>0.94)return true;
+  return FALLBACK_BLOBS.some(([cl,ct,r])=>((lon-cl)/ (r*1.6))**2+((lat-ct)/r)**2<1);}
+function fallbackCanvas(night){
+  const W=1024,H=512,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  const rnd=mulberry32(7);
+  if(night){
+    g.fillStyle='#020409';g.fillRect(0,0,W,H);
+    for(let i=0;i<4200;i++){const x=rnd()*W,y=H*0.12+rnd()*H*0.76;
+      if(!onFallbackLand(x/W,y/H)||rnd()<0.55)continue;
+      g.fillStyle=`rgba(255,${190+rnd()*60|0},110,${0.35+rnd()*0.6})`;g.fillRect(x,y,1.6,1.6);}
+    return c;
+  }
+  const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#0a2f55');gr.addColorStop(0.5,'#0e3d6b');gr.addColorStop(1,'#0a2f55');
+  g.fillStyle=gr;g.fillRect(0,0,W,H);
+  const cols=['#2e6b3e','#7a8c4f','#b5a06a','#3f7a52'];
+  for(const[cl,ct,cr]of FALLBACK_BLOBS){const cx=(cl+180)/360*W,cy=(90-ct)/180*H;
+    for(let i=0;i<60;i++){const a=rnd()*Math.PI*2,d=rnd()*cr*2.2;
+      const x=cx+Math.cos(a)*d*1.7,y=cy+Math.sin(a)*d,r=6+rnd()*cr*0.9;
+      g.fillStyle=cols[(rnd()*cols.length)|0];g.beginPath();g.arc(x,y,r,0,7);g.fill();}}
+  g.fillStyle='rgba(240,246,252,0.95)';g.fillRect(0,0,W,H*0.05);g.fillRect(0,H*0.95,W,H*0.05);
+  for(let i=0;i<1400;i++){const x=rnd()*W,y=rnd()<0.5?rnd()*H*0.09:H-rnd()*H*0.09;g.fillRect(x,y,2,2);}
+  return c;
+}
+function loadTex(url,night,srgb){
+  return new Promise(res=>{
+    new THREE.TextureLoader().load(url,
+      t=>{t.colorSpace=srgb?THREE.SRGBColorSpace:THREE.NoColorSpace;t.anisotropy=8;res(t);},
+      undefined,
+      ()=>{const t=new THREE.CanvasTexture(fallbackCanvas(night));t.colorSpace=srgb?THREE.SRGBColorSpace:THREE.NoColorSpace;res(t);});
+  });
+}
+async function loadWorld(){
+  try{
+    const r=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json');
+    if(!r.ok)throw 0;
+    return topoFeature(await r.json(),(await 0,r=>r)(null)||undefined)||null;
+  }catch(e){return null;}
+}
+
+/* ================= 状态 ================= */
+let currentMetric='gdp', currentYear=YEAR_MAX, playing=false, yearTimer=0;
+let autoRotateEnabled=true, activeCity=null, hoveredRoute=null;
+let worldFeatures=null;
+
+/* ================= Three.js 初始化 ================= */
+const canvas=document.getElementById('scene');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:true});}
+catch(e){document.querySelector('#loading p').textContent='当前环境不支持 WebGL';throw e;}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.1,200);
+camera.position.set(1.7,0.9,2.7);
+
+const controls=new OrbitControls(camera,canvas);
+controls.enableDamping=true;controls.dampingFactor=0.08;
+controls.enablePan=false;controls.minDistance=1.55;controls.maxDistance=7;
+controls.autoRotate=true;controls.autoRotateSpeed=0.7;
+let resumeTimer=null;
+controls.addEventListener('start',()=>{controls.autoRotate=false;clearTimeout(resumeTimer);});
+controls.addEventListener('end',()=>{resumeTimer=setTimeout(()=>{if(autoRotateEnabled)controls.autoRotate=true;},2500);});
+
+scene.add(new THREE.AmbientLight(0x334455,0.55));
+const sunUniform={value:new THREE.Vector3(1,0.25,0.4).normalize()};
+const dirLight=new THREE.DirectionalLight(0xfff2e0,2.4);
+dirLight.position.copy(sunUniform.value).multiplyScalar(6);
+scene.add(dirLight);
+
+const globeGroup=new THREE.Group();
+globeGroup.rotation.z=THREE.MathUtils.degToRad(-12);
+scene.add(globeGroup);
+
+/* ================= 构建场景 ================= */
+const BASE='https://cdn.jsdelivr.net/npm/three-globe@2/example/img/';
+let heatCtx,heatTex,heatMesh,markersGroup,routesGroup,stars;
+const cityObjs=[],routeObjs=[],cityHitMeshes=[],routeHitMeshes=[],pulses=[];
+const raycaster=new THREE.Raycaster();
+const mouseNDC=new THREE.Vector2();
+const tmpV=new THREE.Vector3();
+
+function makeGlowTexture(){
+  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');
+  const gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.25,'rgba(255,255,255,.85)');
+  gr.addColorStop(0.5,'rgba(255,255,255,.22)');gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=gr;g.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(c);
+}
+const glowTex=makeGlowTexture();
+
+async function build(){
+  const[dayT,nightT,topoT,world]=await Promise.all([
+    loadTex(BASE+'earth-blue-marble.jpg',false,true),
+    loadTex(BASE+'earth-night.jpg',true,true),
+    loadTex(BASE+'earth-topology.png',false,false),
+    (async()=>{try{
+      const r=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json');
+      if(!r.ok)throw 0;const topo=await r.json();
+      return topoFeature(topo,topo.objects.countries).features;
+    }catch(e){return null;}})()
+  ]);
+  worldFeatures=world;
+  if(!worldFeatures){showToast('国家边界数据加载失败，热力图已禁用');document.getElementById('tglHeat').disabled=true;}
+
+  /* 地球本体（白天/黑夜纹理混合 + 凹凸） */
+  const earthMat=new THREE.MeshPhongMaterial({map:dayT,bumpMap:topoT,bumpScale:0.045,specular:new THREE.Color(0x2a2a2a),shininess:14});
+  earthMat.onBeforeCompile=shader=>{
+    shader.uniforms.uSunDir=sunUniform;
+    shader.uniforms.uNightMap={value:nightT};
+    shader.vertexShader=shader.vertexShader
+      .replace('#include <common>','#include <common>\nvarying vec3 vWorldNormal;')
+      .replace('#include <defaultnormal_vertex>','#include <defaultnormal_vertex>\nvWorldNormal=normalize(mat3(modelMatrix)*objectNormal);');
+    shader.fragmentShader=shader.fragmentShader
+      .replace('#include <common>','#include <common>\nuniform vec3 uSunDir;\nuniform sampler2D uNightMap;\nvarying vec3 vWorldNormal;');
+    const nightCode='\n{float _sd=dot(normalize(vWorldNormal),normalize(uSunDir));float _nm=1.0-smoothstep(-0.25,0.12,_sd);outgoingLight+=texture2D(uNightMap,vMapUv).rgb*_nm*1.6;}\n';
+    const anchor='vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + totalEmissiveRadiance;';
+    if(shader.fragmentShader.includes(anchor))
+      shader.fragmentShader=shader.fragmentShader.replace(anchor,anchor+nightCode);
+    else if(shader.fragmentShader.includes('#include <output_fragment>'))
+      shader.fragmentShader=shader.fragmentShader.replace('#include <output_fragment>',
+        'gl_FragColor=vec4(outgoingLight,diffuseColor.a);'+nightCode.replaceAll('outgoingLight','gl_FragColor.rgb'));
+  };
+  const earth=new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R,96,96),earthMat);
+  globeGroup.add(earth);
+
+  /* 国家热力层（Canvas 纹理叠加） */
+  const hc=document.createElement('canvas');hc.width=2048;hc.height=1024;
+  heatCtx=hc.getContext('2d');
+  heatTex=new THREE.CanvasTexture(hc);heatTex.colorSpace=THREE.SRGBColorSpace;heatTex.anisotropy=8;
+  heatMesh=new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R*1.004,96,96),
+    new THREE.MeshLambertMaterial({map:heatTex,transparent:true,opacity:0.88,depthWrite:false}));
+  heatMesh.renderOrder=1;
+  globeGroup.add(heatMesh);
+
+  /* 大气光晕（外侧菲涅尔 + 内侧边缘光） */
+  const atmoOut=new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R*1.22,64,64),new THREE.ShaderMaterial({
+    vertexShader:'varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'varying vec3 vN;void main(){float i=pow(0.62-dot(vN,vec3(0.,0.,1.)),4.0);gl_FragColor=vec4(0.35,0.62,1.0,1.0)*i*1.4;}',
+    side:THREE.BackSide,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  atmoOut.renderOrder=5;scene.add(atmoOut);
+  const atmoIn=new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R*1.015,64,64),new THREE.ShaderMaterial({
+    vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vP=mv.xyz;gl_Position=projectionMatrix*mv;}',
+    fragmentShader:'varying vec3 vN;varying vec3 vP;void main(){float f=pow(1.0-abs(dot(normalize(vN),normalize(-vP))),3.5);gl_FragColor=vec4(0.35,0.62,1.0,1.0)*f*0.8;}',
+    blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  atmoIn.renderOrder=4;globeGroup.add(atmoIn);
+
+  /* 星空 */
+  const N=2600,pos=new Float32Array(N*3),col=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const v=new THREE.Vector3().randomDirection().multiplyScalar(45+Math.random()*30);
+    pos.set([v.x,v.y,v.z],i*3);
+    const c=Math.random()<0.85?[1,1,1]:(Math.random()<0.5?[0.7,0.85,1]:[1,0.9,0.75]);
+    const b=0.4+Math.random()*0.6;col.set([c[0]*b,c[1]*b,c[2]*b],i*3);}
+  const sg=new THREE.BufferGeometry();
+  sg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  sg.setAttribute('color',new THREE.BufferAttribute(col,3));
+  stars=new THREE.Points(sg,new THREE.PointsMaterial({size:1.4,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:0.9,depthWrite:false}));
+  scene.add(stars);
+
+  /* 城市标记 */
+  markersGroup=new THREE.Group();globeGroup.add(markersGroup);
+  const hitGeo=new THREE.SphereGeometry(0.05,8,8);
+  const hitMat=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+  for(const c of CITIES){
+    const p=latLonToVec3(c.lat,c.lon,GLOBE_R*1.012);
+    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:METRICS.gdp.color,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+    spr.position.copy(p);spr.renderOrder=3;
+    const core=new THREE.Mesh(new THREE.SphereGeometry(0.0055,8,8),new THREE.MeshBasicMaterial({color:0xffffff}));
+    core.position.copy(p);
+    const hit=new THREE.Mesh(hitGeo,hitMat);hit.position.copy(p);hit.userData.city=c;
+    markersGroup.add(spr,core,hit);
+    Object.assign(c,{sprite:spr,core,hit,phase:Math.random()*6.28,baseScale:0.1});
+    cityObjs.push(c);cityHitMeshes.push(hit);
+  }
+
+  /* 航线 */
+  routesGroup=new THREE.Group();globeGroup.add(routesGroup);
+  const byName=Object.fromEntries(CITIES.map(c=>[c.name,c]));
+  const cA=new THREE.Color(0xffb347),cB=new THREE.Color(0x48c6ff);
+  for(const[fn,tn,base]of ROUTES){
+    const A=byName[fn],B=byName[tn];if(!A||!B)continue;
+    const start=latLonToVec3(A.lat,A.lon,GLOBE_R*1.012),end=latLonToVec3(B.lat,B.lon,GLOBE_R*1.012);
+    const dist=start.distanceTo(end);
+    const mid=start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(GLOBE_R*1.012+Math.max(0.08,dist*0.3));
+    const curve=new THREE.QuadraticBezierCurve3(start,mid,end);
+    const pts=curve.getPoints(64),cols=new Float32Array(pts.length*3);
+    pts.forEach((_,i)=>{const c=cA.clone().lerp(cB,i/(pts.length-1));cols.set([c.r,c.g,c.b],i*3);});
+    const lg=new THREE.BufferGeometry().setFromPoints(pts);
+    lg.setAttribute('color',new THREE.BufferAttribute(cols,3));
+    const line=new THREE.Line(lg,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.6,blending:THREE.AdditiveBlending,depthWrite:false}));
+    line.renderOrder=2;
+    const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,40,0.014,6),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+    const r={from:fn,to:tn,base,curve,line,tube,speedFactor:1};
+    tube.userData.route=r;
+    routesGroup.add(line,tube);
+    const nP=1+(base>=12?1:0)+(base>=22?1:0);
+    r.pulses=[];
+    for(let i=0;i<nP;i++){
+      const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffd166,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+      s.scale.set(0.045,0.045,1);s.renderOrder=3;
+      routesGroup.add(s);
+      const p={sprite:s,curve,t:Math.random(),speed:0.1+Math.random()*0.08,route:r};
+      r.pulses.push(p);pulses.push(p);
+    }
+    routeObjs.push(r);routeHitMeshes.push(tube);
+  }
+
+  refreshAll();
+  document.getElementById('loading').classList.add('hide');
+}
+
+/* ================= 数据刷新 ================= */
+function drawHeat(){
+  const g=heatCtx,W=2048,H=1024;
+  g.clearRect(0,0,W,H);
+  if(worldFeatures){
+    const xOf=lon=>(lon+180)/360*W,yOf=lat=>(90-lat)/180*H;
+    g.lineWidth=1;g.strokeStyle='rgba(180,220,255,0.22)';
+    for(const f of worldFeatures){
+      let idKey=f.id!=null?String(parseInt(f.id,10)):'';
+      const nm=f.properties&&f.properties.name;
+      if((!idKey||idKey==='NaN'||idKey==='-99')&&NAME_FIX[nm])idKey=String(parseInt(NAME_FIX[nm],10));
+      if(!idKey||idKey==='NaN')idKey='n'+nm;
+      const val=countryValue(idKey,currentMetric,currentYear);if(val==null)continue;
+      const t=normVal(currentMetric,val),[r,gr,b]=colorAt(t);
+      g.fillStyle=`rgba(${r|0},${gr|0},${b|0},${0.45+0.3*t})`;
+      const geom=f.geometry;
+      const polys=geom.type==='Polygon'?[geom.coordinates]:geom.type==='MultiPolygon'?geom.coordinates:[];
+      g.beginPath();
+      for(const rings of polys)for(const ring of rings){
+        for(let i=0;i<ring.length;i++){
+          const lon=ring[i][0],lat=ring[i][1],x=xOf(lon),y=yOf(lat);
+          if(i===0||Math.abs(lon-ring[i-1][0])>180)g.moveTo(x,y);else g.lineTo(x,y);
+        }
+        g.closePath();
+      }
+      g.fill('evenodd');g.stroke();
+    }
+  }
+  heatTex.needsUpdate=true;
+}
+function updateCities(){
+  for(const c of cityObjs){
+    const v=cityValue(c,currentMetric,currentYear);
+    c.baseScale=0.05+0.11*Math.sqrt(v/CITY_MAX[currentMetric]);
+    c.sprite.material.color.setHex(METRICS[currentMetric].color);
+  }
+}
+function updateRoutes(){
+  const f=Math.pow(1.025,currentYear-YEAR_MAX);
+  for(const r of routeObjs){
+    const cur=r.base*f;
+    r.line.material.opacity=Math.min(0.9,0.22+cur/35);
+    r.speedFactor=0.5+cur/30;
+  }
+}
+function updateLegend(){
+  const m=METRICS[currentMetric];
+  document.getElementById('metricDesc').textContent=m.desc;
+  document.getElementById('legendBar').style.background=
+    `linear-gradient(90deg,${STOPS.map(([t,c])=>`rgb(${c[0]},${c[1]},${c[2]}) ${t*100}%`).join(',')})`;
+  document.getElementById('legendMin').textContent=m.fmtC(RANGES[currentMetric][0]);
+  document.getElementById('legendMax').textContent=m.fmtC(RANGES[currentMetric][1]);
+  document.querySelectorAll('#metricSeg button').forEach(b=>b.classList.toggle('active',b.dataset.m===currentMetric));
+}
+function updateYearUI(){
+  document.getElementById('yearLabel').textContent=currentYear;
+  const s=document.getElementById('yearSlider');s.value=currentYear;
+  s.style.setProperty('--fill',((currentYear-YEAR_MIN)/(YEAR_MAX-YEAR_MIN)*100)+'%');
+}
+function refreshAll(){drawHeat();updateCities();updateRoutes();updateLegend();updateYearUI();refreshPopup();}
+
+/* ================= 弹窗 / 提示 ================= */
+const popup=document.getElementById('popup'),tooltip=document.getElementById('tooltip');
+function refreshPopup(){if(activeCity)renderPopup(activeCity);}
+function renderPopup(c){
+  const rows=Object.keys(METRICS).map(k=>{
+    const v=cityValue(c,k,currentYear),pct=Math.min(100,Math.sqrt(v/CITY_MAX[k])*100);
+    return `<div class="pop-row ${k===currentMetric?'active':''}">
+      <span class="k">${METRICS[k].name}</span>
+      <span class="bar"><i style="width:${pct}%;background:${METRICS[k].css}"></i></span>
+      <span class="v">${METRICS[k].fmtCity(v)}</span></div>`;
+  }).join('');
+  popup.innerHTML=`<div class="pop-head"><div>
+    <div class="pop-title">${c.name}<span class="en">${c.en}</span></div>
+    <div class="pop-sub">${c.country} · ${currentYear}年</div></div>
+    <button class="pop-close" id="popClose">×</button></div>${rows}`;
+  popup.style.display='block';
+  document.getElementById('popClose').onclick=closePopup;
+}
+function closePopup(){activeCity=null;popup.style.display='none';}
+function positionPopup(){
+  if(!activeCity)return;
+  activeCity.sprite.getWorldPosition(tmpV);
+  const facing=tmpV.clone().normalize().dot(camera.position.clone().normalize());
+  const v=tmpV.clone().project(camera);
+  if(facing<0.12||v.z>1){popup.style.visibility='hidden';return;}
+  popup.style.visibility='visible';
+  popup.style.left=((v.x*0.5+0.5)*innerWidth)+'px';
+  popup.style.top=((-v.y*0.5+0.5)*innerHeight)+'px';
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',4000);}
+
+/* ================= 交互 ================= */
+let downX=0,downY=0,lastClient={x:0,y:0};
+canvas.addEventListener('pointerdown',e=>{downX=e.clientX;downY=e.clientY;});
+canvas.addEventListener('pointerup',e=>{
+  if(Math.hypot(e.clientX-downX,e.clientY-downY)>6)return;
+  setNDC(e);
+  raycaster.setFromCamera(mouseNDC,camera);
+  const hits=raycaster.intersectObjects(cityHitMeshes,false);
+  if(hits.length&&markersGroup.visible){activeCity=hits[0].object.userData.city;renderPopup(activeCity);}
+  else closePopup();
+});
+canvas.addEventListener('pointermove',e=>{
+  lastClient={x:e.clientX,y:e.clientY};
+  setNDC(e);
+  raycaster.setFromCamera(mouseNDC,camera);
+  let cursor='';
+  if(routesGroup.visible){
+    const rh=raycaster.intersectObjects(routeHitMeshes,false);
+    const r=rh.length?rh[0].object.userData.route:null;
+    if(r!==hoveredRoute){
+      if(hoveredRoute)hoveredRoute.line.material.linewidth=1;
+      hoveredRoute=r;
+      if(r){
+        const cur=Math.round(r.base*Math.pow(1.025,currentYear-YEAR_MAX));
+        tooltip.innerHTML=`<div class="tt-title">✈ ${r.from} ⇄ ${r.to}</div>${currentYear}年 日均约 <b>${cur}</b> 班`;
+        tooltip.style.display='block';
+      }else tooltip.style.display='none';
+    }
+    if(r){tooltip.style.left=(e.clientX+16)+'px';tooltip.style.top=(e.clientY+16)+'px';cursor='pointer';}
+  }
+  if(!hoveredRoute&&markersGroup.visible){
+    const ch=raycaster.intersectObjects(cityHitMeshes,false);
+    if(ch.length)cursor='pointer';
+  }
+  canvas.style.cursor=cursor;
+});
+function setNDC(e){
+  const r=canvas.getBoundingClientRect();
+  mouseNDC.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+}
+
+/* ================= UI 绑定 ================= */
+document.getElementById('metricSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  currentMetric=b.dataset.m;refreshAll();
+});
+const slider=document.getElementById('yearSlider');
+slider.addEventListener('input',()=>{currentYear=+slider.value;refreshAll();});
+document.getElementById('playBtn').addEventListener('click',function(){
+  playing=!playing;this.textContent=playing?'❚❚':'▶';
+});
+document.getElementById('tglRotate').addEventListener('change',e=>{
+  autoRotateEnabled=e.target.checked;controls.autoRotate=autoRotateEnabled;
+});
+document.getElementById('tglHeat').addEventListener('change',e=>{heatMesh.visible=e.target.checked;});
+document.getElementById('tglRoutes').addEventListener('change',e=>{
+  routesGroup.visible=e.target.checked;if(!e.target.checked){tooltip.style.display='none';hoveredRoute=null;}
+});
+document.getElementById('tglCities').addEventListener('change',e=>{
+  markersGroup.visible=e.target.checked;if(!e.target.checked)closePopup();
+});
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+/* ================= 动画循环 ================= */
+const clock=new THREE.Clock();
+let sunAngle=0.6;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
+
+  /* 太阳方向缓慢移动 → 日夜分界线随时间推移 */
+  sunAngle+=dt*0.05;
+  sunUniform.value.set(Math.cos(sunAngle),0.35*Math.sin(sunAngle*0.7)+0.05,Math.sin(sunAngle)).normalize();
+  dirLight.position.copy(sunUniform.value).multiplyScalar(6);
+
+  /* 航线流动光点 */
+  for(const p of pulses){
+    p.t=(p.t+dt*p.speed*p.route.speedFactor)%1;
+    p.sprite.position.copy(p.curve.getPoint(p.t));
+  }
+  /* 城市呼吸发光 */
+  for(const c of cityObjs){
+    const s=c.baseScale*(1+0.08*Math.sin(t*2.5+c.phase));
+    c.sprite.scale.set(s,s,1);
+  }
+  stars.rotation.y+=dt*0.004;
+
+  /* 时间轴播放 */
+  if(playing){
+    yearTimer+=dt;
+    if(yearTimer>0.75){yearTimer=0;currentYear=currentYear>=YEAR_MAX?YEAR_MIN:currentYear+1;refreshAll();}
+  }
+
+  controls.update();
+  positionPopup();
+  renderer.render(scene,camera);
+}
+
+build().then(()=>animate()).catch(err=>{
+  document.querySelector('#loading p').textContent='初始化失败：'+err.message;
+  console.error(err);
+});
+</script>
+</body>
+</html>

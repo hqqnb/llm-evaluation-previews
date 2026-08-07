@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战术突击 - 浏览器版CS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #000; color: #fff; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; }
+        #crosshair::before, #crosshair::after { content: ''; position: absolute; background: #00ff00; box-shadow: 0 0 2px #000; }
+        #crosshair::before { width: 2px; height: 20px; left: 9px; }
+        #crosshair::after { width: 20px; height: 2px; top: 9px; }
+        #hud { position: absolute; bottom: 20px; left: 20px; display: flex; gap: 20px; align-items: flex-end; }
+        .hud-item { background: rgba(0, 0, 0, 0.6); padding: 10px; border-radius: 5px; border: 1px solid #555; }
+        .hud-val { font-size: 24px; font-weight: bold; }
+        .hud-label { font-size: 12px; color: #aaa; }
+        #minimap { position: absolute; top: 20px; right: 20px; width: 200px; height: 200px; background: rgba(0,0,0,0.7); border: 1px solid #555; border-radius: 5px; }
+        #round-info { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); text-align: center; background: rgba(0,0,0,0.6); padding: 10px 30px; border-radius: 5px; border: 1px solid #555; }
+        #kill-feed { position: absolute; top: 100px; right: 20px; width: 300px; text-align: right; }
+        .kill-msg { background: rgba(0,0,0,0.7); padding: 5px 10px; margin-bottom: 5px; border-radius: 3px; }
+        .kill-msg.t { color: #ffcccc; border-left: 3px solid #b22222; }
+        .kill-msg.ct { color: #cce6ff; border-left: 3px solid #0044cc; }
+        #buy-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(20,20,20,0.95); padding: 20px; border-radius: 10px; border: 1px solid #555; display: none; pointer-events: auto; min-width: 600px; }
+        .buy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .buy-item { background: #333; padding: 15px; border-radius: 5px; cursor: pointer; text-align: center; transition: 0.2s; }
+        .buy-item:hover { background: #555; }
+        .buy-item.disabled { opacity: 0.4; cursor: not-allowed; }
+        .buy-price { color: #4caf50; font-weight: bold; }
+        .buy-cat { font-size: 14px; color: #aaa; margin-bottom: 10px; border-bottom: 1px solid #555; padding-bottom: 5px; }
+        #start-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; pointer-events: auto; }
+        #start-menu h1 { font-size: 48px; margin-bottom: 20px; color: #f0a020; text-shadow: 2px 2px #000; }
+        .btn { background: #d97f2c; color: #fff; border: none; padding: 15px 30px; font-size: 18px; cursor: pointer; margin: 5px; border-radius: 5px; transition: 0.2s; }
+        .btn:hover { background: #e89030; }
+        .btn.secondary { background: #444; }
+        .btn.secondary:hover { background: #555; }
+        #settings-panel { background: #222; padding: 30px; border-radius: 10px; border: 1px solid #444; margin-top: 20px; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 20px; }
+        select, input[type="number"] { background: #333; color: #fff; border: 1px solid #555; padding: 5px 10px; border-radius: 3px; }
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; }
+        #damage-indicator { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; box-shadow: inset 0 0 100px rgba(255,0,0,0); transition: box-shadow 0.1s; }
+        #flash-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; transition: opacity 0.1s; }
+        #bomb-timer { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); font-size: 30px; color: #f00; display: none; font-weight: bold; text-shadow: 0 0 5px #000; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="crosshair"></div>
+        <div id="hud">
+            <div class="hud-item">
+                <div class="hud-label">生命 / 护甲</div>
+                <div class="hud-val"><span id="hp">100</span> / <span id="armor">0</span></div>
+            </div>
+            <div class="hud-item">
+                <div class="hud-label">弹药</div>
+                <div class="hud-val"><span id="ammo">30</span> / <span id="reserve">90</span></div>
+            </div>
+            <div class="hud-item">
+                <div class="hud-label">金钱</div>
+                <div class="hud-val" style="color:#4caf50">$<span id="money">800</span></div>
+            </div>
+        </div>
+        <div id="round-info">
+            <div style="font-size: 14px; color:#aaa;">回合时间</div>
+            <div style="font-size: 24px;" id="timer">1:15</div>
+            <div style="font-size: 14px; margin-top:5px;">
+                <span style="color:#b22222;">T <span id="score-t">0</span></span> | 
+                <span style="color:#0044cc;"><span id="score-ct">0</span> CT</span>
+            </div>
+        </div>
+        <canvas id="minimap" width="200" height="200"></canvas>
+        <div id="kill-feed"></div>
+        <div id="buy-menu">
+            <h3>购买装备 (按 B关闭)</h3>
+            <div class="buy-grid">
+                <div class="buy-cat">手枪</div>
+                <div class="buy-cat">步枪 / 冲锋枪</div>
+                <div class="buy-cat">狙击 / 霰弹</div>
+                
+                <div class="buy-item" onclick="buyWeapon('USP', 200, 'pistol')">
+                    USP 战术 <div class="buy-price">$200</div>
+                </div>
+                <div class="buy-item" onclick="buyWeapon('MP9', 1250, 'smg')">
+                    MP9 <div class="buy-price">$1250</div>
+                </div>
+                <div class="buy-item" onclick="buyWeapon('AWP', 4750, 'sniper')">
+                    AWP <div class="buy-price">$4750</div>
+                </div>
+                
+                <div class="buy-item" onclick="buyWeapon('Deagle', 700, 'pistol')">
+                    沙漠之鹰 <div class="buy-price">$700</div>
+                </div>
+                <div class="buy-item" onclick="buyWeapon('AK47', 2700, 'rifle')">
+                    AK-47 <div class="buy-price">$2700</div>
+                </div>
+                <div class="buy-item" onclick="buyWeapon('Nova', 1500, 'shotgun')">
+                    Nova <div class="buy-price">$1500</div>
+                </div>
+            </div>
+            <div style="margin-top: 10px; display: flex; justify-content: space-between;">
+                <div class="buy-item" style="flex:1; margin-right:5px;" onclick="buyEquipment('Kevlar', 650, 'armor')">
+                    护甲 <div class="buy-price">$650</div>
+                </div>
+                <div class="buy-item" style="flex:1; margin-right:5px;" onclick="buyEquipment('HE', 300, 'grenade_he')">
+                    手雷 <div class="buy-price">$300</div>
+                </div>
+                <div class="buy-item" style="flex:1; margin-right:5px;" onclick="buyEquipment('Flash', 200, 'grenade_flash')">
+                    闪光 <div class="buy-price">$200</div>
+                </div>
+                <div class="buy-item" style="flex:1; margin-right:5px;" onclick="buyEquipment('Smoke', 300, 'grenade_smoke')">
+                    烟雾 <div class="buy-price">$300</div>
+                </div>
+                <div class="buy-item" style="flex:1;" onclick="buyEquipment('Defuse', 400, 'defuser')">
+                    拆弹器 <div class="buy-price">$400</div>
+                </div>
+            </div>
+        </div>
+        <div id="damage-indicator"></div>
+        <div id="flash-overlay"></div>
+        <div id="bomb-timer"></div>
+    </div>
+
+    <div id="start-menu">
+        <h1>战术突击</h1>
+        <div id="settings-panel">
+            <div class="setting-row">
+                <label>地图：</label>
+                <select id="map-select">
+                    <option value="Dust2">Dust2 (经典复刻)</option>
+                    <option value="Nuke">Nuke (核子危机)</option>
+                    <option value="Mirage">Mirage (荒漠迷城)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label>队伍：</label>
+                <select id="team-select">
+                    <option value="CT">反恐精英 (CT)</option>
+                    <option value="T">恐怖分子 (T)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label>Bot 难度：</label>
+                <select id="diff-select">
+                    <option value="Easy">简单</option>
+                    <option value="Normal" selected>普通</option>
+                    <option value="Hard">困难</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label>Bot 数量 (每边)：</label>
+                <input type="number" id="bot-count" value="4" min="1" max="9">
+            </div>
+        </div>
+        <button class="btn" onclick="startGame()">开始对局</button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- 全局状态 ---
+        let scene, camera, renderer, controls;
+        let clock = new THREE.Clock();
+        let gameState = {
+            phase: 'menu', // menu, buy, live, round_end, match_end
+            roundTime: 75,
+            currentMap: null,
+            player: null,
+            bots: [],
+            bullets: [],
+            grenades: [],
+            bomb: null,
+            bombPlanted: false,
+            bombSite: null,
+            scores: { T: 0, CT: 0 },
+            round: 1,
+            startMoney: 800,
+            mapData: null
+        };
+
+        const WEAPONS = {
+            'USP': { name: 'USP', dmg: 35, fireRate: 0.15, mag: 12, reserve: 24, reload: 1.5, auto: false, range: 100, price: 200, recoil: 0.02, spread: 0.01 },
+            'Deagle': { name: 'Deagle', dmg: 50, fireRate: 0.3, mag: 7, reserve: 35, reload: 2.0, auto: false, range: 100, price: 700, recoil: 0.05, spread: 0.015 },
+            'MP9': { name: 'MP9', dmg: 20, fireRate: 0.06, mag: 30, reserve: 120, reload: 2.0, auto: true, range: 50, price: 1250, recoil: 0.01, spread: 0.02 },
+            'AK47': { name: 'AK47', dmg: 36, fireRate: 0.1, mag: 30, reserve: 90, reload: 2.5, auto: true, range: 150, price: 2700, recoil: 0.03, spread: 0.005 },
+            'AWP': { name: 'AWP', dmg: 115, fireRate: 1.5, mag: 10, reserve: 30, reload: 3.0, auto: false, range: 200, price: 4750, recoil: 0.1, spread: 0.001 },
+            'Nova': { name: 'Nova', dmg: 26, fireRate: 0.8, mag: 8, reserve: 32, reload: 0.5, auto: false, range: 15, price: 1500, recoil: 0.08, spread: 0.08, pellets: 8 }
+        };
+
+        const GRENADES = {
+            'HE': { name: '高爆手雷', fuse: 1.5, radius: 5, dmg: 100 },
+            'Flash': { name: '闪光弹', fuse: 1.5, radius: 15, duration: 3 },
+            'Smoke': { name: '烟雾弹', fuse: 1.5, radius: 8, duration: 15 }
+        };
+
+        // --- 地图数据生成 ---
+        // 为了保持单文件且不过于冗长，使用程序化生成地图结构
+        function generateMapData(mapName) {
+            if (mapName === 'Dust2') {
+                // Dust2 核心点位复刻
+                // 坐标系：X左右，Z前后，Y上下
+                return {
+                    name: 'Dust2',
+                    walls: [
+                        // 外围墙壁
+                        { pos: [0, 10, -60], size: [200, 20, 2] }, // T 家后墙
+                        { pos: [0, 10, 60], size: [200, 20, 2] },  // CT 家后墙
+                        { pos: [-100, 10, 0], size: [2, 20, 120] }, // 左墙
+                        { pos: [100, 10, 0], size: [2, 20, 120] }, // 右墙
+                        
+                        // T 出生点 -> 中路/B洞
+                        { pos: [20, 10, -40], size: [40, 20, 2] }, // T 家前墙
+                        { pos: [-20, 10, -40], size: [40, 20, 2] }, // T 家前墙
+                        
+                        // 中路
+                        { pos: [-30, 10, -20], size: [2, 20, 40] }, // 中门右侧
+                        { pos: [30, 10, -20], size: [2, 20, 40] }, // 中门左侧
+                        { pos: [0, 10, 0], size: [2, 20, 20] }, // Xbox 障碍物
+                        
+                        // A 大
+                        { pos: [60, 10, -20], size: [40, 20, 2] }, // A大墙
+                        { pos: [40, 10, 0], size: [2, 20, 40] },  // A大拐角
+                        { pos: [70, 10, 10], size: [20, 20, 2] }, // A坑墙
+                        { pos: [80, 10, 0], size: [2, 20, 20] }, // A坑墙
+                        
+                        // A 小
+                        { pos: [10, 10, 10], size: [20, 20, 2] }, // A小墙
+                        { pos: [20, 10, 20], size: [2, 20, 20] }, // A小墙
+                        
+                        // A 包点
+                        { pos: [40, 5, 20], size: [10, 10, 10] }, // A点箱子
+                        { pos: [50, 5, 30], size: [10, 10, 10] }, // A点箱子
+                        
+                        // B 洞
+                        { pos: [-40, 10, -10], size: [2, 20, 20] }, // B洞墙
+                        { pos: [-50, 10, 0], size: [20, 20, 2] },  // B洞墙
+                        
+                        // B 包点
+                        { pos: [-60, 5, 20], size: [10, 10, 10] }, // B点箱子
+                        { pos: [-70, 5, 30], size: [10, 10, 10] }, // B点箱子
+                        { pos: [-80, 10, 20], size: [2, 20, 20] }, // B门墙
+                        { pos: [-60, 10, 40], size: [40, 20, 2] }, // B平台墙
+                        
+                        // CT 家
+                        { pos: [-20, 10, 40], size: [40, 20, 2] }, // CT 家分隔墙
+                        { pos: [20, 10, 40], size: [40, 20, 2] }, // CT 家分隔墙
+                        { pos: [-30, 10, 50], size: [2, 20, 20] }, // CT 家墙
+                        { pos: [30, 10, 50], size: [2, 20, 20] },  // CT 家墙
+                    ],
+                    spawns: {
+                        T: [0, 1, -50],
+                        CT: [0, 1, 55]
+                    },
+                    bombsites: {
+                        A: { center: [50, 0, 25], radius: 15 },
+                        B: { center: [-70, 0, 25], radius: 15 }
+                    },
+                    navPoints: [
+                        // T 路线
+                        { pos: [0, 1, -50], type: 'T_Spawn' },
+                        { pos: [0, 1, -30], type: 'path' }, // T 出口
+                        // A 大路线
+                        { pos: [30, 1, -30], type: 'path' },
+                        { pos: [60, 1, -10], type: 'path' },
+                        { pos: [60, 1, 10], type: 'A_Long' },
+                        { pos: [50, 1, 25], type: 'A_Site' },
+                        // A 小路线
+                        { pos: [10, 1, -10], type: 'path' },
+                        { pos: [20, 1, 10], type: 'A_Short' },
+                        { pos: [40, 1, 20], type: 'A_Site' },
+                        // 中路路线
+                        { pos: [0, 1, -10], type: 'Mid' },
+                        { pos: [0, 1, 5], type: 'Xbox' },
+                        { pos: [10, 1, 20], type: 'A_Short' },
+                        { pos: [-10, 1, 20], type: 'CT_Mid' },
+                        // B 洞路线
+                        { pos: [-30, 1, -10], type: 'path' },
+                        { pos: [-50, 1, 0], type: 'B_Tunnels' },
+                        { pos: [-60, 1, 15], type: 'B_Site' },
+                        { pos: [-70, 1, 25], type: 'B_Site' },
+                        // CT 路线
+                        { pos: [0, 1, 55], type: 'CT_Spawn' },
+                        { pos: [0, 1, 45], type: 'path' },
+                        { pos: [20, 1, 35], type: 'CT_A' }, // 防守A
+                        { pos: [40, 1, 25], type: 'A_Site' },
+                        { pos: [-20, 1, 35], type: 'CT_B' }, // 防守B
+                        { pos: [-60, 1, 35], type: 'B_Site' },
+                        { pos: [-70, 1, 40], type: 'B_Platform' }
+                    ]
+                };
+            } else if (mapName === 'Nuke') {
+                return {
+                    name: 'Nuke',
+                    walls: [
+                        // 简化版室内外结构
+                        { pos: [0, 10, -60], size: [200, 20, 2] },
+                        { pos: [0, 10, 60], size: [200, 20, 2] },
+                        { pos: [-100, 10, 0], size: [2, 20, 120] },
+                        { pos: [100, 10, 0], size: [2, 20, 120] },
+                        // 室外A点
+                        { pos: [20, 10, -20], size: [40, 20, 2] },
+                        { pos: [40, 10, 0], size: [2, 20, 40] },
+                        // 室内B点
+                        { pos: [-20, 10, -20], size: [40, 20, 2] },
+                        { pos: [-40, 10, 0], size: [2, 20, 40] },
+                        // 仓库隔板
+                        { pos: [0, 10, 0], size: [2, 20, 40] },
+                        { pos: [0, 5, 20], size: [100, 10, 2] }, // B点天花板
+                    ],
+                    spawns: {
+                        T: [0, 1, -50],
+                        CT: [0, 1, 50]
+                    },
+                    bombsites: {
+                        A: { center: [30, 0, -10], radius: 15 },
+                        B: { center: [-30, 0, 10], radius: 15 }
+                    },
+                    navPoints: [
+                        { pos: [0, 1, -50], type: 'T_Spawn' },
+                        { pos: [20, 1, -30], type: 'path' },
+                        { pos: [30, 1, -10], type: 'A_Site' },
+                        { pos: [-20, 1, -30], type: 'path' },
+                        { pos: [-30, 1, 10], type: 'B_Site' },
+                        { pos: [0, 1, 50], type: 'CT_Spawn' },
+                        { pos: [10, 1, 30], type: 'CT_A' },
+                        { pos: [-10, 1, 30], type: 'CT_B' }
+                    ]
+                };
+            } else { // Mirage
+                return {
+                    name: 'Mirage',
+                    walls: [
+                        { pos: [0, 10, -60], size: [200, 20, 2] },
+                        { pos: [0, 10, 60], size: [200, 20, 2] },
+                        { pos: [-100, 10, 0], size: [2, 20, 120] },
+                        { pos: [100, 10, 0], size: [2, 20, 120] },
+                        // 中庭
+                        { pos: [0, 10, 0], size: [20, 20, 2] },
+                        { pos: [10, 10, -10], size: [2, 20, 20] },
+                        { pos: [-10, 10, 10], size: [2, 20, 20] },
+                        // A点
+                        { pos: [50, 10, 10], size: [40, 20, 2] },
+                        { pos: [70, 10, -10], size: [2, 20, 40] },
+                        // B点
+                        { pos: [-50, 10, 10], size: [40, 20, 2] },
+                        { pos: [-70, 10, -10], size: [2, 20, 40] },
+                    ],
+                    spawns: {
+                        T: [0, 1, -50],
+                        CT: [0, 1, 50]
+                    },
+                    bombsites: {
+                        A: { center: [60, 0, 0], radius: 15 },
+                        B: { center: [-60, 0, 0], radius: 15 }
+                    },
+                    navPoints: [
+                        { pos: [0, 1, -50], type: 'T_Spawn' },
+                        { pos: [40, 1, -20], type: 'path' },
+                        { pos: [60, 1, 0], type: 'A_Site' },
+                        { pos: [-40, 1, -20], type: 'path' },
+                        { pos: [-60, 1, 0], type: 'B_Site' },
+                        { pos: [0, 1, 50], type: 'CT_Spawn' },
+                        { pos: [20, 1, 30], type: 'CT_A' },
+                        { pos: [-20, 1, 30], type: 'CT_B' }
+                    ]
+                };
+            }
+        }
+
+        // --- 初始化 ---
+        function init() {
+            // 场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+
+            // 相机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.7, 0);
+
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // 光照
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(50, 100, 50);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.left = -100;
+            dirLight.shadow.camera.right = 100;
+            dirLight.shadow.camera.top = 100;
+            dirLight.shadow.camera.bottom = -100;
+            scene.add(dirLight);
+
+            // 控制
+            controls = new PointerLockControls(camera, document.body);
+            scene.add(controls.getObject());
+
+            // 事件
+            window.addEventListener('resize', onWindowResize, false);
+            document.addEventListener('click', onCanvasClick);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mouseup', onMouseUp);
+            document.addEventListener('mousemove', onMouseMove);
+
+            setupAudio();
+            animate();
+        }
+
+        // --- 纹理生成 ---
+        function createTexture(color1, color2, noiseLevel = 0.1) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = color1;
+            ctx.fillRect(0, 0, 64, 64);
+            for (let i = 0; i < 64; i++) {
+                for (let j = 0; j < 64; j++) {
+                    if (Math.random() < noiseLevel) {
+                        ctx.fillStyle = color2;
+                        ctx.fillRect(i, j, 1, 1);
+                    }
+                }
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        // --- 音频系统 ---
+        let audioCtx;
+        function setupAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playSound(type, pos) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            let vol = 0.1;
+            if (pos) {
+                const playerPos = controls.getObject().position;
+                const dist = playerPos.distanceTo(pos);
+                vol = Math.max(0, 0.2 - dist / 200);
+            }
+
+            switch (type) {
+                case 'shot_rifle':
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                    break;
+                case 'shot_pistol':
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(vol * 0.8, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.08);
+                    break;
+                case 'reload':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.5);
+                    gain.gain.setValueAtTime(vol * 0.5, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.5);
+                    break;
+                case 'explosion':
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(60, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(vol * 1.5, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.5);
+                    break;
+            }
+        }
+
+        // --- 地图构建 ---
+        function loadMap(mapName) {
+            // 清理旧地图
+            if (gameState.currentMap) {
+                scene.remove(gameState.currentMap);
+            }
+            
+            const mapData = generateMapData(mapName);
+            gameState.mapData = mapData;
+            const mapGroup = new THREE.Group();
+            gameState.currentMap = mapGroup;
+
+            // 地面
+            const groundTexture = createTexture('#c2b280', '#a09070', 0.2);
+            groundTexture.repeat.set(50, 50);
+            const groundGeo = new THREE.PlaneGeometry(200, 200);
+            const groundMat = new THREE.MeshStandardMaterial({ map: groundTexture });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            mapGroup.add(ground);
+
+            // 墙壁
+            const wallTexture = createTexture('#d4af37', '#b89530', 0.15);
+            wallTexture.repeat.set(2, 2);
+            const wallMat = new THREE.MeshStandardMaterial({ map: wallTexture, roughness: 0.8 });
+            
+            const boxTexture = createTexture('#8B4513', '#A0522D', 0.1);
+            const boxMat = new THREE.MeshStandardMaterial({ map: boxTexture, roughness: 0.9 });
+
+            mapData.walls.forEach(w => {
+                let mat = wallMat;
+                // 随机一些木头箱子材质
+                if (w.size[0] < 20 && w.size[2] < 20) mat = boxMat;
+                const geo = new THREE.BoxGeometry(w.size[0], w.size[1], w.size[2]);
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(w.pos[0], w.pos[1], w.pos[2]);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData.isWall = true;
+                mapGroup.add(mesh);
+            });
+
+            // 包点标记
+            const siteMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+            for (const key in mapData.bombsites) {
+                const site = mapData.bombsites[key];
+                const siteGeo = new THREE.CircleGeometry(site.radius, 32);
+                const siteMesh = new THREE.Mesh(siteGeo, siteMat);
+                siteMesh.rotation.x = -Math.PI / 2;
+                siteMesh.position.set(site.center[0], 0.1, site.center[2]);
+                siteMesh.userData.bombsite = key;
+                mapGroup.add(siteMesh);
+            }
+
+            scene.add(mapGroup);
+            
+            // 重置玩家位置
+            const spawn = mapData.spawns[gameState.player.team];
+            controls.getObject().position.set(spawn[0], spawn[1] + 1, spawn[2]);
+            
+            setupBots();
+            updateMinimap();
+        }
+
+        // --- 玩家与武器 ---
+        function createPlayer(team) {
+            gameState.player = {
+                team: team,
+                hp: 100,
+                armor: 0,
+                money: gameState.startMoney,
+                helmet: false,
+                defuser: false,
+                currentWeapon: 'USP',
+                weapons: { 'USP': WEAPONS.USP.clone() }, // 简化处理
+                grenades: { 'HE': 0, 'Flash': 0, 'Smoke': 0 },
+                currentGrenade: null,
+                isReloading: false,
+                isPlanting: false,
+                isDefusing: false,
+                lastShot: 0,
+                recoilOffset: 0,
+                moveForward: false,
+                moveBackward: false,
+                moveLeft: false,
+                moveRight: false,
+                isSprinting: false,
+                isCrouching: false,
+                isWalking: false,
+                velocity: new THREE.Vector3(),
+                onGround: true,
+                viewModel: null
+            };
+            
+            // 给予初始武器
+            if (team === 'CT') {
+                gameState.player.weapons = { 'USP': { ...WEAPONS.USP, ammo: 12 } };
+            } else {
+                gameState.player.weapons = { 'USP': { ...WEAPONS.USP, ammo: 12 } }; // 简化统一
+            }
+            
+            createViewModel();
+        }
+
+        let viewModelMesh, muzzleFlash;
+        function createViewModel() {
+            if (viewModelMesh) scene.remove(viewModelMesh);
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
+            
+            const w = gameState.player.currentWeapon;
+            if (w.includes('AK') || w.includes('M4')) {
+                // 步枪模型
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.15, 0.6), mat);
+                body.position.set(0, -0.1, -0.3);
+                group.add(body);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.4), mat);
+                barrel.rotation.x = Math.PI / 2;
+                barrel.position.set(0, 0, -0.5);
+                group.add(barrel);
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.2, 0.1), woodMat);
+                mag.position.set(0, -0.25, -0.2);
+                group.add(mag);
+            } else if (w === 'AWP') {
+                // 狙击枪
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.15, 0.8), mat);
+                body.position.set(0, -0.1, -0.4);
+                group.add(body);
+                const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.2), mat);
+                scope.rotation.z = Math.PI / 2;
+                scope.position.set(0, 0.1, -0.3);
+                group.add(scope);
+            } else {
+                // 手枪
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.2), mat);
+                body.position.set(0, -0.1, -0.1);
+                group.add(body);
+            }
+            
+            // 枪口火焰
+            const flashMat = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0 });
+            muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), flashMat);
+            muzzleFlash.position.set(0, 0, -0.7);
+            group.add(muzzleFlash);
+            
+            group.position.set(0.3, -0.3, -0.5);
+            scene.add(group);
+            viewModelMesh = group;
+            gameState.player.viewModel = group;
+        }
+
+        function shoot() {
+            const p = gameState.player;
+            if (!p) return;
+            const weapon = p.weapons[p.currentWeapon];
+            if (!weapon) return;
+            
+            const now = Date.now();
+            if (now - p.lastShot < weapon.fireRate * 1000) return;
+            if (p.isReloading || p.isPlanting || p.isDefusing) return;
+            if (weapon.ammo <= 0) {
+                reload();
+                return;
+            }
+
+            p.lastShot = now;
+            weapon.ammo--;
+            updateHUD();
+
+            // 射击音效
+            playSound(weapon.name.includes('USP') ? 'shot_pistol' : 'shot_rifle', controls.getObject().position);
+
+            // 枪口火焰
+            if (muzzleFlash) {
+                muzzleFlash.material.opacity = 1;
+                setTimeout(() => { if(muzzleFlash) muzzleFlash.material.opacity = 0; }, 50);
+            }
+            
+            // 后坐力
+            p.recoilOffset += weapon.recoil;
+            camera.rotation.x -= weapon.recoil;
+            controls.getObject().rotation.z += (Math.random() - 0.5) * weapon.recoil;
+
+            // 射线检测
+            const raycaster = new THREE.Raycaster();
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            
+            // 散布
+            dir.x += (Math.random() - 0.5) * weapon.spread;
+            dir.y += (Math.random() - 0.5) * weapon.spread;
+            dir.normalize();
+
+            raycaster.set(camera.position, dir);
+            raycaster.far = weapon.range;
+
+            const targets = [];
+            // 地图墙壁
+            if (gameState.currentMap) {
+                gameState.currentMap.children.forEach(obj => {
+                    if (obj.userData.isWall) targets.push(obj);
+                });
+            }
+            // Bots
+            gameState.bots.forEach(bot => {
+                if (bot.hp > 0 && bot.team !== p.team) {
+                    targets.push(bot.mesh);
+                }
+            });
+
+            const intersects = raycaster.intersectObjects(targets, true);
+            
+            // 霰弹枪多发弹丸
+            const pellets = weapon.pellets || 1;
+            for(let i=0; i<pellets; i++){
+                if (intersects.length > 0 && intersects[0].object.userData.owner) {
+                    // 命中Bot
+                    const bot = intersects[0].object.userData.owner;
+                    let dmg = weapon.dmg;
+                    let dist = intersects[0].distance;
+                    // 距离衰减
+                    if (dist > weapon.range * 0.5) dmg *= 0.8;
+                    
+                    // 爆头判定
+                    if (intersects[0].point.y > bot.mesh.position.y + 1.5) {
+                        dmg *= 2.2; // 爆头
+                    }
+                    
+                    // 护甲减伤
+                    if (bot.armor > 0) {
+                        dmg *= 0.5;
+                        bot.armor -= dmg * 0.5;
+                    }
+                    
+                    bot.hp -= dmg;
+                    showHitMarker();
+                    
+                    if (bot.hp <= 0) {
+                        bot.hp = 0;
+                        handleKill(bot, p);
+                    }
+                } else if (intersects.length > 0) {
+                    // 命中墙
+                    createBulletHole(intersects[0].point, intersects[0].face.normal);
+                }
+            }
+        }
+
+        function reload() {
+            const p = gameState.player;
+            const weapon = p.weapons[p.currentWeapon];
+            if (!weapon || p.isReloading) return;
+            if (weapon.ammo >= weapon.mag || weapon.reserve <= 0) return;
+
+            p.isReloading = true;
+            playSound('reload', controls.getObject().position);
+            
+            setTimeout(() => {
+                const needed = weapon.mag - weapon.ammo;
+                const toLoad = Math.min(needed, weapon.reserve);
+                weapon.ammo += toLoad;
+                weapon.reserve -= toLoad;
+                p.isReloading = false;
+                updateHUD();
+            }, weapon.reload * 1000);
+        }
+
+        function switchWeapon() {
+            // 简化：在手枪和主武器间切换
+            const p = gameState.player;
+            const keys = Object.keys(p.weapons);
+            if (keys.length < 2) return;
+            const currentIdx = keys.indexOf(p.currentWeapon);
+            const nextIdx = (currentIdx + 1) % keys.length;
+            p.currentWeapon = keys[nextIdx];
+            createViewModel();
+            updateHUD();
+        }
+
+        // --- Bot AI ---
+        function setupBots() {
+            // 清理旧 Bots
+            gameState.bots.forEach(b => scene.remove(b.mesh));
+            gameState.bots = [];
+
+            const botCount = parseInt(document.getElementById('bot-count').value) || 4;
+            const difficulty = document.getElementById('diff-select').value;
+            
+            const diffStats = {
+                'Easy': { reaction: 1.0, accuracy: 0.3, speed: 3 },
+                'Normal': { reaction: 0.5, accuracy: 0.6, speed: 4 },
+                'Hard': { reaction: 0.2, accuracy: 0.9, speed: 5 }
+            };
+            const stats = diffStats[difficulty];
+
+            for (let i = 0; i < botCount; i++) {
+                // T Bot
+                createBot('T', stats, i);
+                // CT Bot
+                createBot('CT', stats, i);
+            }
+        }
+
+        function createBot(team, stats, id) {
+            const color = team === 'T' ? 0xc0c0c0 : 0x404040; // 简化的人形外观
+            const mat = new THREE.MeshStandardMaterial({ color: color });
+            const group = new THREE.Group();
+            
+            // 身体
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.8, 0.3), mat);
+            body.position.y = 1.0;
+            group.add(body);
+            
+            // 头
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), mat);
+            head.position.y = 1.6;
+            group.add(head);
+            
+            // 四肢
+            const limbMat = new THREE.MeshStandardMaterial({ color: team === 'T' ? 0x808080 : 0x202020 });
+            const legL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), limbMat);
+            legL.position.set(-0.15, 0.4, 0);
+            group.add(legL);
+            const legR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.8, 0.15), limbMat);
+            legR.position.set(0.15, 0.4, 0);
+            group.add(legR);
+            
+            // 武器
+            const weapon = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.5), new THREE.MeshStandardMaterial({color: 0x111111}));
+            weapon.position.set(0.2, 1.0, -0.3);
+            group.add(weapon);
+
+            // 设置碰撞体属性
+            body.userData.owner = { team: team, mesh: group, hp: 100, armor: 0, id: id, isBot: true, type: 'body' };
+            head.userData.owner = body.userData.owner;
+            
+            const spawn = gameState.mapData.spawns[team];
+            // 随机偏移避免重叠
+            group.position.set(spawn[0] + (Math.random()-0.5)*4, spawn[1], spawn[2] + (Math.random()-0.5)*4);
+            
+            scene.add(group);
+            
+            const bot = {
+                team: team,
+                mesh: group,
+                hp: 100,
+                armor: 0,
+                id: id,
+                weapon: 'AK47',
+                state: 'idle',
+                target: null,
+                moveTarget: null,
+                lastShot: 0,
+                reaction: stats.reaction,
+                accuracy: stats.accuracy,
+                speed: stats.speed,
+                navPoints: gameState.mapData.navPoints,
+                currentNavIdx: 0
+            };
+            
+            group.userData.botRef = bot;
+            gameState.bots.push(bot);
+        }
+
+        function updateBots(dt) {
+            const playerPos = controls.getObject().position;
+            
+            gameState.bots.forEach(bot => {
+                if (bot.hp <= 0) return;
+                
+                const botPos = bot.mesh.position;
+                let targetPos = null;
+                
+                // 检测玩家
+                if (gameState.player && gameState.player.team !== bot.team && gameState.player.hp > 0) {
+                    const dist = botPos.distanceTo(playerPos);
+                    // 视野检测 (简化)
+                    const dirToPlayer = new THREE.Vector3().subVectors(playerPos, botPos).normalize();
+                    const botForward = new THREE.Vector3(0, 0, -1).applyQuaternion(bot.mesh.quaternion);
+                    const dot = dirToPlayer.dot(botForward);
+                    
+                    // 难度影响视野距离和角度
+                    let viewDist = 20 + bot.accuracy * 30;
+                    let viewAngle = 0.3 + bot.accuracy * 0.3;
+                    
+                    if (dist < viewDist && dot > viewAngle) {
+                        targetPos = playerPos;
+                        bot.state = 'combat';
+                    } else if (dist > viewDist * 1.5) {
+                        bot.state = 'patrol';
+                    }
+                }
+
+                // 状态机
+                if (bot.state === 'combat' && targetPos) {
+                    // 朝向玩家
+                    const lookDir = new THREE.Vector3().subVectors(targetPos, botPos);
+                    bot.mesh.rotation.y = Math.atan2(lookDir.x, lookDir.z);
+                    
+                    // 射击逻辑
+                    const now = Date.now();
+                    if (now - bot.lastShot > 1000 * WEAPONS[bot.weapon].fireRate) {
+                        // 射线检测是否有遮挡
+                        const ray = new THREE.Raycaster(
+                            new THREE.Vector3(botPos.x, botPos.y + 1.5, botPos.z),
+                            dirToPlayer
+                        );
+                        ray.far = 100;
+                        const obstacles = gameState.currentMap.children.filter(o => o.userData.isWall);
+                        const hits = ray.intersectObjects(obstacles);
+                        
+                        if (hits.length === 0 || hits[0].distance > botPos.distanceTo(targetPos)) {
+                            bot.lastShot = now;
+                            // 命中判定
+                            if (Math.random() < bot.accuracy) {
+                                let dmg = WEAPONS[bot.weapon].dmg;
+                                // 距离衰减
+                                const dist = botPos.distanceTo(targetPos);
+                                if (dist > 30) dmg *= 0.7;
+                                if (gameState.player.armor > 0) {
+                                    dmg *= 0.5;
+                                    gameState.player.armor -= dmg * 0.5;
+                                }
+                                gameState.player.hp -= dmg;
+                                showDamage();
+                                if (gameState.player.hp <= 0) {
+                                    handlePlayerDeath(bot);
+                                }
+                            }
+                            playSound('shot_rifle', botPos);
+                        }
+                    }
+                    
+                    // 简单的战术移动：靠近或拉开距离
+                    const idealDist = (bot.weapon === 'AWP') ? 40 : 15;
+                    if (botPos.distanceTo(targetPos) > idealDist + 5) {
+                        bot.moveTarget = targetPos;
+                    } else if (botPos.distanceTo(targetPos) < idealDist - 5) {
+                        bot.moveTarget = botPos.clone().add(botForward.multiplyScalar(-1));
+                    }
+                    
+                } else if (bot.state === 'patrol' || bot.state === 'idle') {
+                    // 寻路到包点
+                    if (!bot.moveTarget) {
+                        const points = bot.navPoints.filter(p => 
+                            (bot.team === 'T' && (p.type.includes('Site') || p.type.includes('path'))) ||
+                            (bot.team === 'CT' && (p.type.includes('CT') || p.type.includes('path')))
+                        );
+                        if (points.length > 0) {
+                            const targetPoint = points[Math.floor(Math.random() * points.length)];
+                            bot.moveTarget = new THREE.Vector3(targetPoint.pos[0], targetPoint.pos[1], targetPoint.pos[2]);
+                        }
+                    }
+                }
+
+                // 移动
+                if (bot.moveTarget) {
+                    const dir = new THREE.Vector3().subVectors(bot.moveTarget, botPos);
+                    dir.y = 0;
+                    const dist = dir.length();
+                    if (dist < 1) {
+                        bot.moveTarget = null;
+                    } else {
+                        dir.normalize();
+                        bot.mesh.position.x += dir.x * bot.speed * dt;
+                        bot.mesh.position.z += dir.z * bot.speed * dt;
+                        // 朝向移动方向
+                        bot.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+                    }
+                }
+                
+                // 下包逻辑 (T方Bot)
+                if (bot.team === 'T' && !gameState.bombPlanted && gameState.phase === 'live') {
+                    const distToA = botPos.distanceTo(new THREE.Vector3(gameState.mapData.bombsites.A.center[0], 0, gameState.mapData.bombsites.A.center[2]));
+                    if (distToA < 10) {
+                        // 概率下包
+                        if (Math.random() < 0.01) {
+                            plantBomb(botPos);
+                        }
+                    }
+                }
+                
+                // 拆包逻辑 (CT方Bot)
+                if (bot.team === 'CT' && gameState.bombPlanted && gameState.bomb) {
+                    const distToBomb = botPos.distanceTo(gameState.bomb.position);
+                    if (distToBomb < 5) {
+                        defuseBomb(bot);
+                    }
+                }
+            });
+        }
+
+        // --- 投掷物 ---
+        function throwGrenade() {
+            const p = gameState.player;
+            const type = p.currentGrenade;
+            if (!type || p.grenades[type] <= 0) return;
+            
+            p.grenades[type]--;
+            
+            const nadeGeo = new THREE.SphereGeometry(0.1, 8, 8);
+            const nadeMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+            const nade = new THREE.Mesh(nadeGeo, nadeMat);
+            
+            nade.position.copy(camera.position);
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            nade.position.add(dir.multiplyScalar(1));
+            
+            const velocity = dir.multiplyScalar(15);
+            velocity.y += 3; // 抛物线
+            
+            scene.add(nade);
+            gameState.grenades.push({
+                mesh: nade,
+                vel: velocity,
+                type: type,
+                timer: GRENADES[type].fuse
+            });
+            
+            if (p.grenades[type] <= 0) p.currentGrenade = null;
+            updateHUD();
+        }
+
+        function updateGrenades(dt) {
+            for (let i = gameState.grenades.length - 1; i >= 0; i--) {
+                const nade = gameState.grenades[i];
+                nade.vel.y -= 9.8 * dt;
+                nade.mesh.position.add(nade.vel.clone().multiplyScalar(dt));
+                
+                // 地面碰撞
+                if (nade.mesh.position.y < 0.1) {
+                    nade.mesh.position.y = 0.1;
+                    nade.vel.y *= -0.4;
+                    nade.vel.x *= 0.7;
+                    nade.vel.z *= 0.7;
+                }
+                
+                nade.timer -= dt;
+                if (nade.timer <= 0) {
+                    explodeGrenade(nade);
+                    scene.remove(nade.mesh);
+                    gameState.grenades.splice(i, 1);
+                }
+            }
+        }
+
+        function explodeGrenade(nade) {
+            playSound('explosion', nade.mesh.position);
+            
+            if (nade.type === 'HE') {
+                const expGeo = new THREE.SphereGeometry(GRENADES.HE.radius, 16, 16);
+                const expMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.5 });
+                const exp = new THREE.Mesh(expGeo, expMat);
+                exp.position.copy(nade.mesh.position);
+                scene.add(exp);
+                setTimeout(() => scene.remove(exp), 100);
+
+                // 伤害判定
+                const players = [gameState.player, ...gameState.bots];
+                players.forEach(p => {
+                    if (!p || p.hp <= 0) return;
+                    const pPos = p.isBot ? p.mesh.position : controls.getObject().position;
+                    const dist = pPos.distanceTo(nade.mesh.position);
+                    if (dist < GRENADES.HE.radius) {
+                        let dmg = GRENADES.HE.dmg * (1 - dist / GRENADES.HE.radius);
+                        if (p.armor > 0) {
+                            dmg *= 0.8;
+                            p.armor -= dmg * 0.5;
+                        }
+                        p.hp -= dmg;
+                        if (p === gameState.player) {
+                            showDamage();
+                            if (p.hp <= 0) handlePlayerDeath({ team: 'World' });
+                        } else if (p.hp <= 0) {
+                            p.hp = 0;
+                            handleKill(p, gameState.player);
+                        }
+                    }
+                });
+            } else if (nade.type === 'Flash') {
+                const playerPos = controls.getObject().position;
+                const dist = playerPos.distanceTo(nade.mesh.position);
+                if (dist < GRENADES.Flash.radius) {
+                    const dir = new THREE.Vector3().subVectors(nade.mesh.position, playerPos).normalize();
+                    const camDir = new THREE.Vector3();
+                    camera.getWorldDirection(camDir);
+                    if (camDir.dot(dir) > 0 || dist < 3) {
+                        flashScreen();
+                    }
+                }
+                // Bots 也会被闪
+                gameState.bots.forEach(b => {
+                    if (b.hp > 0) {
+                        const d = b.mesh.position.distanceTo(nade.mesh.position);
+                        if (d < GRENADES.Flash.radius) {
+                            b.state = 'stunned';
+                            setTimeout(() => { if(b.state==='stunned') b.state = 'patrol'; }, 2000);
+                        }
+                    }
+                });
+            } else if (nade.type === 'Smoke') {
+                const smokeGeo = new THREE.SphereGeometry(GRENADES.Smoke.radius, 16, 16);
+                const smokeMat = new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.6 });
+                const smoke = new THREE.Mesh(smokeGeo, smokeMat);
+                smoke.position.copy(nade.mesh.position);
+                scene.add(smoke);
+                
+                // 阻挡视线 (简化：移除范围内的视野目标)
+                setTimeout(() => {
+                    scene.remove(smoke);
+                }, 15000);
+            }
+        }
+
+        // --- C4 炸弹 ---
+        function plantBomb(pos) {
+            if (gameState.bombPlanted) return;
+            const bombGeo = new THREE.BoxGeometry(0.3, 0.2, 0.4);
+            const bombMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const bomb = new THREE.Mesh(bombGeo, bombMat);
+            bomb.position.set(pos.x, 0.1, pos.z);
+            scene.add(bomb);
+            gameState.bomb = bomb;
+            gameState.bombPlanted = true;
+            gameState.bombSite = 'A'; // 简化
+            gameState.bombTimer = 40;
+            document.getElementById('bomb-timer').style.display = 'block';
+            document.getElementById('bomb-timer').innerText = '炸弹已安放 A点';
+            setTimeout(() => { document.getElementById('bomb-timer').innerText = 'C4: 40'; }, 2000);
+        }
+
+        function defuseBomb(bot) {
+            if (!gameState.bomb) return;
+            // 简化：CT Bot 站在旁边就开始拆
+            if (!bot.isDefusing) {
+                bot.isDefusing = true;
+                setTimeout(() => {
+                    if (bot.hp > 0 && gameState.bomb) {
+                        scene.remove(gameState.bomb);
+                        gameState.bomb = null;
+                        gameState.bombPlanted = false;
+                        endRound('CT');
+                    }
+                    bot.isDefusing = false;
+                }, 5000);
+            }
+        }
+
+        // --- 经济与购买 ---
+        window.buyWeapon = function(name, price, type) {
+            const p = gameState.player;
+            if (p.money < price) return;
+            p.money -= price;
+            p.weapons[name] = { ...WEAPONS[name], ammo: WEAPONS[name].mag, reserve: WEAPONS[name].reserve };
+            p.currentWeapon = name;
+            createViewModel();
+            updateHUD();
+        }
+
+        window.buyEquipment = function(name, price, type) {
+            const p = gameState.player;
+            if (p.money < price) return;
+            p.money -= price;
+            if (type === 'armor') p.armor = 100;
+            else if (type === 'defuser') p.defuser = true;
+            else if (type.includes('grenade')) {
+                const gType = type.split('_')[1];
+                if(!p.grenades[gType]) p.grenades[gType] = 0;
+                if (p.grenades[gType] < 2) p.grenades[gType]++;
+                if (!p.currentGrenade) p.currentGrenade = gType;
+            }
+            updateHUD();
+        }
+
+        function handleKill(victim, killer) {
+            const killFeed = document.getElementById('kill-feed');
+            const msg = document.createElement('div');
+            msg.className = victim.team.toLowerCase();
+            const killerName = killer === gameState.player ? '玩家' : `Bot_${killer.id}`;
+            const victimName = victim.isBot ? `Bot_${victim.id}` : '玩家';
+            msg.innerHTML = `<b>${killerName}</b> [${killer.currentWeapon || 'AK47'}] <b>${victimName}</b>`;
+            killFeed.appendChild(msg);
+            setTimeout(() => msg.remove(), 4000);
+
+            if (killer === gameState.player) {
+                killer.money += 300;
+                updateHUD();
+            }
+        }
+
+        function handlePlayerDeath(killer) {
+            gameState.player.hp = 0;
+            endRound(killer.team === 'CT' ? 'T' : 'CT');
+        }
+
+        // --- 回合控制 ---
+        function startRound() {
+            gameState.phase = 'buy';
+            gameState.bombPlanted = false;
+            gameState.bomb = null;
+            gameState.roundTime = 75;
+            document.getElementById('bomb-timer').style.display = 'none';
+            
+            // 重置玩家
+            gameState.player.hp = 100;
+            gameState.player.money = Math.min(16000, gameState.player.money + (gameState.player.money < 1000 ? 1000 : 0));
+            const spawn = gameState.mapData.spawns[gameState.player.team];
+            controls.getObject().position.set(spawn[0], spawn[1] + 1, spawn[2]);
+            
+            // 重置 Bots
+            gameState.bots.forEach(b => {
+                b.hp = 100;
+                const spawn = gameState.mapData.spawns[b.team];
+                b.mesh.position.set(spawn[0] + (Math.random()-0.5)*4, spawn[1], spawn[2] + (Math.random()-0.5)*4);
+                b.state = 'patrol';
+            });
+            
+            updateHUD();
+            document.getElementById('buy-menu').style.display = 'block';
+            
+            // 10秒后开始
+            setTimeout(() => {
+                document.getElementById('buy-menu').style.display = 'none';
+                gameState.phase = 'live';
+            }, 10000);
+        }
+
+        function endRound(winner) {
+            if (gameState.phase === 'round_end' || gameState.phase === 'match_end') return;
+            gameState.phase = 'round_end';
+            gameState.scores[winner]++;
+            
+            // 经济奖励
+            if (winner === gameState.player.team) {
+                gameState.player.money += 3250;
+            } else {
+                gameState.player.money += 1400;
+            }
+            
+            // 检查比赛结束
+            if (gameState.scores.T >= 16 || gameState.scores.CT >= 16) {
+                gameState.phase = 'match_end';
+                alert(`比赛结束! ${winner} 获胜!`);
+                location.reload();
+                return;
+            }
+
+            setTimeout(() => {
+                gameState.round++;
+                startRound();
+            }, 3000);
+        }
+
+        // --- 玩家移动与碰撞 ---
+        const playerCollider = new THREE.Box3();
+        const tmpBox = new THREE.Box3();
+        function checkPlayerCollision(pos) {
+            playerCollider.setFromCenterAndSize(pos, new THREE.Vector3(0.5, 1.8, 0.5));
+            
+            if (gameState.currentMap) {
+                for (const obj of gameState.currentMap.children) {
+                    if (obj.userData.isWall) {
+                        tmpBox.setFromObject(obj);
+                        if (playerCollider.intersectsBox(tmpBox)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // --- 小地图 ---
+        const minimapCtx = document.getElementById('minimap').getContext('2d');
+        function updateMinimap() {
+            if (!gameState.mapData) return;
+            minimapCtx.clearRect(0, 0, 200, 200);
+            
+            const scale = 1.5;
+            const offX = 100;
+            const offY = 100;
+            
+            // 画墙
+            minimapCtx.fillStyle = '#666';
+            gameState.mapData.walls.forEach(w => {
+                minimapCtx.fillRect(
+                    w.pos[0] * scale + offX - (w.size[0] * scale / 2),
+                    w.pos[2] * scale + offY - (w.size[2] * scale / 2),
+                    w.size[0] * scale,
+                    w.size[2] * scale
+                );
+            });
+            
+            // 画包点
+            minimapCtx.fillStyle = 'rgba(255,0,0,0.5)';
+            minimapCtx.fillText('A', gameState.mapData.bombsites.A.center[0]*scale + offX, gameState.mapData.bombsites.A.center[2]*scale + offY);
+            minimapCtx.fillText('B', gameState.mapData.bombsites.B.center[0]*scale + offX, gameState.mapData.bombsites.B.center[2]*scale + offY);
+        }
+
+        function drawMinimapEntities() {
+            updateMinimap();
+            const scale = 1.5;
+            const offX = 100;
+            const offY = 100;
+            
+            const pPos = controls.getObject().position;
+            
+            // 画玩家
+            minimapCtx.fillStyle = '#0f0';
+            minimapCtx.beginPath();
+            minimapCtx.arc(pPos.x*scale+offX, pPos.z*scale+offY, 3, 0, Math.PI*2);
+            minimapCtx.fill();
+            
+            // 画Bots
+            gameState.bots.forEach(b => {
+                if (b.hp <= 0) return;
+                minimapCtx.fillStyle = b.team === gameState.player.team ? '#0ff' : '#f00';
+                minimapCtx.beginPath();
+                minimapCtx.arc(b.mesh.position.x*scale+offX, b.mesh.position.z*scale+offY, 2, 0, Math.PI*2);
+                minimapCtx.fill();
+            });
+        }
+
+        // --- UI 更新 ---
+        function updateHUD() {
+            const p = gameState.player;
+            if (!p) return;
+            document.getElementById('hp').innerText = Math.max(0, Math.round(p.hp));
+            document.getElementById('armor').innerText = Math.max(0, Math.round(p.armor));
+            document.getElementById('money').innerText = p.money;
+            document.getElementById('score-t').innerText = gameState.scores.T;
+            document.getElementById('score-ct').innerText = gameState.scores.CT;
+            
+            const w = p.weapons[p.currentWeapon];
+            if (w) {
+                document.getElementById('ammo').innerText = w.ammo;
+                document.getElementById('reserve').innerText = w.reserve;
+            }
+        }
+
+        function showHitMarker() {
+            const ch = document.getElementById('crosshair');
+            ch.style.transform = 'translate(-50%, -50%) rotate(45deg) scale(1.5)';
+            setTimeout(() => ch.style.transform = 'translate(-50%, -50%)', 100);
+        }
+
+        function showDamage() {
+            const ind = document.getElementById('damage-indicator');
+            ind.style.boxShadow = 'inset 0 0 100px rgba(255,0,0,0.8)';
+            setTimeout(() => ind.style.boxShadow = 'inset 0 0 100px rgba(255,0,0,0)', 100);
+        }
+
+        function flashScreen() {
+            const fl = document.getElementById('flash-overlay');
+            fl.style.opacity = '1';
+            setTimeout(() => fl.style.opacity = '0', 100);
+            setTimeout(() => fl.style.transition = 'opacity 2s', 200);
+            setTimeout(() => { fl.style.opacity = '0'; fl.style.transition = 'opacity 0.1s'; }, 2200);
+        }
+
+        // --- 输入处理 ---
+        function onCanvasClick() {
+            if (gameState.phase !== 'menu' && !controls.isLocked && gameState.phase !== 'match_end') {
+                controls.lock();
+            }
+        }
+
+        function onKeyDown(e) {
+            if (gameState.phase === 'menu') return;
+            const p = gameState.player;
+            if (!p) return;
+            
+            switch(e.code) {
+                case 'KeyW': p.moveForward = true; break;
+                case 'KeyS': p.moveBackward = true; break;
+                case 'KeyA': p.moveLeft = true; break;
+                case 'KeyD': p.moveRight = true; break;
+                case 'ShiftLeft': p.isWalking = true; break; // 静步
+                case 'ControlLeft': p.isCrouching = true; break;
+                case 'Space': 
+                    if (p.onGround) {
+                        p.velocity.y = 5; 
+                        p.onGround = false;
+                    }
+                    break;
+                case 'KeyR': reload(); break;
+                case 'KeyB': 
+                    if (gameState.phase === 'buy' || gameState.phase === 'live') {
+                        const menu = document.getElementById('buy-menu');
+                        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                    }
+                    break;
+                case 'KeyE': 
+                    // 拆包或下包逻辑
+                    checkPlantOrDefuse();
+                    break;
+                case 'Digit1': 
+                case 'Digit2':
+                    switchWeapon();
+                    break;
+                case 'KeyF': throwGrenade(); break;
+            }
+        }
+        
+        function onKeyUp(e) {
+            const p = gameState.player;
+            if (!p) return;
+            switch(e.code) {
+                case 'KeyW': p.moveForward = false; break;
+                case 'KeyS': p.moveBackward = false; break;
+                case 'KeyA': p.moveLeft = false; break;
+                case 'KeyD': p.moveRight = false; break;
+                case 'ShiftLeft': p.isWalking = false; break;
+                case 'ControlLeft': p.isCrouching = false; break;
+            }
+        }
+
+        function onMouseDown(e) {
+            if (gameState.phase === 'menu' || !controls.isLocked) return;
+            if (e.button === 0) {
+                shoot();
+                const w = gameState.player.weapons[gameState.player.currentWeapon];
+                if (w && w.auto) {
+                    gameState.player.isFiring = true;
+                }
+            } else if (e.button === 2) {
+                gameState.player.isZoomed = true;
+            }
+        }
+
+        function onMouseUp(e) {
+            if (e.button === 0) {
+                if (gameState.player) gameState.player.isFiring = false;
+            } else if (e.button === 2) {
+                if (gameState.player) gameState.player.isZoomed = false;
+            }
+        }
+        
+        function onMouseMove(e) {
+            // 暂不处理特殊鼠标移动
+        }
+        
+        function checkPlantOrDefuse() {
+            const p = gameState.player;
+            const pos = controls.getObject().position;
+            
+            // 下包
+            if (p.team === 'T' && !gameState.bombPlanted) {
+                const distA = pos.distanceTo(new THREE.Vector3(gameState.mapData.bombsites.A.center[0], 0, gameState.mapData.bombsites.A.center[2]));
+                const distB = pos.distanceTo(new THREE.Vector3(gameState.mapData.bombsites.B.center[0], 0, gameState.mapData.bombsites.B.center[2]));
+                if (distA < 15 || distB < 15) {
+                    // 开始下包
+                    if (!p.isPlanting) {
+                        p.isPlanting = true;
+                        setTimeout(() => {
+                            plantBomb(pos);
+                            p.isPlanting = false;
+                        }, 3000);
+                    }
+                }
+            }
+            
+            // 拆包
+            if (p.team === 'CT' && gameState.bombPlanted && gameState.bomb) {
+                const dist = pos.distanceTo(gameState.bomb.position);
+                if (dist < 3) {
+                    if (!p.isDefusing) {
+                        p.isDefusing = true;
+                        const time = p.defuser ? 5 : 10;
+                        setTimeout(() => {
+                            if (p.hp > 0 && gameState.bomb) {
+                                scene.remove(gameState.bomb);
+                                gameState.bomb = null;
+                                gameState.bombPlanted = false;
+                                endRound('CT');
+                            }
+                            p.isDefusing = false;
+                        }, time * 1000);
+                    }
+                }
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- 主循环 ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(0.1, clock.getDelta());
+
+            if (gameState.phase !== 'menu' && gameState.player) {
+                const p = gameState.player;
+                const obj = controls.getObject();
+                
+                // 移动逻辑
+                if (controls.isLocked && gameState.phase === 'live') {
+                    const speed = p.isCrouching ? 2 : (p.isWalking ? 3 : 5);
+                    const dir = new THREE.Vector3();
+                    if (p.moveForward) dir.z -= 1;
+                    if (p.moveBackward) dir.z += 1;
+                    if (p.moveLeft) dir.x -= 1;
+                    if (p.moveRight) dir.x += 1;
+                    dir.normalize();
+                    
+                    // 相对相机方向
+                    if (dir.lengthSq() > 0) {
+                        const moveX = dir.x * speed * dt;
+                        const moveZ = dir.z * speed * dt;
+                        
+                        const newPos = obj.position.clone();
+                        // 提取相机的Y轴旋转
+                        const yaw = camera.rotation.y;
+                        const sin = Math.sin(yaw);
+                        const cos = Math.cos(yaw);
+                        
+                        // 旋转移动向量
+                        const rotX = moveX * cos - moveZ * sin;
+                        const rotZ = moveX * sin + moveZ * cos;
+                        
+                        newPos.x += rotX;
+                        newPos.z += rotZ;
+                        
+                        // 碰撞检测
+                        if (!checkPlayerCollision(newPos)) {
+                            obj.position.copy(newPos);
+                        } else {
+                            // 尝试滑动
+                            const newPosX = obj.position.clone(); newPosX.x += rotX;
+                            if (!checkPlayerCollision(newPosX)) obj.position.x = newPosX.x;
+                            const newPosZ = obj.position.clone(); newPosZ.z += rotZ;
+                            if (!checkPlayerCollision(newPosZ)) obj.position.z = newPosZ.z;
+                        }
+                    }
+                }
+
+                // 重力
+                obj.position.y += p.velocity.y * dt;
+                p.velocity.y -= 9.8 * dt;
+                if (obj.position.y < 1.7) {
+                    obj.position.y = 1.7;
+                    p.velocity.y = 0;
+                    p.onGround = true;
+                }
+
+                // 后坐力恢复
+                if (p.recoilOffset > 0) {
+                    camera.rotation.x += p.recoilOffset * 0.1;
+                    p.recoilOffset *= 0.9;
+                }
+
+                // 连发
+                if (p.isFiring) {
+                    const w = p.weapons[p.currentWeapon];
+                    if (w && w.auto) {
+                        shoot();
+                    }
+                }
+
+                // 更新 Bots
+                if (gameState.phase === 'live') {
+                    updateBots(dt);
+                }
+
+                // 更新投掷物
+                updateGrenades(dt);
+
+                // 回合计时
+                if (gameState.phase === 'live') {
+                    gameState.roundTime -= dt;
+                    if (gameState.bombPlanted) {
+                        gameState.bombTimer -= dt;
+                        if (gameState.bombTimer <= 0) {
+                            // 爆炸
+                            scene.remove(gameState.bomb);
+                            gameState.bomb = null;
+                            endRound('T');
+                        }
+                    }
+                    
+                    if (gameState.roundTime <= 0 && !gameState.bombPlanted) {
+                        // CT 胜利
+                        endRound('CT');
+                    }
+                    
+                    // 更新时间UI
+                    const min = Math.floor(Math.max(0, gameState.roundTime) / 60);
+                    const sec = Math.floor(Math.max(0, gameState.roundTime) % 60);
+                    document.getElementById('timer').innerText = `${min}:${sec.toString().padStart(2, '0')}`;
+                }
+                
+                drawMinimapEntities();
+                updateHUD();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- 启动游戏 ---
+        window.startGame = function() {
+            document.getElementById('start-menu').style.display = 'none';
+            const mapName = document.getElementById('map-select').value;
+            const team = document.getElementById('team-select').value;
+            
+            createPlayer(team);
+            loadMap(mapName);
+            startRound();
+            
+            // 尝试锁定指针
+            renderer.domElement.click();
+        }
+
+        init();
+    </script>
+</body>
+</html>

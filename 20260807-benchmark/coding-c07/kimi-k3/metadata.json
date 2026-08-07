@@ -1,0 +1,18 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "kimi-k3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "0334c42fe911c148a4e65c76d7331d3ecfe4f76313e3d8930c47c39bbc181f0e",
+  "source_answer_sha256": "7779acbdb0cefa20d04e17a58e2222647e01c526bf8821cf7ecc8caae11946e2",
+  "external_urls": [
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm",
+    "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json",
+    "https://cdn.jsdelivr.net/npm/three-globe@2/example/img/",
+    "http://localhost:8000/index.html`"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

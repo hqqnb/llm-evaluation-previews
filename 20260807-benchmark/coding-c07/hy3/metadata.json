@@ -1,0 +1,17 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "hy3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "0d15c0a2b20f46e93669f37271d5a83bf2b5fb61d10214667d33837b5bf2a64b",
+  "source_answer_sha256": "84df4fc207386518f0b5bb629e81caabb129eb5caec01777bb2a2561f2c8ef95",
+  "external_urls": [
+    "http://localhost:8080`",
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/",
+    "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
+    "https://unpkg.com/three-globe/example/img/earth-night.jpg"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

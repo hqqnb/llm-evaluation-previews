@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>寰宇脉搏 · ORBIS — 3D 数据地球仪</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04070f; --ink:#eaf1ff; --mut:#8ea3c7; --line:rgba(140,170,230,.16);
+  --panel:rgba(8,14,28,.82); --panel2:rgba(14,22,42,.65);
+  --gold:#f6b64b; --cyan:#45d6ff; --coral:#ff7059;
+  --acc:#f6b64b;
+  --disp:'Rajdhani','Noto Sans SC',sans-serif;
+  --body:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--body)}
+#stage{position:fixed;inset:0;z-index:0}
+#stage canvas{display:block;cursor:grab}
+#vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 42%,transparent 55%,rgba(2,4,10,.55) 100%)}
+.corner{position:fixed;width:26px;height:26px;z-index:2;pointer-events:none;opacity:.5}
+.corner::before{content:'';position:absolute;inset:0;border:1px solid rgba(140,180,255,.55)}
+.c-tl{top:14px;left:14px}.c-tl::before{border-right:0;border-bottom:0}
+.c-tr{top:14px;right:14px}.c-tr::before{border-left:0;border-bottom:0}
+.c-bl{bottom:14px;left:14px}.c-bl::before{border-right:0;border-top:0}
+.c-br{bottom:14px;right:14px}.c-br::before{border-left:0;border-top:0}
+
+/* ---------- 标题区 ---------- */
+#brand{position:fixed;top:26px;left:30px;z-index:3;pointer-events:none;max-width:430px}
+#brand .eyebrow{font-family:var(--disp);font-size:11px;letter-spacing:.42em;color:var(--cyan);
+  text-transform:uppercase;display:flex;align-items:center;gap:10px}
+#brand .eyebrow::before{content:'';width:26px;height:1px;background:var(--cyan)}
+#brand h1{font-size:40px;font-weight:900;line-height:1.08;margin:8px 0 6px;letter-spacing:.04em}
+#brand h1 span{font-family:var(--disp);font-weight:600;font-size:22px;color:var(--mut);letter-spacing:.18em;margin-left:10px;vertical-align:6px}
+#brand .sub{font-size:12.5px;color:var(--mut);letter-spacing:.12em}
+#brand .status{margin-top:10px;font-family:var(--disp);font-size:11px;letter-spacing:.2em;color:#7fe6a8;display:flex;gap:8px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:#7fe6a8;box-shadow:0 0 8px #7fe6a8;animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;left:30px;bottom:26px;z-index:3;pointer-events:none;font-family:var(--disp)}
+#hud .row{font-size:13px;letter-spacing:.14em;color:var(--mut);margin-top:3px}
+#hud .row b{color:var(--ink);font-weight:600}
+#hint{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:3;pointer-events:none;
+  font-size:12px;letter-spacing:.2em;color:var(--mut);padding:8px 20px;border:1px solid var(--line);
+  background:rgba(8,14,28,.6);transition:opacity 1.2s;white-space:nowrap}
+#hint.gone{opacity:0}
+
+/* ---------- 控制面板 ---------- */
+#panelToggle{position:fixed;top:22px;right:24px;z-index:6;font-family:var(--disp);font-size:12px;
+  letter-spacing:.2em;color:var(--ink);background:var(--panel);border:1px solid var(--line);
+  padding:8px 16px;cursor:pointer;transition:.25s}
+#panelToggle:hover{border-color:var(--acc);color:var(--acc)}
+#panel{position:fixed;top:70px;right:24px;bottom:110px;width:300px;z-index:5;
+  background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(10px);
+  display:flex;flex-direction:column;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+#panel.hide{transform:translateX(340px)}
+#panel::before,#panel::after{content:'';position:absolute;width:14px;height:14px;pointer-events:none}
+#panel::before{top:-1px;left:-1px;border-top:2px solid var(--acc);border-left:2px solid var(--acc)}
+#panel::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--acc);border-right:2px solid var(--acc)}
+.panel-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px dashed var(--line);
+  font-family:var(--disp);font-size:13px;letter-spacing:.3em}
+.panel-head .dot{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.panel-head button{margin-left:auto;background:none;border:1px solid var(--line);color:var(--mut);
+  font-family:var(--disp);font-size:10px;letter-spacing:.15em;padding:4px 9px;cursor:pointer;transition:.2s}
+.panel-head button:hover{color:var(--acc);border-color:var(--acc)}
+.panel-body{flex:1;overflow-y:auto;padding:4px 16px 16px;scrollbar-width:thin;scrollbar-color:#2a3b60 transparent}
+.panel-body::-webkit-scrollbar{width:4px}
+.panel-body::-webkit-scrollbar-thumb{background:#2a3b60}
+#panel section{padding:14px 0;border-bottom:1px dashed var(--line)}
+#panel section:last-child{border-bottom:0}
+#panel h3{font-size:12px;font-weight:700;letter-spacing:.24em;color:var(--ink);margin-bottom:12px;display:flex;align-items:baseline}
+#panel h3 em{font-family:var(--disp);font-style:normal;font-size:10px;color:var(--mut);letter-spacing:.28em;margin-left:auto}
+.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.seg button{position:relative;padding:9px 4px 8px;background:var(--panel2);border:1px solid var(--line);
+  color:var(--mut);font-family:var(--body);font-size:12.5px;cursor:pointer;transition:.22s;letter-spacing:.06em}
+.seg button i{display:block;font-style:normal;font-family:var(--disp);font-size:9px;letter-spacing:.22em;margin-top:3px;opacity:.7}
+.seg button:hover{transform:translateY(-2px);border-color:rgba(160,190,255,.4);color:var(--ink)}
+.seg button.on{color:var(--ink);border-color:var(--acc);background:rgba(255,255,255,.03);
+  box-shadow:0 0 14px -4px var(--acc),inset 0 0 12px -8px var(--acc)}
+.seg button.on::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc)}
+.total{margin-top:12px;padding:10px 12px;background:rgba(255,255,255,.025);border-left:2px solid var(--acc)}
+.total b{font-family:var(--disp);font-size:26px;font-weight:700;color:var(--acc);letter-spacing:.02em}
+.total span{font-size:11px;color:var(--mut);margin-left:6px}
+.tgl{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:12.5px;color:var(--mut);cursor:pointer;transition:color .2s}
+.tgl:hover{color:var(--ink)}
+.tgl input{display:none}
+.tgl .sw{width:30px;height:16px;border:1px solid var(--line);position:relative;transition:.25s;background:rgba(255,255,255,.03)}
+.tgl .sw::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;background:var(--mut);transition:.25s}
+.tgl input:checked+.sw{border-color:var(--acc)}
+.tgl input:checked+.sw::after{left:16px;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.lg-bar{height:9px;margin:6px 0 5px;border:1px solid rgba(255,255,255,.12)}
+.lg-lab{display:flex;justify-content:space-between;font-family:var(--disp);font-size:10.5px;color:var(--mut);letter-spacing:.08em}
+#rank{list-style:none}
+#rank li{display:grid;grid-template-columns:20px 74px 1fr auto;align-items:center;gap:8px;
+  padding:6px 4px;cursor:pointer;transition:background .2s;font-size:12px}
+#rank li:hover{background:rgba(255,255,255,.045)}
+#rank li b{font-family:var(--disp);color:var(--mut);font-weight:600}
+#rank li:first-child b{color:var(--acc)}
+#rank .bar{height:5px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
+#rank .bar i{position:absolute;inset:0;right:auto;background:var(--acc);transition:width .7s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 8px var(--acc)}
+#rank .val{font-family:var(--disp);font-size:11.5px;color:var(--ink);white-space:nowrap}
+
+/* ---------- 时间轴 ---------- */
+#timeline{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:5;
+  width:min(760px,92vw);display:flex;align-items:center;gap:18px;padding:14px 22px;
+  background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(10px)}
+#timeline::before{content:'';position:absolute;top:-1px;left:24px;right:24px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--acc),transparent)}
+#play{width:44px;height:44px;flex:none;border-radius:50%;border:1px solid var(--acc);background:rgba(255,255,255,.03);
+  color:var(--acc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.25s}
+#play:hover{box-shadow:0 0 18px -4px var(--acc);transform:scale(1.06)}
+#play svg{width:16px;height:16px;fill:currentColor}
+.yearbox{flex:none;width:86px;text-align:center}
+.yearbox b{font-family:var(--disp);font-size:38px;font-weight:700;line-height:1;color:var(--ink);display:inline-block}
+.yearbox b.pop{animation:ypop .5s}
+@keyframes ypop{0%{transform:scale(1.25);color:var(--acc)}100%{transform:scale(1)}}
+.yearbox span{font-size:12px;color:var(--mut);margin-left:3px}
+.track{flex:1;position:relative;padding-bottom:16px}
+#yearRange{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:rgba(255,255,255,.1);outline:none;cursor:pointer}
+#yearRange::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--acc);
+  border:2px solid #0a1020;box-shadow:0 0 10px var(--acc);cursor:grab;transform:rotate(45deg)}
+#yearRange::-moz-range-thumb{width:12px;height:12px;background:var(--acc);border:2px solid #0a1020;border-radius:0;box-shadow:0 0 10px var(--acc);transform:rotate(45deg)}
+.ticks{position:absolute;left:0;right:0;bottom:-2px;display:flex;justify-content:space-between;
+  font-family:var(--disp);font-size:10px;color:var(--mut);letter-spacing:.08em;pointer-events:none}
+.speed{flex:none;display:flex;gap:4px}
+.speed button{background:none;border:1px solid var(--line);color:var(--mut);font-family:var(--disp);
+  font-size:11px;padding:5px 9px;cursor:pointer;transition:.2s;letter-spacing:.05em}
+.speed button:hover{color:var(--ink)}
+.speed button.on{color:var(--acc);border-color:var(--acc)}
+
+/* ---------- 弹窗 / 提示 ---------- */
+#popup{position:fixed;z-index:7;width:272px;background:var(--panel);border:1px solid var(--line);
+  backdrop-filter:blur(12px);padding:16px;opacity:0;pointer-events:none;transition:opacity .3s;will-change:transform}
+#popup.show{opacity:1;pointer-events:auto}
+#popup::before{content:'';position:absolute;top:-1px;left:-1px;width:12px;height:12px;border-top:2px solid var(--acc);border-left:2px solid var(--acc)}
+.pp-head{display:flex;align-items:flex-start}
+.pp-name{font-size:21px;font-weight:900;letter-spacing:.04em}
+.pp-name span{font-family:var(--disp);font-size:11px;font-weight:600;color:var(--mut);letter-spacing:.24em;margin-left:8px}
+.pp-close{margin-left:auto;background:none;border:none;color:var(--mut);font-size:18px;cursor:pointer;line-height:1;transition:.2s}
+.pp-close:hover{color:var(--coral);transform:rotate(90deg)}
+.pp-sub{font-size:11.5px;color:var(--mut);margin:4px 0 12px;letter-spacing:.08em}
+.pp-sub b{color:var(--acc);font-family:var(--disp)}
+.pp-row{display:flex;align-items:baseline;gap:8px;padding:6px 8px;font-size:12px;color:var(--mut);border-left:2px solid transparent}
+.pp-row.active{background:rgba(255,255,255,.045);border-left-color:var(--acc);color:var(--ink)}
+.pp-row b{margin-left:auto;font-family:var(--disp);font-size:16px;font-weight:700;color:var(--ink)}
+.pp-row.active b{color:var(--acc)}
+.pp-row u{text-decoration:none;font-size:10px;color:var(--mut)}
+.pp-spark{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+.pp-spark .lab{font-size:10.5px;color:var(--mut);letter-spacing:.12em;margin-top:4px;display:flex;justify-content:space-between}
+.pp-spark .lab b{color:#7fe6a8;font-family:var(--disp)}
+
+#tip{position:fixed;z-index:8;pointer-events:none;background:rgba(6,11,24,.92);border:1px solid var(--line);
+  padding:9px 12px;font-size:12px;max-width:250px;opacity:0;transition:opacity .15s;backdrop-filter:blur(6px)}
+#tip.show{opacity:1}
+#tip b{font-size:13px}
+#tip .en{font-family:var(--disp);font-size:10px;color:var(--mut);letter-spacing:.2em;margin-left:6px}
+#tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--mut);margin-top:3px;font-size:11.5px}
+#tip .r b{font-family:var(--disp);color:var(--ink);font-size:12px}
+#tip .hintline{color:var(--mut);font-size:10.5px;margin-top:5px;letter-spacing:.1em}
+
+/* ---------- 加载 ---------- */
+#loader{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:22px;transition:opacity .8s}
+#loader.done{opacity:0;pointer-events:none}
+.orbit{width:84px;height:84px;position:relative}
+.orbit .ring{position:absolute;inset:0;border:1px dashed rgba(120,170,255,.5);border-radius:50%;animation:spin 7s linear infinite}
+.orbit .ring2{position:absolute;inset:14px;border:1px solid rgba(120,170,255,.22);border-radius:50%}
+.orbit .sat{position:absolute;top:50%;left:50%;width:84px;height:84px;margin:-42px 0 0 -42px;animation:spin 2.2s linear infinite}
+.orbit .sat::after{content:'';position:absolute;top:-4px;left:50%;width:8px;height:8px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+.orbit .core{position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2b6cb0,#0a1e3c)}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loadPct{font-family:var(--disp);font-size:34px;font-weight:700;letter-spacing:.1em}
+#loadTip{font-size:11px;color:var(--mut);letter-spacing:.3em}
+
+@media (max-width:900px){
+  #brand h1{font-size:28px}
+  #brand .sub{display:none}
+  #panel{width:272px;top:64px;bottom:130px}
+  #timeline{gap:10px;padding:10px 14px}
+  .yearbox b{font-size:28px}
+}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "topojson-client": "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="stage"></div>
+<div id="vignette"></div>
+<div class="corner c-tl"></div><div class="corner c-tr"></div>
+<div class="corner c-bl"></div><div class="corner c-br"></div>
+
+<header id="brand">
+  <div class="eyebrow">Planetary Data Observatory</div>
+  <h1>寰宇脉搏<span>ORBIS</span></h1>
+  <div class="sub">全球城市 · 航线网络 · 区域经济 — 三维数据地球仪</div>
+  <div class="status"><span class="dot"></span>SYSTEM ONLINE · SIM-DATASET 2019–2024</div>
+</header>
+
+<div id="hud">
+  <div class="row">坐标 <b id="hudCoords">— · —</b></div>
+  <div class="row">视高 <b id="hudZoom">—</b> · <b id="hudFps">60</b> FPS</div>
+</div>
+<div id="hint">拖拽旋转 · 滚轮缩放 · 点击城市查看详情 · 悬停航线查看航班</div>
+
+<button id="panelToggle">⚙ 控制台</button>
+<aside id="panel">
+  <div class="panel-head"><span class="dot"></span>控制台 CONSOLE
+    <button id="resetView" title="重置视角">⌖ 复位</button>
+  </div>
+  <div class="panel-body">
+    <section>
+      <h3>数据指标<em>METRIC</em></h3>
+      <div class="seg">
+        <button data-m="gdp" class="on">GDP<i>ECONOMY</i></button>
+        <button data-m="pop">人口<i>POPULATION</i></button>
+        <button data-m="flt">航班量<i>FLIGHTS</i></button>
+      </div>
+      <div class="total"><b id="totalVal">—</b><span id="totalUnit"></span></div>
+    </section>
+    <section>
+      <h3>区域热力<em>CHOROPLETH</em></h3>
+      <div class="lg-bar" id="lgBar"></div>
+      <div class="lg-lab"><span id="lgMin">—</span><span id="lgMax">—</span></div>
+    </section>
+    <section>
+      <h3>图层<em>LAYERS</em></h3>
+      <label class="tgl">城市标记<input type="checkbox" id="tglCities" checked><span class="sw"></span></label>
+      <label class="tgl">航线网络<input type="checkbox" id="tglRoutes" checked><span class="sw"></span></label>
+      <label class="tgl">区域热力<input type="checkbox" id="tglHeat" checked><span class="sw"></span></label>
+      <label class="tgl">大气光晕<input type="checkbox" id="tglAtmo" checked><span class="sw"></span></label>
+      <label class="tgl">自动自转<input type="checkbox" id="tglSpin" checked><span class="sw"></span></label>
+    </section>
+    <section>
+      <h3>城市排行<em>TOP 5</em></h3>
+      <ol id="rank"></ol>
+    </section>
+  </div>
+</aside>
+
+<footer id="timeline">
+  <button id="play" title="播放 / 暂停（空格）">
+    <svg id="icoPause" viewBox="0 0 16 16"><rect x="2" y="1" width="4" height="14"/><rect x="10" y="1" width="4" height="14"/></svg>
+    <svg id="icoPlay" viewBox="0 0 16 16" style="display:none"><path d="M2 1l13 7-13 7z"/></svg>
+  </button>
+  <div class="yearbox"><b id="yearBig">2019</b><span>年</span></div>
+  <div class="track">
+    <input type="range" id="yearRange" min="0" max="1000" value="0">
+    <div class="ticks"><span>2019</span><span>2020</span><span>2021</span><span>2022</span><span>2023</span><span>2024</span></div>
+  </div>
+  <div class="speed">
+    <button data-s="0.5">0.5×</button><button data-s="1" class="on">1×</button><button data-s="2">2×</button>
+  </div>
+</footer>
+
+<div id="popup"></div>
+<div id="tip"></div>
+
+<div id="loader">
+  <div class="orbit"><div class="ring"></div><div class="ring2"></div><div class="sat"></div><div class="core"></div></div>
+  <div id="loadPct">0%</div>
+  <div id="loadTip">正在建立轨道链路 · 加载地球纹理</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ================================================================
+   0. 基础常量 & 数据（演示数据，模拟口径）
+================================================================ */
+const D2R = Math.PI/180, R = 1;
+const YEARS = [2019,2020,2021,2022,2023,2024];
+const GLOBAL = {                       // 全球宏观曲线（2020 航班骤降→复苏）
+  gdp:[1,.965,1.035,1.11,1.19,1.28],
+  pop:[1,1.006,1.013,1.02,1.027,1.035],
+  flt:[1,.52,.66,.84,.98,1.12]
+};
+const METRICS = {
+  gdp:{label:'GDP',   unit:'亿美元', color:'#f6b64b', ramp:['#0e2f52','#1b5f8a','#2fa08c','#9fc455','#ffd44d']},
+  pop:{label:'人口',  unit:'百万人', color:'#ff7059', ramp:['#123a63','#1f6f8b','#57a17f','#d9a441','#ff6b4a']},
+  flt:{label:'航班量',unit:'班/日',  color:'#45d6ff', ramp:['#0d2b52','#185a9d','#2f9edb','#7fd4ff','#eafbff']}
+};
+/* id 城市 国家ISO(数字) 纬度 经度 GDP(亿美元,2019) 人口(百万) 航班(班/日) 年增长 */
+const CITIES = [
+ {id:'PEK',cn:'北京',    en:'BEIJING',    cc:'156',ctry:'中国',      lat:40.0, lon:116.6, gdp:680, pop:21.9,flt:1050,g:.045},
+ {id:'SHA',cn:'上海',    en:'SHANGHAI',   cc:'156',ctry:'中国',      lat:31.2, lon:121.5, gdp:720, pop:24.9,flt:1000,g:.045},
+ {id:'CAN',cn:'广州',    en:'GUANGZHOU',  cc:'156',ctry:'中国',      lat:23.1, lon:113.3, gdp:430, pop:18.7,flt:780, g:.045},
+ {id:'SZX',cn:'深圳',    en:'SHENZHEN',   cc:'156',ctry:'中国',      lat:22.55,lon:114.1, gdp:500, pop:17.6,flt:620, g:.05},
+ {id:'CTU',cn:'成都',    en:'CHENGDU',    cc:'156',ctry:'中国',      lat:30.6, lon:104.1, gdp:330, pop:21.2,flt:640, g:.05},
+ {id:'HKG',cn:'香港',    en:'HONG KONG',  cc:'344',ctry:'中国',      lat:22.3, lon:114.2, gdp:370, pop:7.5, flt:600, g:.02},
+ {id:'TYO',cn:'东京',    en:'TOKYO',      cc:'392',ctry:'日本',      lat:35.7, lon:139.7, gdp:1050,pop:37.4,flt:950, g:.01},
+ {id:'SEL',cn:'首尔',    en:'SEOUL',      cc:'410',ctry:'韩国',      lat:37.55,lon:127.0, gdp:830, pop:26.0,flt:850, g:.015},
+ {id:'SIN',cn:'新加坡',  en:'SINGAPORE',  cc:'702',ctry:'新加坡',    lat:1.35, lon:103.8, gdp:400, pop:5.9, flt:820, g:.03},
+ {id:'BKK',cn:'曼谷',    en:'BANGKOK',    cc:'764',ctry:'泰国',      lat:13.75,lon:100.5, gdp:250, pop:10.7,flt:760, g:.03},
+ {id:'DEL',cn:'德里',    en:'DELHI',      cc:'356',ctry:'印度',      lat:28.6, lon:77.2,  gdp:300, pop:32.9,flt:560, g:.055},
+ {id:'BOM',cn:'孟买',    en:'MUMBAI',     cc:'356',ctry:'印度',      lat:19.1, lon:72.9,  gdp:310, pop:20.9,flt:500, g:.055},
+ {id:'DXB',cn:'迪拜',    en:'DUBAI',      cc:'784',ctry:'阿联酋',    lat:25.2, lon:55.3,  gdp:115, pop:3.6, flt:900, g:.035},
+ {id:'IST',cn:'伊斯坦布尔',en:'ISTANBUL', cc:'792',ctry:'土耳其',    lat:41.0, lon:28.98, gdp:240, pop:15.6,flt:820, g:.03},
+ {id:'MOW',cn:'莫斯科',  en:'MOSCOW',     cc:'643',ctry:'俄罗斯',    lat:55.75,lon:37.6,  gdp:260, pop:12.6,flt:480, g:.01},
+ {id:'LON',cn:'伦敦',    en:'LONDON',     cc:'826',ctry:'英国',      lat:51.5, lon:-0.13, gdp:860, pop:9.5, flt:1250,g:.015},
+ {id:'PAR',cn:'巴黎',    en:'PARIS',      cc:'250',ctry:'法国',      lat:48.85,lon:2.35,  gdp:760, pop:11.0,flt:1100,g:.015},
+ {id:'FRA',cn:'法兰克福',en:'FRANKFURT',  cc:'276',ctry:'德国',      lat:50.1, lon:8.68,  gdp:410, pop:7.6, flt:780, g:.012},
+ {id:'AMS',cn:'阿姆斯特丹',en:'AMSTERDAM',cc:'528',ctry:'荷兰',      lat:52.37,lon:4.9,   gdp:230, pop:2.4, flt:690, g:.015},
+ {id:'MAD',cn:'马德里',  en:'MADRID',     cc:'724',ctry:'西班牙',    lat:40.4, lon:-3.7,  gdp:240, pop:6.7, flt:600, g:.018},
+ {id:'NYC',cn:'纽约',    en:'NEW YORK',   cc:'840',ctry:'美国',      lat:40.7, lon:-74.0, gdp:1800,pop:20.1,flt:1350,g:.02},
+ {id:'LAX',cn:'洛杉矶',  en:'LOS ANGELES',cc:'840',ctry:'美国',      lat:34.05,lon:-118.24,gdp:1100,pop:13.2,flt:880,g:.02},
+ {id:'CHI',cn:'芝加哥',  en:'CHICAGO',    cc:'840',ctry:'美国',      lat:41.88,lon:-87.63,gdp:780, pop:9.5, flt:930, g:.018},
+ {id:'ATL',cn:'亚特兰大',en:'ATLANTA',    cc:'840',ctry:'美国',      lat:33.75,lon:-84.39,gdp:470, pop:6.1, flt:1300,g:.02},
+ {id:'DFW',cn:'达拉斯',  en:'DALLAS',     cc:'840',ctry:'美国',      lat:32.78,lon:-96.8, gdp:640, pop:7.9, flt:1000,g:.022},
+ {id:'MEX',cn:'墨西哥城',en:'MEXICO CITY',cc:'484',ctry:'墨西哥',    lat:19.43,lon:-99.13,gdp:420, pop:21.8,flt:620, g:.02},
+ {id:'SAO',cn:'圣保罗',  en:'SÃO PAULO',  cc:'076',ctry:'巴西',      lat:-23.55,lon:-46.63,gdp:430,pop:22.4,flt:560, g:.015},
+ {id:'BUE',cn:'布宜诺斯艾利斯',en:'BUENOS AIRES',cc:'032',ctry:'阿根廷',lat:-34.6,lon:-58.38,gdp:200,pop:15.4,flt:330,g:.01},
+ {id:'SYD',cn:'悉尼',    en:'SYDNEY',     cc:'036',ctry:'澳大利亚',  lat:-33.87,lon:151.2,gdp:400, pop:5.4, flt:480, g:.025},
+ {id:'JNB',cn:'约翰内斯堡',en:'JOHANNESBURG',cc:'710',ctry:'南非',   lat:-26.2,lon:28.05, gdp:170, pop:6.3, flt:330, g:.015},
+ {id:'CAI',cn:'开罗',    en:'CAIRO',      cc:'818',ctry:'埃及',      lat:30.04,lon:31.24, gdp:190, pop:21.3,flt:400, g:.04},
+ {id:'LOS',cn:'拉各斯',  en:'LAGOS',      cc:'566',ctry:'尼日利亚',  lat:6.45, lon:3.4,   gdp:90,  pop:15.9,flt:260, g:.04},
+ {id:'YYZ',cn:'多伦多',  en:'TORONTO',    cc:'124',ctry:'加拿大',    lat:43.65,lon:-79.38,gdp:620, pop:6.3, flt:590, g:.02},
+ {id:'SFO',cn:'旧金山',  en:'SAN FRANCISCO',cc:'840',ctry:'美国',    lat:37.77,lon:-122.42,gdp:1050,pop:4.9,flt:760, g:.025}
+];
+const CITY_BY_ID = Object.fromEntries(CITIES.map(c=>[c.id,c]));
+
+const ROUTES = [
+ {a:'PEK',b:'LAX',al:'中国国际航空',no:'CA983', wk:14,ac:'B777-300ER'},
+ {a:'PEK',b:'LON',al:'中国国际航空',no:'CA855', wk:11,ac:'B777-300ER'},
+ {a:'SHA',b:'SFO',al:'中国东方航空',no:'MU587', wk:14,ac:'B777-300ER'},
+ {a:'SHA',b:'TYO',al:'中国东方航空',no:'MU523', wk:21,ac:'B787-9'},
+ {a:'CAN',b:'SYD',al:'中国南方航空',no:'CZ325', wk:7, ac:'A330-300'},
+ {a:'SZX',b:'SIN',al:'中国南方航空',no:'CZ8057',wk:14,ac:'B787-9'},
+ {a:'CTU',b:'FRA',al:'中国国际航空',no:'CA431', wk:7, ac:'A350-900'},
+ {a:'HKG',b:'LON',al:'国泰航空',    no:'CX251', wk:14,ac:'A350-1000'},
+ {a:'HKG',b:'SYD',al:'国泰航空',    no:'CX100', wk:10,ac:'A350-900'},
+ {a:'HKG',b:'TYO',al:'国泰航空',    no:'CX520', wk:14,ac:'A330-300'},
+ {a:'TYO',b:'LAX',al:'全日空',      no:'NH106', wk:14,ac:'B777-300ER'},
+ {a:'TYO',b:'SIN',al:'全日空',      no:'NH841', wk:14,ac:'B787-9'},
+ {a:'SEL',b:'LAX',al:'大韩航空',    no:'KE17',  wk:11,ac:'A380-800'},
+ {a:'SEL',b:'DXB',al:'大韩航空',    no:'KE951', wk:7, ac:'B777-300ER'},
+ {a:'SIN',b:'LON',al:'新加坡航空',  no:'SQ322', wk:14,ac:'A380-800'},
+ {a:'SIN',b:'SYD',al:'新加坡航空',  no:'SQ231', wk:21,ac:'A350-900'},
+ {a:'SIN',b:'DXB',al:'阿联酋航空',  no:'EK349', wk:21,ac:'A380-800'},
+ {a:'SIN',b:'DEL',al:'新加坡航空',  no:'SQ405', wk:10,ac:'B787-9'},
+ {a:'BKK',b:'TYO',al:'泰国航空',    no:'TG676', wk:14,ac:'A350-900'},
+ {a:'BKK',b:'SIN',al:'泰国航空',    no:'TG403', wk:21,ac:'A350-900'},
+ {a:'DEL',b:'DXB',al:'印度航空',    no:'AI131', wk:18,ac:'B787-9'},
+ {a:'BOM',b:'LON',al:'印度航空',    no:'AI111', wk:10,ac:'B777-300ER'},
+ {a:'DXB',b:'LON',al:'阿联酋航空',  no:'EK001', wk:28,ac:'A380-800'},
+ {a:'DXB',b:'PAR',al:'阿联酋航空',  no:'EK073', wk:14,ac:'B777-300ER'},
+ {a:'DXB',b:'SAO',al:'阿联酋航空',  no:'EK261', wk:7, ac:'B777-300ER'},
+ {a:'DXB',b:'JNB',al:'阿联酋航空',  no:'EK762', wk:11,ac:'A380-800'},
+ {a:'DXB',b:'CAI',al:'阿联酋航空',  no:'EK924', wk:14,ac:'B777-300ER'},
+ {a:'IST',b:'NYC',al:'土耳其航空',  no:'TK001', wk:14,ac:'B777-300ER'},
+ {a:'IST',b:'CAI',al:'土耳其航空',  no:'TK694', wk:11,ac:'A321neo'},
+ {a:'IST',b:'FRA',al:'土耳其航空',  no:'TK1581',wk:17,ac:'A321neo'},
+ {a:'LON',b:'NYC',al:'英国航空',    no:'BA178', wk:28,ac:'B777-300ER'},
+ {a:'LON',b:'LOS',al:'英国航空',    no:'BA075', wk:7, ac:'B787-9'},
+ {a:'LON',b:'YYZ',al:'加拿大航空',  no:'AC848', wk:10,ac:'B777-300ER'},
+ {a:'PAR',b:'NYC',al:'法国航空',    no:'AF006', wk:21,ac:'B777-300ER'},
+ {a:'PAR',b:'CAI',al:'法国航空',    no:'AF570', wk:10,ac:'A350-900'},
+ {a:'FRA',b:'CHI',al:'汉莎航空',    no:'LH432', wk:14,ac:'B787-9'},
+ {a:'AMS',b:'ATL',al:'达美航空',    no:'DL47',  wk:11,ac:'A330-900'},
+ {a:'MAD',b:'MEX',al:'伊比利亚航空',no:'IB6400',wk:10,ac:'A350-900'},
+ {a:'NYC',b:'LAX',al:'美国航空',    no:'AA100', wk:35,ac:'A321neo'},
+ {a:'NYC',b:'SAO',al:'美国航空',    no:'AA950', wk:10,ac:'B787-9'},
+ {a:'CHI',b:'TYO',al:'全日空',      no:'NH111', wk:7, ac:'B787-8'},
+ {a:'ATL',b:'PAR',al:'达美航空',    no:'DL82',  wk:11,ac:'A330-900'},
+ {a:'DFW',b:'LON',al:'美国航空',    no:'AA50',  wk:7, ac:'B777-200'},
+ {a:'MEX',b:'LAX',al:'墨西哥航空',  no:'AM570', wk:17,ac:'B787-8'},
+ {a:'SAO',b:'BUE',al:'阿根廷航空',  no:'AR1130',wk:21,ac:'B737-800'},
+ {a:'SYD',b:'LAX',al:'澳洲航空',    no:'QF11',  wk:10,ac:'B787-9'},
+ {a:'SFO',b:'TYO',al:'美联航',      no:'UA837', wk:11,ac:'B787-9'},
+ {a:'SFO',b:'SYD',al:'美联航',      no:'UA863', wk:7, ac:'B787-9'},
+ {a:'CAI',b:'MOW',al:'俄罗斯航空',  no:'SU401', wk:7, ac:'A320neo'},
+ {a:'MOW',b:'PEK',al:'俄罗斯航空',  no:'SU204', wk:7, ac:'B777-300ER'}
+];
+const ROUTE_COLORS = ['#59d1ff','#6db4ff','#7fe6d8','#8fd0ff'];
+const MAX_WK = Math.max(...ROUTES.map(r=>r.wk));
+
+/* ---------- 数值模型 ---------- */
+function metricValue(c,m,yf){
+  yf = THREE.MathUtils.clamp(yf,2019,2024);
+  const i = Math.min(4,Math.floor(yf-2019)), f = yf-2019-i;
+  const g = GLOBAL[m][i]*(1-f)+GLOBAL[m][i+1]*f;
+  const gr = m==='pop'? c.g*0.35 : c.g;
+  return c[m]*g*Math.pow(1+gr, yf-2019);
+}
+function countryAgg(m,yf){
+  const map = new Map();
+  CITIES.forEach(c=>map.set(c.cc,(map.get(c.cc)||0)+metricValue(c,m,yf)));
+  return map;
+}
+function distKm(a,b){
+  const d = Math.sin(a.lat*D2R)*Math.sin(b.lat*D2R)+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.cos((a.lon-b.lon)*D2R);
+  return Math.round(Math.acos(THREE.MathUtils.clamp(d,-1,1))*6371);
+}
+function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;}
+function fmtVal(m,v){
+  if(m==='gdp') return v>=10000? (v/10000).toFixed(2)+' 万亿美元' : Math.round(v).toLocaleString()+' 亿美元';
+  if(m==='pop') return v.toFixed(1)+' 百万人';
+  return Math.round(v).toLocaleString()+' 班/日';
+}
+function fmtShort(m,v){
+  if(m==='gdp') return v>=10000? (v/10000).toFixed(1)+'万亿' : Math.round(v).toLocaleString()+'亿';
+  if(m==='pop') return v.toFixed(0)+'M';
+  return Math.round(v).toLocaleString()+'班';
+}
+function hex2rgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function rampColor(ramp,n){
+  n = THREE.MathUtils.clamp(Math.pow(n,0.72),0,1);
+  const s = ramp.length-1, x = n*s, i = Math.min(s-1,Math.floor(x)), f = x-i;
+  const A = hex2rgb(ramp[i]), B = hex2rgb(ramp[i+1]);
+  return `rgb(${A.map((v,k)=>Math.round(v+(B[k]-v)*f)).join(',')})`;
+}
+function latLonToVec3(lat,lon,r){
+  const phi=(90-lat)*D2R, th=(lon+180)*D2R;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(th), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(th));
+}
+
+/* ================================================================
+   1. 渲染器 / 场景 / 相机
+================================================================ */
+const stage = document.getElementById('stage');
+let renderer;
+try{
+  renderer = new THREE.WebGLRenderer({antialias:true});
+}catch(e){
+  document.getElementById('loadTip').textContent='当前环境不支持 WebGL';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.setClearColor(0x04070f,1);
+stage.appendChild(renderer.domElement);
+const MAX_ANISO = renderer.capabilities.getMaxAnisotropy();
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 200);
+const CAM_DIR = new THREE.Vector3(0,0.32,1).normalize();
+
+const state = {
+  metric:'gdp', yearFloat:2019, lastYear:2018, playing:true, speed:1,
+  rotY:0, rotX:0.15, tRotY:0, tRotX:0.15,
+  dist:5.4, tDist:3.35,
+  spin:true, hoverCity:null, hoverRoute:null, selCity:null,
+  lastInteract:0, dragging:false
+};
+state.tRotY = state.rotY = (-90-115)*D2R; state.rotY -= 0.7;   // 入场缓入
+const INIT_ROT = state.tRotY;
+
+const sunDir = new THREE.Vector3(); let sunAz = 0.9;
+const sharedTime = {value:0};
+const metricColorObj = new THREE.Color(METRICS.gdp.color);
+
+/* ================================================================
+   2. 贴图加载（CDN 双源 + 占位降级）
+================================================================ */
+const loadPct = document.getElementById('loadPct');
+const ASSETS = [
+  {key:'day',  files:['earth-blue-marble.jpg'], srgb:true},
+  {key:'night',files:['earth-night.jpg'],       srgb:true},
+  {key:'water',files:['earth-water.png'],       srgb:false}
+];
+const GEO_URLS = [
+  'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json',
+  'https://unpkg.com/world-atlas@2.0.2/countries-110m.json'
+];
+const texLoader = new THREE.TextureLoader();
+let loadDone = 0, loadTotal = ASSETS.length + 1, usedFallback = false;
+function tickLoad(){
+  loadDone++;
+  loadPct.textContent = Math.round(loadDone/loadTotal*100)+'%';
+  if(loadDone>=loadTotal) setTimeout(()=>document.getElementById('loader').classList.add('done'),350);
+}
+function placeholder(color){
+  const cv=document.createElement('canvas');cv.width=32;cv.height=16;
+  const g=cv.getContext('2d');g.fillStyle=color;g.fillRect(0,0,32,16);
+  return new THREE.CanvasTexture(cv);
+}
+function loadTex(files,srgb){
+  return new Promise(res=>{
+    const tryAt=i=>{
+      if(i>=files.length){usedFallback=true;return res(null);}
+      const hosts=['https://cdn.jsdelivr.net/npm/three-globe@2/','https://unpkg.com/three-globe@2/'];
+      let h=0;
+      const tryHost=()=>{
+        if(h>=hosts.length)return tryAt(i+1);
+        texLoader.load(hosts[h]+`example/img/${files[i]}`,t=>{
+          if(srgb)t.colorSpace=THREE.SRGBColorSpace;
+          t.anisotropy=MAX_ANISO; res(t);
+        },undefined,()=>{h++;tryHost();});
+      };
+      tryHost();
+    };
+    tryAt(0);
+  });
+}
+
+/* ================================================================
+   3. 地球本体（昼夜混合着色器）+ 大气 + 星空
+================================================================ */
+const globe = new THREE.Group(); globe.rotation.order='YXZ'; scene.add(globe);
+
+const earthUniforms = {
+  dayMap:{value:placeholder('#0a2140')}, nightMap:{value:placeholder('#020408')},
+  waterMap:{value:placeholder('#000000')},
+  sunDir:{value:sunDir}, camPos:{value:new THREE.Vector3()}, uHasWater:{value:0}
+};
+const earth = new THREE.Mesh(
+  new THREE.SphereGeometry(R,96,96),
+  new THREE.ShaderMaterial({
+    uniforms:earthUniforms,
+    vertexShader:`
+      varying vec2 vUv; varying vec3 vN; varying vec3 vP;
+      void main(){
+        vUv=uv;
+        vN=normalize(mat3(modelMatrix)*normal);
+        vec4 wp=modelMatrix*vec4(position,1.0); vP=wp.xyz;
+        gl_Position=projectionMatrix*viewMatrix*wp;
+      }`,
+    fragmentShader:`
+      uniform sampler2D dayMap, nightMap, waterMap;
+      uniform vec3 sunDir, camPos; uniform float uHasWater;
+      varying vec2 vUv; varying vec3 vN; varying vec3 vP;
+      void main(){
+        vec3 n=normalize(vN); vec3 sd=normalize(sunDir);
+        float sa=dot(n,sd);
+        float dayMix=smoothstep(-0.12,0.22,sa);
+        vec3 day=texture2D(dayMap,vUv).rgb;
+        vec3 night=texture2D(nightMap,vUv).rgb;
+        vec3 dayCol=day*(0.18+1.05*max(sa,0.0));
+        float dusk=smoothstep(-0.3,0.05,sa)*(1.0-smoothstep(0.05,0.45,sa));
+        dayCol*=mix(vec3(1.0),vec3(1.28,0.92,0.68),dusk*0.65);
+        vec3 nightCol=night*vec3(1.35,1.18,0.92)+vec3(0.008,0.016,0.038)*(1.0-dayMix);
+        vec3 col=mix(nightCol,dayCol,dayMix);
+        vec3 v=normalize(camPos-vP);
+        vec3 h=normalize(sd+v);
+        float spec=pow(max(dot(n,h),0.0),48.0)*uHasWater*texture2D(waterMap,vUv).r*dayMix;
+        col+=vec3(0.55,0.7,0.85)*spec*0.5;
+        float fres=pow(1.0-max(dot(n,v),0.0),3.0);
+        col+=vec3(0.22,0.5,1.0)*fres*(0.16+0.45*dayMix);
+        gl_FragColor=vec4(col,1.0);
+      }`
+  })
+);
+earth.renderOrder=0; globe.add(earth);
+
+const atmo = new THREE.Mesh(
+  new THREE.SphereGeometry(R*1.16,96,96),
+  new THREE.ShaderMaterial({
+    uniforms:{sunDir:{value:sunDir},camPos:{value:new THREE.Vector3()}},
+    vertexShader:`
+      varying vec3 vN; varying vec3 vP;
+      void main(){vN=normalize(mat3(modelMatrix)*normal);
+        vec4 wp=modelMatrix*vec4(position,1.0);vP=wp.xyz;
+        gl_Position=projectionMatrix*viewMatrix*wp;}`,
+    fragmentShader:`
+      uniform vec3 sunDir; uniform vec3 camPos;
+      varying vec3 vN; varying vec3 vP;
+      void main(){
+        vec3 n=normalize(vN); vec3 v=normalize(camPos-vP);
+        float f=dot(v,n);
+        float ring=1.0-smoothstep(-0.58,-0.06,f);
+        ring=pow(max(ring,0.0),2.0);
+        vec3 dir=normalize(vP); vec3 sd=normalize(sunDir);
+        float dayF=smoothstep(-0.35,0.45,dot(dir,sd));
+        float dusk=smoothstep(-0.35,0.0,dot(dir,sd))*(1.0-smoothstep(0.0,0.4,dot(dir,sd)));
+        vec3 col=mix(vec3(0.05,0.12,0.32),vec3(0.3,0.62,1.0),dayF)+vec3(0.9,0.45,0.15)*dusk*0.25;
+        gl_FragColor=vec4(col*ring*1.35,ring);
+      }`,
+    side:THREE.BackSide, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending
+  })
+);
+atmo.renderOrder=10; globe.add(atmo);
+
+/* 星空（两层） */
+function makeStars(count,rMin,rMax,size,op){
+  const pos=new Float32Array(count*3), col=new Float32Array(count*3), c=new THREE.Color();
+  for(let i=0;i<count;i++){
+    const v=new THREE.Vector3().randomDirection().multiplyScalar(rMin+Math.random()*(rMax-rMin));
+    pos.set([v.x,v.y,v.z],i*3);
+    const t=Math.random();
+    c.setHSL(t<0.75?0.6:0.08, t<0.75?0.25:0.4, 0.55+Math.random()*0.4);
+    col.set([c.r,c.g,c.b],i*3);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const m=new THREE.PointsMaterial({size,sizeAttenuation:true,vertexColors:true,transparent:true,opacity:op,depthWrite:false});
+  return new THREE.Points(g,m);
+}
+const stars1=makeStars(900,30,55,0.5,0.95), stars2=makeStars(1900,35,70,0.26,0.6);
+scene.add(stars1,stars2);
+
+/* ================================================================
+   4. 城市标记（发光点 + 脉冲环）
+================================================================ */
+function makeGlowTexture(){
+  const cv=document.createElement('canvas');cv.width=cv.height=128;
+  const g=cv.getContext('2d');
+  const gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.25,'rgba(255,255,255,.55)');
+  gr.addColorStop(0.6,'rgba(255,255,255,.12)');gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=gr;g.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(cv);
+}
+const glowTex = makeGlowTexture();
+const citiesGroup = new THREE.Group(); globe.add(citiesGroup);
+const cityCores = [];
+
+CITIES.forEach((c,i)=>{
+  c.pos = latLonToVec3(c.lat,c.lon,1);
+  c.phase = i*0.7; c.size = 0.012; c.hoverAmt = 0;
+
+  const coreMat = new THREE.MeshBasicMaterial({color:METRICS.gdp.color});
+  const core = new THREE.Mesh(new THREE.SphereGeometry(1,14,14),coreMat);
+  core.position.copy(c.pos).multiplyScalar(1.006);
+  core.userData.city = c;
+  citiesGroup.add(core); cityCores.push(core);
+  c.core=core; c.coreMat=coreMat;
+
+  const spriteMat = new THREE.SpriteMaterial({map:glowTex,color:METRICS.gdp.color,
+    transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false});
+  const sprite = new THREE.Sprite(spriteMat);
+  sprite.position.copy(c.pos).multiplyScalar(1.008);
+  citiesGroup.add(sprite); c.sprite=sprite; c.spriteMat=spriteMat;
+
+  const ringMat = new THREE.MeshBasicMaterial({color:METRICS.gdp.color,transparent:true,opacity:.6,
+    side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false});
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.82,1,48),ringMat);
+  ring.position.copy(c.pos).multiplyScalar(1.004);
+  ring.lookAt(c.pos.clone().multiplyScalar(2));
+  citiesGroup.add(ring); c.ring=ring; c.ringMat=ringMat;
+});
+
+/* ================================================================
+   5. 航线弧（流动着色器）+ 飞行光点
+================================================================ */
+const routesGroup = new THREE.Group(); globe.add(routesGroup);
+const routeLines = [];
+
+ROUTES.forEach((r,i)=>{
+  const A=CITY_BY_ID[r.a], B=CITY_BY_ID[r.b];
+  r.from=A; r.to=B; r.phase=Math.random(); r.hover=0;
+  r.dist=distKm(A,B); r.otp=78+hash(r.no)%17;
+  const va=A.pos, vb=B.pos, ang=va.angleTo(vb), sinA=Math.sin(ang), N=72;
+  const pts=[], ts=[];
+  for(let k=0;k<=N;k++){
+    const t=k/N; let p;
+    if(sinA<1e-4) p=va.clone();
+    else p=va.clone().multiplyScalar(Math.sin((1-t)*ang)/sinA)
+          .add(vb.clone().multiplyScalar(Math.sin(t*ang)/sinA));
+    p.multiplyScalar(1+(0.05+ang*0.16)*Math.sin(Math.PI*t));
+    pts.push(p); ts.push(t);
+  }
+  r.pts=pts;
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  geo.setAttribute('aT',new THREE.Float32BufferAttribute(ts,1));
+  const col=new THREE.Color(ROUTE_COLORS[i%ROUTE_COLORS.length]);
+  r.color=col;
+  const mat=new THREE.ShaderMaterial({
+    uniforms:{uColor:{value:col},uTime:sharedTime,
+      uSpeed:{value:0.06+0.1*(r.wk/MAX_WK)},
+      uOpacity:{value:0.45+0.5*(r.wk/MAX_WK)},uHover:{value:0}},
+    vertexShader:`attribute float aT; varying float vT;
+      void main(){vT=aT;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`
+      uniform vec3 uColor; uniform float uTime,uSpeed,uOpacity,uHover;
+      varying float vT;
+      void main(){
+        float x=fract(vT-uTime*uSpeed);
+        float tail=smoothstep(0.62,1.0,x);
+        float head=smoothstep(0.05,0.0,x);
+        float glow=tail*tail*1.1+head*0.9;
+        vec3 col=uColor*(0.35+glow*1.8+uHover*0.9);
+        float a=uOpacity*(0.28+glow*0.9+uHover*0.45);
+        gl_FragColor=vec4(col,a);
+      }`,
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending
+  });
+  const line=new THREE.Line(geo,mat);
+  line.userData.route=r; line.renderOrder=2;
+  routesGroup.add(line); routeLines.push(line);
+  r.mat=mat; r.line=line;
+});
+
+const dotPos=new Float32Array(ROUTES.length*3), dotCol=new Float32Array(ROUTES.length*3);
+ROUTES.forEach((r,i)=>dotCol.set([r.color.r,r.color.g,r.color.b],i*3));
+const dotGeo=new THREE.BufferGeometry();
+dotGeo.setAttribute('position',new THREE.BufferAttribute(dotPos,3));
+dotGeo.setAttribute('color',new THREE.BufferAttribute(dotCol,3));
+const dots=new THREE.Points(dotGeo,new THREE.PointsMaterial({size:0.035,map:glowTex,
+  transparent:true,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+dots.renderOrder=3; globe.add(dots);
+
+/* ================================================================
+   6. 国家/地区热力层（Canvas 纹理覆盖球）
+================================================================ */
+const heatCanvas=document.createElement('canvas');heatCanvas.width=2048;heatCanvas.height=1024;
+const heatCtx=heatCanvas.getContext('2d');
+const heatTex=new THREE.CanvasTexture(heatCanvas);
+heatTex.anisotropy=4;
+const heatMesh=new THREE.Mesh(
+  new THREE.SphereGeometry(R*1.003,96,96),
+  new THREE.MeshBasicMaterial({map:heatTex,transparent:true,depthWrite:false})
+);
+heatMesh.renderOrder=1; globe.add(heatMesh);
+
+let countriesGeo=null, heatRange=[0,1];
+function geoToPath(geom){
+  const W=heatCanvas.width,H=heatCanvas.height,p=new Path2D();
+  const ring=r=>{r.forEach(([lon,lat],i)=>{
+    const x=(lon+180)/360*W,y=(90-lat)/180*H;
+    i?p.lineTo(x,y):p.moveTo(x,y);});p.closePath();};
+  if(geom.type==='Polygon')geom.coordinates.forEach(ring);
+  else if(geom.type==='MultiPolygon')geom.coordinates.forEach(poly=>poly.forEach(ring));
+  return p;
+}
+function rebuildHeat(){
+  const W=heatCanvas.width,H=heatCanvas.height,m=state.metric,yf=state.yearFloat;
+  heatCtx.clearRect(0,0,W,H);
+  const agg=countryAgg(m,yf);
+  const vals=[...agg.values()];
+  heatRange=[Math.min(...vals),Math.max(...vals)];
+  if(countriesGeo){
+    heatCtx.lineWidth=1;heatCtx.strokeStyle='rgba(120,160,220,0.10)';
+    const paths=countriesGeo.map(f=>({f,path:geoToPath(f.geometry)}));
+    paths.forEach(({path})=>heatCtx.stroke(path));
+    paths.forEach(({f,path})=>{
+      const v=agg.get(f.id);
+      if(v==null)return;
+      const n=(v-heatRange[0])/((heatRange[1]-heatRange[0])||1);
+      heatCtx.fillStyle=rampColor(METRICS[m].ramp,n);
+      heatCtx.globalAlpha=0.82;heatCtx.fill(path,'evenodd');heatCtx.globalAlpha=1;
+      heatCtx.strokeStyle='rgba(160,205,255,0.30)';heatCtx.stroke(path);
+    });
+  }else{   // 降级：城市辐射热斑
+    CITIES.forEach(c=>{
+      const v=metricValue(c,m,yf),n=(v-heatRange[0])/((heatRange[1]-heatRange[0])||1);
+      const x=(c.lon+180)/360*W,y=(90-c.lat)/180*H,rad=30+90*Math.sqrt(n);
+      const g=heatCtx.createRadialGradient(x,y,0,x,y,rad);
+      const col=rampColor(METRICS[m].ramp,n);
+      g.addColorStop(0,col.replace('rgb','rgba').replace(')',',0.55)'));
+      g.addColorStop(1,col.replace('rgb','rgba').replace(')',',0)'));
+      heatCtx.fillStyle=g;heatCtx.beginPath();heatCtx.arc(x,y,rad,0,7);heatCtx.fill();
+    });
+  }
+  heatTex.needsUpdate=true;
+  document.getElementById('lgMin').textContent=fmtShort(m,heatRange[0]);
+  document.getElementById('lgMax').textContent=fmtShort(m,heatRange[1]);
+}
+async function loadGeo(){
+  try{
+    const topo=await import('topojson-client');
+    let data=null;
+    for(const u of GEO_URLS){try{const r=await fetch(u);if(r.ok){data=await r.json();break;}}catch(e){}}
+    if(data)countriesGeo=topo.feature(data,data.objects.countries).features;
+  }catch(e){countriesGeo=null;}
+  tickLoad();rebuildHeat();
+}
+
+/* ================================================================
+   7. 交互：拖拽旋转 / 滚轮缩放 / 拾取
+================================================================ */
+const raycaster=new THREE.Raycaster();
+raycaster.params.Line.threshold=0.02;
+const pointerNDC=new THREE.Vector2();
+const occlSphere=new THREE.Sphere(new THREE.Vector3(0,0,0),1);
+const _hitV=new THREE.Vector3(),_v=new THREE.Vector3();
+let needPick=false,pointerPx={x:0,y:0},downInfo=null,pinch=null;
+const pointers=new Map();
+
+function isOccluded(p){
+  const d=raycaster.ray.distanceToPoint(p);
+  if(d>=1)return false;
+  const hit=raycaster.ray.intersectSphere(occlSphere,_hitV);
+  return hit!==null && _hitV.distanceTo(camera.position)<p.distanceTo(camera.position)-0.02;
+}
+function pick(){
+  raycaster.setFromCamera(pointerNDC,camera);
+  let city=null,route=null;
+  const cHits=raycaster.intersectObjects(cityCores,false);
+  for(const h of cHits){if(!isOccluded(h.point)){city=h.object.userData.city;break;}}
+  if(!city){
+    const rHits=raycaster.intersectObjects(routeLines,false).sort((a,b)=>a.distance-b.distance);
+    for(const h of rHits){if(!isOccluded(h.point)){route=h.object.userData.route;break;}}
+  }
+  setHover(city,route);
+}
+function setHover(city,route){
+  if(state.hoverCity!==city||state.hoverRoute!==route){
+    state.hoverCity=city;state.hoverRoute=route;
+    renderer.domElement.style.cursor=city?'pointer':(route?'crosshair':'grab');
+    updateTip();
+  }
+}
+function updateTip(){
+  const tip=document.getElementById('tip');
+  const c=state.hoverCity,r=state.hoverRoute;
+  if(c&&!state.dragging){
+    const v=metricValue(c,state.metric,state.yearFloat);
+    tip.innerHTML=`<b>${c.cn}</b><span class="en">${c.en}</span>
+      <div class="r"><span>${METRICS[state.metric].label}</span><b>${fmtVal(state.metric,v)}</b></div>
+      <div class="hintline">点击查看城市档案 ↗</div>`;
+    tip.classList.add('show');
+  }else if(r&&!state.dragging){
+    tip.innerHTML=`<b>${r.no}</b><span class="en">${r.al}</span>
+      <div class="r"><span>航段</span><b>${r.from.cn} ⇌ ${r.to.cn}</b></div>
+      <div class="r"><span>机型</span><b>${r.ac}</b></div>
+      <div class="r"><span>每周班次 / 距离</span><b>${r.wk} 班 · ${r.dist.toLocaleString()} km</b></div>
+      <div class="r"><span>准点率</span><b>${r.otp}%</b></div>`;
+    tip.classList.add('show');
+  }else tip.classList.remove('show');
+}
+function placeTip(x,y){
+  const tip=document.getElementById('tip');
+  const w=tip.offsetWidth||220;
+  tip.style.left=Math.min(x+18,innerWidth-w-14)+'px';
+  tip.style.top=Math.min(y+18,innerHeight-140)+'px';
+}
+
+const cv=renderer.domElement;
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{
+  cv.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){
+    const p=[...pointers.values()];
+    pinch={d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),dist:state.tDist};
+  }
+  downInfo={x:e.clientX,y:e.clientY,t:performance.now(),moved:0};
+  state.dragging=true;state.lastInteract=clockNow();
+  cv.style.cursor='grabbing';
+});
+cv.addEventListener('pointermove',e=>{
+  pointerPx={x:e.clientX,y:e.clientY};
+  pointerNDC.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  placeTip(e.clientX,e.clientY);
+  if(pointers.has(e.pointerId))pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&pointers.size===2){
+    const p=[...pointers.values()];
+    const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    state.tDist=THREE.MathUtils.clamp(pinch.dist*pinch.d/Math.max(d,20),1.5,7);
+    state.lastInteract=clockNow();return;
+  }
+  if(state.dragging&&downInfo){
+    const dx=e.movementX??0,dy=e.movementY??0;
+    downInfo.moved+=Math.abs(dx)+Math.abs(dy);
+    state.tRotY+=dx*0.0045;
+    state.tRotX=THREE.MathUtils.clamp(state.tRotX+dy*0.0045,-1.1,1.1);
+    state.lastInteract=clockNow();
+  }else{needPick=true;}
+  updateHudCoords();
+});
+cv.addEventListener('pointerup',e=>{
+  pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;
+  state.dragging=false;cv.style.cursor='grab';
+  if(downInfo&&downInfo.moved<6&&performance.now()-downInfo.t<600){
+    pointerNDC.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+    raycaster.setFromCamera(pointerNDC,camera);
+    let hit=null;
+    for(const h of raycaster.intersectObjects(cityCores,false)){
+      if(!isOccluded(h.point)){hit=h.object.userData.city;break;}
+    }
+    hit?openPopup(hit):closePopup();
+  }
+  downInfo=null;state.lastInteract=clockNow();
+});
+cv.addEventListener('pointerleave',()=>{setHover(null,null);document.getElementById('hudCoords').textContent='— · —';});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  state.tDist=THREE.MathUtils.clamp(state.tDist*(1+e.deltaY*0.0011),1.5,7);
+  state.lastInteract=clockNow();
+},{passive:false});
+
+function updateHudCoords(){
+  raycaster.setFromCamera(pointerNDC,camera);
+  const hit=raycaster.intersectObject(earth,false)[0];
+  const el=document.getElementById('hudCoords');
+  if(hit){
+    const p=globe.worldToLocal(hit.point.clone());
+    const len=p.length();
+    const lat=90-Math.acos(p.y/len)/D2R;
+    let lon=Math.atan2(p.z,-p.x)/D2R-180;if(lon<-180)lon+=360;
+    el.textContent=`${Math.abs(lat).toFixed(1)}°${lat>=0?'N':'S'} · ${Math.abs(lon).toFixed(1)}°${lon>=0?'E':'W'}`;
+  }else el.textContent='— · —';
+}
+
+/* ================================================================
+   8. 弹窗 / 排行 / 面板 UI
+================================================================ */
+const popup=document.getElementById('popup');
+function sparkline(c,m){
+  const vals=YEARS.map(y=>metricValue(c,m,y));
+  const mn=Math.min(...vals),mx=Math.max(...vals);
+  const W=236,H=52;
+  const pt=i=>[i/(YEARS.length-1)*(W-8)+4,H-6-(vals[i]-mn)/((mx-mn)||1)*(H-16)];
+  const pts=vals.map((_,i)=>pt(i).map(v=>v.toFixed(1)).join(',')).join(' ');
+  const acc=METRICS[m].color;
+  const cur=(state.yearFloat-2019)/(YEARS.length-1)*(W-8)+4;
+  const ci=THREE.MathUtils.clamp(Math.round(state.yearFloat-2019),0,5);
+  const [cx,cy]=pt(ci);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <polyline points="4,${H-6} ${pts} ${W-4},${H-6}" fill="${acc}22" stroke="none"/>
+    <polyline points="${pts}" fill="none" stroke="${acc}" stroke-width="1.6"/>
+    <line x1="${cur}" y1="4" x2="${cur}" y2="${H-6}" stroke="rgba(255,255,255,.25)" stroke-dasharray="2 3"/>
+    <circle cx="${cx}" cy="${cy}" r="3.2" fill="${acc}"/>
+  </svg>`;
+}
+function renderPopup(){
+  const c=state.selCity;if(!c)return;
+  const m=state.metric,yf=state.yearFloat;
+  const rank=[...CITIES].sort((a,b)=>metricValue(b,m,yf)-metricValue(a,m,yf)).indexOf(c)+1;
+  const nRoutes=ROUTES.filter(r=>r.a===c.id||r.b===c.id).length;
+  const v19=metricValue(c,m,2019),vNow=metricValue(c,m,yf);
+  const delta=((vNow/v19-1)*100).toFixed(1);
+  popup.innerHTML=`
+    <div class="pp-head"><div class="pp-name">${c.cn}<span>${c.en}</span></div>
+      <button class="pp-close" id="ppClose">✕</button></div>
+    <div class="pp-sub">${c.ctry} · 综合排名 <b>#${rank}</b> · 关联航线 <b>${nRoutes}</b> 条</div>
+    ${['gdp','pop','flt'].map(k=>`
+      <div class="pp-row ${k===m?'active':''}"><span>${METRICS[k].label}</span>
+        <b>${fmtVal(k,metricValue(c,k,yf)).split(' ')[0]}</b>
+        <u>${METRICS[k].unit}</u></div>`).join('')}
+    <div class="pp-spark">${sparkline(c,m)}
+      <div class="lab"><span>${METRICS[m].label}走势 2019–2024</span>
+      <b>${delta>=0?'+':''}${delta}% vs 2019</b></div></div>`;
+  document.getElementById('ppClose').onclick=closePopup;
+}
+function openPopup(c){state.selCity=c;renderPopup();popup.classList.add('show');}
+function closePopup(){state.selCity=null;popup.classList.remove('show');}
+function placePopup(){
+  const c=state.selCity;if(!c)return;
+  _v.copy(c.pos);globe.localToWorld(_v);
+  const facing=_v.clone().normalize().dot(camera.position.clone().normalize());
+  if(facing<0.18){popup.style.opacity=0;popup.style.pointerEvents='none';return;}
+  popup.style.opacity='';popup.style.pointerEvents='';
+  _v.project(camera);
+  let x=(_v.x*0.5+0.5)*innerWidth+20,y=(-_v.y*0.5+0.5)*innerHeight-30;
+  x=THREE.MathUtils.clamp(x,12,innerWidth-290);
+  y=THREE.MathUtils.clamp(y,12,innerHeight-300);
+  popup.style.transform=`translate(${x}px,${y}px)`;
+}
+function focusCity(c){
+  const desired=(-90-c.lon)*D2R;
+  let d=desired-state.tRotY;
+  while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;
+  state.tRotY+=d;
+  state.tRotX=THREE.MathUtils.clamp(c.lat*D2R*0.8,-1.05,1.05);
+  state.lastInteract=clockNow();
+}
+function updateRanking(){
+  const m=state.metric,yf=state.yearFloat;
+  const sorted=[...CITIES].sort((a,b)=>metricValue(b,m,yf)-metricValue(a,m,yf)).slice(0,5);
+  const top=metricValue(sorted[0],m,yf);
+  document.getElementById('rank').innerHTML=sorted.map((c,i)=>`
+    <li data-id="${c.id}"><b>${String(i+1).padStart(2,'0')}</b><span>${c.cn}</span>
+    <span class="bar"><i style="width:${(metricValue(c,m,yf)/top*100).toFixed(1)}%"></i></span>
+    <span class="val">${fmtShort(m,metricValue(c,m,yf))}</span></li>`).join('');
+  document.querySelectorAll('#rank li').forEach(li=>{
+    li.onclick=()=>{const c=CITY_BY_ID[li.dataset.id];focusCity(c);openPopup(c);};
+  });
+}
+function animateNumber(el,to,fmt){
+  const from=el._val||0;el._val=to;const t0=performance.now();
+  (function step(){
+    const k=Math.min(1,(performance.now()-t0)/600),e=1-Math.pow(1-k,3);
+    el.textContent=fmt(from+(to-from)*e);
+    if(k<1)requestAnimationFrame(step);
+  })();
+}
+function updateTotal(){
+  const m=state.metric;
+  const total=CITIES.reduce((s,c)=>s+metricValue(c,m,state.yearFloat),0);
+  animateNumber(document.getElementById('totalVal'),total,v=>fmtShort(m,v));
+  document.getElementById('totalUnit').textContent=METRICS[m].unit+' · 34 城合计';
+}
+function updateLegendBar(){
+  const ramp=METRICS[state.metric].ramp;
+  document.getElementById('lgBar').style.background=
+    `linear-gradient(90deg,${ramp.map((c,i)=>`${c} ${i/(ramp.length-1)*100}%`).join(',')})`;
+}
+function setMetric(m){
+  state.metric=m;
+  metricColorObj.set(METRICS[m].color);
+  document.documentElement.style.setProperty('--acc',METRICS[m].color);
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  CITIES.forEach(c=>c.ringMat.color.set(METRICS[m].color));
+  updateLegendBar();rebuildHeat();updateRanking();updateTotal();
+  if(state.selCity)renderPopup();
+}
+
+/* 面板事件 */
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>setMetric(b.dataset.m));
+document.getElementById('tglCities').onchange=e=>citiesGroup.visible=e.target.checked;
+document.getElementById('tglRoutes').onchange=e=>{routesGroup.visible=dots.visible=e.target.checked;};
+document.getElementById('tglHeat').onchange=e=>heatMesh.visible=e.target.checked;
+document.getElementById('tglAtmo').onchange=e=>atmo.visible=e.target.checked;
+document.getElementById('tglSpin').onchange=e=>state.spin=e.target.checked;
+document.getElementById('resetView').onclick=()=>{
+  state.tRotY=INIT_ROT;state.tRotX=0.15;state.tDist=3.35;state.lastInteract=clockNow();
+};
+document.getElementById('panelToggle').onclick=()=>document.getElementById('panel').classList.toggle('hide');
+if(matchMedia('(max-width:900px)').matches)document.getElementById('panel').classList.add('hide');
+
+/* 时间轴事件 */
+const yearRange=document.getElementById('yearRange'),yearBig=document.getElementById('yearBig');
+function syncTimeline(){
+  const p=(state.yearFloat-2019)/5;
+  if(!yearRange.matches(':active'))yearRange.value=Math.round(p*1000);
+  yearRange.style.background=`linear-gradient(90deg,var(--acc) ${p*100}%,rgba(255,255,255,.1) ${p*100}%)`;
+  yearBig.textContent=Math.floor(state.yearFloat);
+}
+yearRange.addEventListener('input',()=>{
+  state.yearFloat=2019+yearRange.value/1000*5;
+  state.lastInteract=clockNow();checkYearTick();syncTimeline();
+});
+function setPlaying(p){
+  state.playing=p;
+  document.getElementById('icoPlay').style.display=p?'none':'block';
+  document.getElementById('icoPause').style.display=p?'block':'none';
+}
+document.getElementById('play').onclick=()=>setPlaying(!state.playing);
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();setPlaying(!state.playing);}});
+document.querySelectorAll('.speed button').forEach(b=>b.onclick=()=>{
+  state.speed=parseFloat(b.dataset.s);
+  document.querySelectorAll('.speed button').forEach(x=>x.classList.toggle('on',x===b));
+});
+function checkYearTick(){
+  const iy=Math.floor(state.yearFloat+1e-6);
+  if(iy!==state.lastYear){
+    state.lastYear=iy;
+    rebuildHeat();updateRanking();updateTotal();
+    if(state.selCity)renderPopup();
+    yearBig.classList.remove('pop');void yearBig.offsetWidth;yearBig.classList.add('pop');
+  }
+}
+
+/* ================================================================
+   9. 主循环
+================================================================ */
+const clock=new THREE.Clock();
+function clockNow(){return clock.elapsedTime;}
+let fpsFrames=0,fpsTime=0,hudTime=0;
+
+function updateCities(t,dt){
+  const m=state.metric,yf=state.yearFloat;
+  let mn=Infinity,mx=-Infinity;
+  const vals=CITIES.map(c=>{const v=metricValue(c,m,yf);if(v<mn)mn=v;if(v>mx)mx=v;return v;});
+  const k=1-Math.exp(-dt*6);
+  CITIES.forEach((c,i)=>{
+    const n=(vals[i]-mn)/((mx-mn)||1);
+    const target=0.012+0.02*Math.sqrt(n);
+    c.size+=(target-c.size)*k;
+    c.hoverAmt+=(((c===state.hoverCity)?1:0)-c.hoverAmt)*k;
+    c.core.scale.setScalar(c.size*(1+c.hoverAmt*0.5));
+    c.coreMat.color.lerp(metricColorObj,k);
+    c.spriteMat.color.lerp(metricColorObj,k);
+    _v.copy(c.pos);globe.localToWorld(_v);
+    const s=_v.normalize().dot(sunDir);
+    const nightF=THREE.MathUtils.clamp((0.12-s)/0.35,0,1);
+    const pulse=0.85+0.15*Math.sin(t*2.2+c.phase);
+    c.spriteMat.opacity=(0.3+0.7*nightF)*pulse+c.hoverAmt*0.25;
+    c.sprite.scale.setScalar(c.size*(5.5+2.5*nightF+c.hoverAmt*2));
+    const rp=(t*0.55+c.phase*0.13)%1;
+    c.ring.scale.setScalar(c.size*(1.3+rp*2.6));
+    c.ringMat.opacity=(1-rp)*(0.55+0.35*nightF);
+  });
+}
+function updateDots(t){
+  ROUTES.forEach((r,i)=>{
+    const tt=(t*(0.06+0.1*(r.wk/MAX_WK))+r.phase)%1;
+    const f=tt*(r.pts.length-1),i0=Math.floor(f),i1=Math.min(i0+1,r.pts.length-1);
+    _v.lerpVectors(r.pts[i0],r.pts[i1],f-i0);
+    dotPos[i*3]=_v.x;dotPos[i*3+1]=_v.y;dotPos[i*3+2]=_v.z;
+  });
+  dotGeo.attributes.position.needsUpdate=true;
+}
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
+
+  if(state.spin&&!state.dragging&&!state.selCity&&t-state.lastInteract>2.5)state.tRotY+=dt*0.05;
+  const kr=1-Math.exp(-dt*7),kd=1-Math.exp(-dt*5);
+  state.rotY+=(state.tRotY-state.rotY)*kr;
+  state.rotX+=(state.tRotX-state.rotX)*kr;
+  state.dist+=(state.tDist-state.dist)*kd;
+  globe.rotation.y=state.rotY;globe.rotation.x=state.rotX;
+  camera.position.copy(CAM_DIR).multiplyScalar(state.dist);
+  camera.lookAt(0,0,0);
+
+  sunAz+=dt*0.006;
+  sunDir.set(Math.cos(sunAz),0.24,Math.sin(sunAz)).normalize();
+  earthUniforms.camPos.value.copy(camera.position);
+  atmo.material.uniforms.camPos.value.copy(camera.position);
+  sharedTime.value=t;
+
+  stars1.rotation.y+=dt*0.004;stars2.rotation.y-=dt*0.002;
+  stars1.material.opacity=0.9+0.08*Math.sin(t*0.7);
+
+  if(state.playing){
+    state.yearFloat+=dt*0.45*state.speed;
+    if(state.yearFloat>2024)state.yearFloat-=5;
+    checkYearTick();syncTimeline();
+  }
+  updateCities(t,dt);
+  updateDots(t);
+  ROUTES.forEach(r=>{
+    r.hover+=(((r===state.hoverRoute)?1:0)-r.hover)*(1-Math.exp(-dt*10));
+    r.mat.uniforms.uHover.value=r.hover;
+  });
+  if(needPick&&!state.dragging){pick();needPick=false;}
+  placePopup();
+
+  fpsFrames++;fpsTime+=dt;hudTime+=dt;
+  if(hudTime>0.25){
+    hudTime=0;
+    document.getElementById('hudZoom').textContent=Math.round((state.dist-1)*6371).toLocaleString()+' km';
+    if(fpsTime>0.5){document.getElementById('hudFps').textContent=Math.round(fpsFrames/fpsTime);fpsFrames=0;fpsTime=0;}
+  }
+  renderer.render(scene,camera);
+}
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+/* ================================================================
+   10. 启动
+================================================================ */
+setMetric('gdp');
+setPlaying(true);
+syncTimeline();
+setTimeout(()=>document.getElementById('hint').classList.add('gone'),7000);
+
+(async()=>{
+  const [day,night,water]=await Promise.all(ASSETS.map(a=>loadTex(a.files,a.srgb)));
+  if(day){earthUniforms.dayMap.value=day;}else{earthUniforms.dayMap.value=placeholder('#0d3b66');}
+  if(night){earthUniforms.nightMap.value=night;}
+  if(water){earthUniforms.waterMap.value=water;earthUniforms.uHasWater.value=1;}
+  tickLoad();tickLoad();tickLoad();
+  if(usedFallback)console.warn('[ORBIS] 部分纹理加载失败，已启用降级贴图');
+})();
+loadGeo();
+animate();
+console.info('%c ORBIS · 寰宇脉搏 ','background:#0a1e3c;color:#45d6ff;padding:4px 10px;font-weight:bold','3D 数据地球仪已上线');
+</script>
+</body>
+</html>

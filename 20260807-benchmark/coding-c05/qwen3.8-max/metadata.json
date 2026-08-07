@@ -1,0 +1,19 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c05",
+  "model_alias": "qwen3.8-max",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "b252d0578ef3f8d1e4bf94d8685749e851649508b5da86c1d539c6a9fb328efa",
+  "source_answer_sha256": "ddd93c0588255fb33951e4d3af31cd3381ed269bee1c46ca933001b8e386111b",
+  "external_urls": [
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/",
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com/css2?family=Marcellus&family=Noto+Serif+SC:wght@600&family=Noto+Sans+SC:wght@400;500;700&display=swap",
+    "http://www.w3.org/2000/svg",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

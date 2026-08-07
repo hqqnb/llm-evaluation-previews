@@ -1,0 +1,18 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "gpt-5.5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "f5aa006412d9dd968355c1bfb6f3740a0d237036746a057590f87030127d3410",
+  "source_answer_sha256": "9254367392b01f39a1d4c022ee87736973afc160ee38abdac0819e7ae15f4cfe",
+  "external_urls": [
+    "http://localhost:8080",
+    "https://unpkg.com/three@0.160.1/build/three.module.js",
+    "https://unpkg.com/three@0.160.1/examples/jsm/",
+    "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+    "https://threejs.org/examples/textures/planets/earth_lights_2048.png",
+    "https://threejs.org/examples/textures/planets/earth_clouds_1024.png"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

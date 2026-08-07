@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c01",
+  "model_alias": "gpt-5.6-sol",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "7135b2b42b9c54782a4010f748724f4c6867a885a01770756f7beec082f8041b",
+  "source_answer_sha256": "d76cd35c49bd055f05695cb6ba36d93ecdc80311cc7a6cb846c1809369253797",
+  "external_urls": [
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "http://localhost:8080"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

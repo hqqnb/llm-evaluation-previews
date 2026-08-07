@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c03",
+  "model_alias": "opus-4.8",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "e5f6c7aac8fce5a00e03be853e512f5637249eae9f632de5e6c916e21bc518bf",
+  "source_answer_sha256": "c4b53e58967522e2d5399bb9a1e215ee17c8403b8e1fa2057ae43557a51890af",
+  "external_urls": [
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

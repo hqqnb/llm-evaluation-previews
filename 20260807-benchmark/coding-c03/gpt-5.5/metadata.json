@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c03",
+  "model_alias": "gpt-5.5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "309a3f7a28eaf972ff65a430472562db9cd04a86d4be6ec66ffb8c9c04844417",
+  "source_answer_sha256": "15986a174feceb9cc66f088b1f68c579d02c2de5b7f6e127352e758adf448916",
+  "external_urls": [
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js",
+    "http://localhost:8080/contact-lens-case.html"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

@@ -1,0 +1,16 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c03",
+  "model_alias": "qwen3.8-max",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "d4ee4171d0823a88cbfd5c8c575f99fd326b35618be5cf8d9594a6d46b554861",
+  "source_answer_sha256": "cad27c60f78fcd7a521c914e101b7d64da741299b76ba33969739266407213ac",
+  "external_urls": [
+    "https://fonts.googleapis.com",
+    "https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@400;500;700;900&display=swap",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

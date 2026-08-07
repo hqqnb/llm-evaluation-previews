@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c05",
+  "model_alias": "deepseek-v4-flash",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "810f8017cc2cffb4901f1de88f19273b7b844a27ee8b66fbff4ec8263d4b3e69",
+  "source_answer_sha256": "35d52efb2376b716b81dbe4439fa2c6569b82b88cc8516af3035207673561d66",
+  "external_urls": [
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

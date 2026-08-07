@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>《极光 Aurora》世代飞船 · 3D 交互还原</title>
+    <style>
+      :root { --fg: #cfe8ff; --accent: #4fd1ff; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+      #app { position: fixed; inset: 0; }
+      canvas { display: block; }
+
+      #hud {
+        position: absolute; top: 18px; left: 18px; z-index: 10;
+        color: var(--fg); max-width: 340px; pointer-events: none;
+        text-shadow: 0 0 8px rgba(0,0,0,.9);
+      }
+      #hud h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: 2px; }
+      #hud .sub { font-size: 12px; opacity: .7; margin: 0 0 12px; }
+      #hud .tips { font-size: 12px; line-height: 1.7; opacity: .85; }
+      #hud .tips b { color: var(--accent); }
+
+      #panel {
+        position: absolute; top: 18px; right: 18px; z-index: 10;
+        display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+      }
+      .btn {
+        pointer-events: auto; cursor: pointer; user-select: none;
+        background: rgba(10,25,45,.55); color: var(--fg);
+        border: 1px solid rgba(79,209,255,.4); border-radius: 8px;
+        padding: 9px 14px; font-size: 13px; letter-spacing: 1px;
+        backdrop-filter: blur(6px); transition: .2s;
+      }
+      .btn:hover { background: rgba(79,209,255,.22); border-color: var(--accent); }
+      .btn.active { background: var(--accent); color: #012; font-weight: 700; }
+
+      #info {
+        position: absolute; bottom: 18px; left: 18px; z-index: 10;
+        color: var(--fg); font-size: 12px; line-height: 1.6;
+        background: rgba(5,15,30,.5); border: 1px solid rgba(79,209,255,.25);
+        border-radius: 10px; padding: 10px 14px; max-width: 360px;
+        backdrop-filter: blur(6px);
+      }
+      #info b { color: var(--accent); }
+
+      #label {
+        position: absolute; z-index: 9; pointer-events: none;
+        color: #fff; font-size: 12px; padding: 3px 8px;
+        background: rgba(0,0,0,.6); border: 1px solid var(--accent);
+        border-radius: 6px; transform: translate(-50%, -140%);
+        opacity: 0; transition: opacity .15s; white-space: nowrap;
+      }
+
+      #loader {
+        position: absolute; inset: 0; z-index: 50; display: flex;
+        align-items: center; justify-content: center; flex-direction: column;
+        background: #000; color: var(--fg); gap: 14px;
+      }
+      #loader .ring { width: 46px; height: 46px; border-radius: 50%;
+        border: 3px solid rgba(79,209,255,.2); border-top-color: var(--accent);
+        animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    </head>
+    <body>
+    <div id="app"></div>
+
+    <div id="loader"><div class="ring"></div><div>正在构建“极光号”…</div></div>
+
+    <div id="hud">
+      <h1>极光号 · AURORA</h1>
+      <p class="sub">Kim Stanley Robinson《Aurora》世代飞船 · 目的地 Tau Ceti · 巡航 ≈ 0.1c</p>
+      <div class="tips">
+        <b>左键拖动</b> 360° 环绕 · <b>滚轮</b> 缩放 · <b>右键</b> 平移<br/>
+        <b>悬停</b> 生物群落环可查看名称
+      </div>
+    </div>
+
+    <div id="panel">
+      <div class="btn active" id="btnExt">外部视角</div>
+      <div class="btn" id="btnInt">进入内部生态舱</div>
+      <div class="btn" id="btnSpin">环体自转：开</div>
+    </div>
+
+    <div id="info"></div>
+    <div id="label"></div>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+    </script>
+
+    <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    /* ============================================================
+       《极光号》飞船三维还原
+       结构（依据小说设定）：
+         - 中央脊柱 spine（沿 X 轴的长桁架）
+         - 两个巨大环体 rings（各含 12 个生物群落，共 24 个），
+           通过辐条 spokes 连接中轴，自转产生离心重力
+         - 尾部聚变推进系统 + 发光引擎羽流
+         - 前部星际尘埃护盾
+         - 通讯天线、散热板等附属结构
+    ============================================================ */
+
+    const appEl   = document.getElementById('app');
+    const infoEl  = document.getElementById('info');
+    const labelEl = document.getElementById('label');
+    const loader  = document.getElementById('loader');
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    appEl.appendChild(renderer.domElement);
+
+    /* ---------- 深空背景（星场 + 星云） ---------- */
+    function makeStarfield(count, radius, size, colorRange) {
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      const col = new Float32Array(count * 3);
+      const c = new THREE.Color();
+      for (let i = 0; i < count; i++) {
+        // 均匀分布在球壳内
+        const r = radius * (0.4 + 0.6 * Math.random());
+        const th = Math.acos(2 * Math.random() - 1);
+        const ph = 2 * Math.PI * Math.random();
+        pos[i*3]   = r * Math.sin(th) * Math.cos(ph);
+        pos[i*3+1] = r * Math.sin(th) * Math.sin(ph);
+        pos[i*3+2] = r * Math.cos(th);
+        const t = Math.random();
+        c.setHSL(colorRange[0] + t * colorRange[1], 0.5, 0.6 + 0.4 * Math.random());
+        col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      const mat = new THREE.PointsMaterial({ size, vertexColors: true, transparent: true,
+        opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true });
+      return new THREE.Points(geo, mat);
+    }
+
+    /* ================= 外部场景 ================= */
+    const extScene = new THREE.Scene();
+    extScene.fog = new THREE.FogExp2(0x000208, 0.0009);
+
+    const stars1 = makeStarfield(9000, 1600, 2.2, [0.55, 0.15]); // 冷白蓝
+    const stars2 = makeStarfield(3000, 1400, 3.5, [0.05, 0.1]);  // 暖色远星
+    extScene.add(stars1, stars2);
+
+    // 远处一颗恒星（目的地方向的光源感）
+    const sunLight = new THREE.DirectionalLight(0xfff2dd, 2.2);
+    sunLight.position.set(-600, 200, 400);
+    extScene.add(sunLight);
+    extScene.add(new THREE.AmbientLight(0x2a3550, 0.6));
+    extScene.add(new THREE.HemisphereLight(0x334466, 0x0a0a12, 0.5));
+
+    // 恒星光晕精灵
+    const glowTex = (() => {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+      const ctx = cv.getContext('2d');
+      const g = ctx.createRadialGradient(64,64,0,64,64,64);
+      g.addColorStop(0, 'rgba(255,255,240,1)');
+      g.addColorStop(0.2, 'rgba(255,230,180,0.8)');
+      g.addColorStop(1, 'rgba(255,200,120,0)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,128,128);
+      return new THREE.CanvasTexture(cv);
+    })();
+    const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false }));
+    sunSprite.position.copy(sunLight.position);
+    sunSprite.scale.set(260, 260, 1);
+    extScene.add(sunSprite);
+
+    /* ================= 建造飞船 ================= */
+    const ship = new THREE.Group();
+    extScene.add(ship);
+
+    const hullMat  = new THREE.MeshStandardMaterial({ color: 0x9aa6b5, metalness: 0.85, roughness: 0.45 });
+    const darkMat  = new THREE.MeshStandardMaterial({ color: 0x2b3138, metalness: 0.7,  roughness: 0.6 });
+    const panelMat = new THREE.MeshStandardMaterial({ color: 0x39506b, metalness: 0.4,  roughness: 0.5,
+      emissive: 0x0a1a2a, emissiveIntensity: 0.5 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x113322, emissive: 0x1f7a4a,
+      emissiveIntensity: 0.9, metalness: 0.2, roughness: 0.3, transparent: true, opacity: 0.85 });
+
+    const SPINE_LEN = 120;      // 中轴长度（沿 X）
+    const RING_R    = 34;       // 环半径
+    const RING_TUBE = 4.2;      // 环管半径
+    const RING_X    = [-24, 24];// 两环位置
+
+    /* --- 中央脊柱 --- */
+    const spine = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.2, 3.2, SPINE_LEN, 24, 1),
+      hullMat
+    );
+    spine.rotation.z = Math.PI / 2; // 沿 X 轴
+    ship.add(spine);
+
+    // 脊柱桁架环（结构感）
+    for (let i = -5; i <= 5; i++) {
+      const r = new THREE.Mesh(new THREE.TorusGeometry(3.5, 0.35, 8, 24), darkMat);
+      r.rotation.y = Math.PI / 2;
+      r.position.x = i * 10;
+      ship.add(r);
+    }
+
+    /* --- 两个自转环 + 24 个生物群落 --- */
+    const biomeNames = [
+      '温带针叶林','热带雨林','稀树草原','沙漠','高山苔原','湿地沼泽',
+      '地中海灌丛','温带草原','红树林海岸','竹林','冻原','混交林',
+      '珊瑚潟湖','橡树林地','高原湖区','麦田农业区','稻作农业区','果园',
+      '牧场','淡水湖','溪谷','雾林','盐沼','城镇居住区'
+    ];
+    const spinRings = []; // 需要自转的组
+    const biomeMeshes = []; // 供 raycast
+
+    RING_X.forEach((rx, ringIdx) => {
+      const ringGroup = new THREE.Group();
+      ringGroup.position.x = rx;
+      ringGroup.rotation.y = Math.PI / 2; // 环所在平面垂直于 X 轴
+      ship.add(ringGroup);
+      spinRings.push(ringGroup);
+
+      // 主环骨架
+      const torus = new THREE.Mesh(new THREE.TorusGeometry(RING_R, RING_TUBE, 20, 96), hullMat);
+      ringGroup.add(torus);
+
+      // 12 个生物群落舱段（环上的加厚盒体 + 透光生态窗）
+      const segs = 12;
+      for (let s = 0; s < segs; s++) {
+        const a = (s / segs) * Math.PI * 2;
+        const seg = new THREE.Group();
+        seg.position.set(Math.cos(a) * RING_R, Math.sin(a) * RING_R, 0);
+        seg.rotation.z = a + Math.PI / 2;
+
+        const body = new THREE.Mesh(new THREE.BoxGeometry(15, 6.5, 8), darkMat);
+        seg.add(body);
+        // 生态透光窗（发绿光，暗示内部植被）
+        const win = new THREE.Mesh(new THREE.BoxGeometry(11, 1.2, 6.4), glassMat);
+        win.position.y = 3.6;
+        seg.add(win);
+        win.userData.biome = biomeNames[ringIdx * 12 + s];
+        biomeMeshes.push(win);
+
+        ringGroup.add(seg);
+      }
+
+      // 辐条：连接环与中轴
+      const spokeCount = 6;
+      for (let k = 0; k < spokeCount; k++) {
+        const a = (k / spokeCount) * Math.PI * 2;
+        const spoke = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.8, 0.8, RING_R, 10),
+          hullMat
+        );
+        spoke.position.set(Math.cos(a) * RING_R / 2, Math.sin(a) * RING_R / 2, 0);
+        spoke.rotation.z = a + Math.PI / 2;
+        ringGroup.add(spoke);
+      }
+      // 中央轮毂
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 6, 16), darkMat);
+      hub.rotation.x = Math.PI / 2;
+      ringGroup.add(hub);
+    });
+
+    /* --- 前部：星际尘埃护盾 --- */
+    const shield = new THREE.Mesh(
+      new THREE.ConeGeometry(14, 18, 32, 1, true),
+      new THREE.MeshStandardMaterial({ color: 0xb9c4d0, metalness: 0.9, roughness: 0.3, side: THREE.DoubleSide })
+    );
+    shield.rotation.z = -Math.PI / 2;
+    shield.position.x = SPINE_LEN / 2 + 9;
+    ship.add(shield);
+    const shieldTip = new THREE.Mesh(new THREE.SphereGeometry(2, 16, 16), hullMat);
+    shieldTip.position.x = SPINE_LEN / 2 + 18;
+    ship.add(shieldTip);
+
+    /* --- 尾部：聚变推进系统 --- */
+    const engineBlock = new THREE.Mesh(new THREE.CylinderGeometry(6, 8, 16, 24), darkMat);
+    engineBlock.rotation.z = Math.PI / 2;
+    engineBlock.position.x = -SPINE_LEN / 2 - 6;
+    ship.add(engineBlock);
+
+    const nozzles = [];
+    const nozzleMat = new THREE.MeshStandardMaterial({ color: 0x1a1d22, metalness: 0.8, roughness: 0.5,
+      emissive: 0x3388ff, emissiveIntensity: 0 });
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      const noz = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 3.6, 7, 20, 1, true), nozzleMat);
+      noz.rotation.z = Math.PI / 2;
+      noz.position.set(-SPINE_LEN / 2 - 16, Math.cos(a) * 3.6, Math.sin(a) * 3.6);
+      ship.add(noz);
+      nozzles.push(noz);
+    }
+
+    // 引擎羽流（粒子束尾焰）
+    const exhaustGeo = new THREE.BufferGeometry();
+    const EX_N = 1400;
+    const exPos = new Float32Array(EX_N * 3);
+    const exData = []; // 每个粒子的初始偏移 & 速度
+    for (let i = 0; i < EX_N; i++) {
+      const off = (Math.random() ** 2) * 60;
+      const spread = (off / 60) * 5.5;
+      const ang = Math.random() * Math.PI * 2;
+      const y = Math.cos(ang) * spread * Math.random();
+      const z = Math.sin(ang) * spread * Math.random();
+      exData.push({ base: off, y, z, speed: 0.6 + Math.random() });
+      exPos[i*3] = -SPINE_LEN/2 - 20 - off; exPos[i*3+1] = y; exPos[i*3+2] = z;
+    }
+    exhaustGeo.setAttribute('position', new THREE.BufferAttribute(exPos, 3));
+    const exhaustMat = new THREE.PointsMaterial({ color: 0x6ec8ff, size: 1.6, transparent: true,
+      opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false });
+    const exhaust = new THREE.Points(exhaustGeo, exhaustMat);
+    ship.add(exhaust);
+
+    const engineLight = new THREE.PointLight(0x4fa8ff, 0, 120);
+    engineLight.position.set(-SPINE_LEN/2 - 25, 0, 0);
+    ship.add(engineLight);
+
+    /* --- 附属：通讯天线 + 散热板 --- */
+    const dish = new THREE.Mesh(new THREE.SphereGeometry(5, 24, 12, 0, Math.PI*2, 0, Math.PI/2.4),
+      new THREE.MeshStandardMaterial({ color: 0xdde3ea, metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide }));
+    dish.position.set(10, 8, 0); dish.rotation.x = Math.PI; dish.rotation.z = 0.5;
+    ship.add(dish);
+
+    for (let i = 0; i < 4; i++) {
+      const rad = new THREE.Mesh(new THREE.BoxGeometry(0.4, 22, 9), panelMat);
+      rad.position.set(-10 + i * 4, 0, 0);
+      rad.rotation.x = i % 2 ? 0.15 : -0.15;
+      // 交替上下伸出散热板
+      const radG = new THREE.Group();
+      radG.add(rad);
+      rad.position.y = (i % 2 ? 14 : -14);
+      ship.add(radG);
+    }
+
+    /* ================= 内部生态舱场景 ================= */
+    // 环形栖息地内部：地面向两侧向上弯曲，自转产生重力
+    const intScene = new THREE.Scene();
+    intScene.fog = new THREE.FogExp2(0x8fb8d8, 0.006);
+    intScene.background = new THREE.Color(0x0a1420);
+
+    intScene.add(new THREE.HemisphereLight(0xcfe8ff, 0x2d4a2d, 1.2));
+    const intSun = new THREE.DirectionalLight(0xffffff, 1.6);
+    intSun.position.set(20, 60, 10);
+    intScene.add(intSun);
+    // 中轴“阳光灯管”——环形栖息地的照明轴
+    const lightTube = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.5, 1.5, 200, 16),
+      new THREE.MeshBasicMaterial({ color: 0xfff6d8 })
+    );
+    lightTube.rotation.z = Math.PI / 2;
+    lightTube.position.y = 55;
+    intScene.add(lightTube);
+    const tubeLight = new THREE.PointLight(0xfff0cc, 1.4, 400);
+    tubeLight.position.set(0, 55, 0);
+    intScene.add(tubeLight);
+
+    // 弯曲地面：用一段大圆柱内壁模拟环形居住舱的“弯曲大地”
+    const HAB_R = 60;
+    const habGeo = new THREE.CylinderGeometry(HAB_R, HAB_R, 200, 64, 40, true);
+    // 绿色大地材质（顶点着色出草地/湖泊）
+    const habColors = [];
+    const habPos = habGeo.attributes.position;
+    const tmp = new THREE.Color();
+    for (let i = 0; i < habPos.count; i++) {
+      const x = habPos.getX(i), y = habPos.getY(i);
+      const ang = Math.atan2(x, habPos.getZ(i));
+      const lake = Math.sin(y * 0.08) * Math.cos(ang * 3) > 0.6;
+      if (lake) tmp.setHSL(0.55, 0.6, 0.4);
+      else tmp.setHSL(0.28 + Math.random()*0.05, 0.5, 0.28 + Math.random()*0.12);
+      habColors.push(tmp.r, tmp.g, tmp.b);
+    }
+    habGeo.setAttribute('color', new THREE.Float32BufferAttribute(habColors, 3));
+    const habMat = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.BackSide, roughness: 1 });
+    const hab = new THREE.Mesh(habGeo, habMat);
+    hab.rotation.z = Math.PI / 2; // 轴沿 X，人站在内壁
+    intScene.add(hab);
+
+    // 内部装点：树木与建筑，贴在弯曲内壁上
+    const intProps = new THREE.Group();
+    intScene.add(intProps);
+    function placeOnHull(obj, xAlong, angle, up = 0) {
+      const r = HAB_R - up;
+      obj.position.set(xAlong, Math.cos(angle) * -r, Math.sin(angle) * -r);
+      obj.up.set(Math.cos(angle), 0, Math.sin(angle)); // 朝向轴心为“上”
+      obj.lookAt(xAlong, 0, 0);
+      obj.rotateX(Math.PI / 2);
+    }
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a3d24, roughness: 1 });
+    const leafMat  = new THREE.MeshStandardMaterial({ color: 0x2f7d3a, roughness: 1 });
+    const bldMat   = new THREE.MeshStandardMaterial({ color: 0xbfc7cf, roughness: 0.8, metalness: 0.2 });
+    for (let i = 0; i < 120; i++) {
+      const xAlong = (Math.random() - 0.5) * 180;
+      const angle = Math.random() * Math.PI * 2;
+      if (Math.random() < 0.75) {
+        const tree = new THREE.Group();
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 4, 6), trunkMat);
+        trunk.position.y = 2;
+        const crown = new THREE.Mesh(new THREE.ConeGeometry(2.2, 5, 8), leafMat);
+        crown.position.y = 5.5;
+        tree.add(trunk, crown);
+        placeOnHull(tree, xAlong, angle);
+        intProps.add(tree);
+      } else {
+        const h = 3 + Math.random() * 8;
+        const bld = new THREE.Mesh(new THREE.BoxGeometry(3, h, 3), bldMat);
+        bld.position.y = h / 2;
+        const g = new THREE.Group(); g.add(bld);
+        placeOnHull(g, xAlong, angle);
+        intProps.add(g);
+      }
+    }
+    // 远端封盖（生物群落尽头的舱壁）
+    [-100, 100].forEach(px => {
+      const cap = new THREE.Mesh(new THREE.CircleGeometry(HAB_R, 48),
+        new THREE.MeshStandardMaterial({ color: 0x33404d, side: THREE.DoubleSide, roughness: 0.9 }));
+      cap.rotation.y = Math.PI / 2; cap.position.x = px;
+      intScene.add(cap);
+    });
+
+    /* ================= 相机与控制 ================= */
+    const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 5000);
+    camera.position.set(90, 55, 130);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 30;
+    controls.maxDistance = 600;
+
+    /* ================= 交互：视角切换 ================= */
+    let mode = 'ext';   // 'ext' | 'int'
+    let spinOn = true;
+
+    const btnExt = document.getElementById('btnExt');
+    const btnInt = document.getElementById('btnInt');
+    const btnSpin = document.getElementById('btnSpin');
+
+    const infoExt = `<b>外部视角 · 极光号</b><br/>
+      长 ${SPINE_LEN}m 中央脊柱贯通首尾；两座直径 ${RING_R*2}m 的自转环各含 12 个生物群落，
+      共 <b>24 个生态舱</b>。尾部为聚变推进，前端为星际尘埃护盾。环体自转提供离心人工重力。`;
+    const infoInt = `<b>内部生态舱视角</b><br/>
+      你正站在自转环的内壁上——脚下的大地向两侧向上弯曲，构成闭合的环形世界。
+      中轴的“阳光灯管”模拟昼夜，森林、湖泊与城镇分布其间，这里承载着飞往 Tau Ceti 的世代居民。`;
+
+    function setMode(m) {
+      mode = m;
+      btnExt.classList.toggle('active', m === 'ext');
+      btnInt.classList.toggle('active', m === 'int');
+      labelEl.style.opacity = 0;
+      if (m === 'ext') {
+        controls.minDistance = 30; controls.maxDistance = 600;
+        controls.target.set(0, 0, 0);
+        camera.position.set(90, 55, 130);
+        infoEl.innerHTML = infoExt;
+      } else {
+        controls.minDistance = 2; controls.maxDistance = 120;
+        controls.target.set(0, 0, 0);
+        camera.position.set(0, 0, 0.1); // 站在环内壁附近
+        camera.position.set(20, -HAB_R + 8, 0); // 贴近“地面”
+        controls.target.set(0, 0, 0);
+        infoEl.innerHTML = infoInt;
+      }
+      controls.update();
+    }
+    btnExt.onclick = () => setMode('ext');
+    btnInt.onclick = () => setMode('int');
+    btnSpin.onclick = () => {
+      spinOn = !spinOn;
+      btnSpin.textContent = '环体自转：' + (spinOn ? '开' : '关');
+    };
+
+    /* ================= 悬停高亮生物群落 ================= */
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let hovered = null;
+    addEventListener('pointermove', (e) => {
+      mouse.x = (e.clientX / innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+      labelEl.style.left = e.clientX + 'px';
+      labelEl.style.top  = e.clientY + 'px';
+    });
+
+    /* ================= 动画循环 ================= */
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+      const t  = clock.getElapsedTime();
+
+      // 环体自转（离心重力）
+      if (spinOn) {
+        spinRings.forEach((g, i) => { g.rotation.x += dt * (i ? -0.25 : 0.25); });
+      }
+
+      // 引擎脉动 + 尾焰粒子流动
+      const pulse = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t * 4));
+      nozzleMat.emissiveIntensity = 1.5 * pulse;
+      engineLight.intensity = 6 * pulse;
+      exhaustMat.opacity = 0.5 + 0.4 * pulse;
+      const ap = exhaustGeo.attributes.position;
+      for (let i = 0; i < EX_N; i++) {
+        const d = exData[i];
+        d.base += d.speed * 60 * dt * 0.6;
+        if (d.base > 60) d.base = 0;
+        const spread = (d.base / 60);
+        ap.array[i*3]   = -SPINE_LEN/2 - 20 - d.base;
+        ap.array[i*3+1] = d.y * (1 + spread * 2);
+        ap.array[i*3+2] = d.z * (1 + spread * 2);
+      }
+      ap.needsUpdate = true;
+
+      // 星场缓慢漂移，营造深空航行感
+      stars1.rotation.y += dt * 0.005;
+      stars2.rotation.y -= dt * 0.003;
+
+      // 外部整船极缓姿态浮动
+      if (mode === 'ext') {
+        ship.rotation.z = Math.sin(t * 0.15) * 0.02;
+        ship.rotation.y = Math.sin(t * 0.1) * 0.02;
+      }
+
+      // 内部自转（大地缓缓转动，强化离心感）
+      if (mode === 'int' && spinOn) {
+        hab.rotation.x += dt * 0.06;
+        intProps.rotation.x += dt * 0.06;
+      }
+
+      // 悬停检测（仅外部）
+      if (mode === 'ext') {
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(biomeMeshes, false);
+        if (hits.length) {
+          const obj = hits[0].object;
+          if (hovered !== obj) {
+            if (hovered) hovered.material = glassMat;
+            hovered = obj;
+          }
+          labelEl.textContent = '生态舱：' + obj.userData.biome;
+          labelEl.style.opacity = 1;
+        } else {
+          hovered = null;
+          labelEl.style.opacity = 0;
+        }
+      }
+
+      controls.update();
+      renderer.render(mode === 'ext' ? extScene : intScene, camera);
+    }
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // 初始化
+    setMode('ext');
+    loader.style.display = 'none';
+    animate();
+    </script>
+    </body>
+    </html>

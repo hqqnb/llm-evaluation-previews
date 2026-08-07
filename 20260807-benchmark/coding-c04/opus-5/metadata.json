@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c04",
+  "model_alias": "opus-5",
+  "artifact_type": "svg",
+  "artifact_file": "answer.svg",
+  "artifact_sha256": "6c115a7efad9491eabe92db2ee58740d4f4d0155a637b136e29f7c95218d6228",
+  "source_answer_sha256": "ced06e00c333bac20d9f70d88d32035efda498aeb4c1c1d6a002eb876d57f77b",
+  "external_urls": [
+    "http://www.w3.org/2000/svg",
+    "http://www.w3.org/1999/xlink",
+    "http://localhost:8080/giraffe-car.svg"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

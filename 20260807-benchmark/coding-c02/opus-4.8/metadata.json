@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c02",
+  "model_alias": "opus-4.8",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "f11efeb0eadc35f42ae7871c01136148e2c08b9f09c3344f4e5d175e2779794e",
+  "source_answer_sha256": "1f2f6d62ffb481861659f589eec968f32fc343a1468d49de9f0454c7392aa627",
+  "external_urls": [],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

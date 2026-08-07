@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "opus-4.8",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "167fae3e8665c9dde9fc60475db101066e4100279e47b3d39ef5ebd731acfc20",
+  "source_answer_sha256": "4e59cae6734b9604cf10ad53fb5bd3799fa9e4abda024abbc78b859ca7749c1e",
+  "external_urls": [
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js\\",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/\\",
+    "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/textures/planets/"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

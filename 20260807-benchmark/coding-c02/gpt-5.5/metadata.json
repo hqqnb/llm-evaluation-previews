@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c02",
+  "model_alias": "gpt-5.5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "165f27cc0f4a94afba95fe498c687a1680d3584f4333e56e934a324a4edf2ee1",
+  "source_answer_sha256": "52b53fd6d7a8acfa6fd2ad9ba7b8776564567ba209c6446679860e59424c4af3",
+  "external_urls": [],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

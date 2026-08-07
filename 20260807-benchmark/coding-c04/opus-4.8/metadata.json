@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c04",
+  "model_alias": "opus-4.8",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "ebeec0935eaef7c3621ae8ca02067180d2cc23c6510c6e1d5524eacf74245c87",
+  "source_answer_sha256": "2982164d74f98c184147fe3088335fc91cc4e81805230bdd6fe4e3429e21602b",
+  "external_urls": [
+    "http://www.w3.org/2000/svg\\",
+    "http://localhost:8000/preview.html"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

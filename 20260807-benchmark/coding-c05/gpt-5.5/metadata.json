@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c05",
+  "model_alias": "gpt-5.5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "3ce9786f4eb9aa2a48efb2da2644c4f265e461ad00e6fa190fc29be8a4877b9e",
+  "source_answer_sha256": "3704d639baf8e734b0db27269d1bb48cca4f4506e0595dd1e1a2af1090e4bcf2",
+  "external_urls": [
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "http://localhost:8000"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

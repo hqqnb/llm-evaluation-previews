@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "hy3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "b04e869b2282e41811986d091e96a97333430dbbcb495548767f94409c36df99",
+  "source_answer_sha256": "80167aa030f97c7db54957b5c6781fd2822b27b604aadcbf9baee1b4a9f7a875",
+  "external_urls": [
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

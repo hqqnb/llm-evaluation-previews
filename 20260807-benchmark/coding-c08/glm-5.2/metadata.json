@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "glm-5.2",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "ae52b2d6b5bcea367d1cf62572ed787f555147b398b7f056e0616422bc1a8ab9",
+  "source_answer_sha256": "e079e67e1ab013d89157bce578d1bdc20f7fd23c2772fe8ad59e4d8b1abc7fe8",
+  "external_urls": [
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
+  <title>Giraffe Driving a Tiny Car</title>
+
+  <!-- 天空背景 -->
+  <rect width="800" height="400" fill="#87CEEB" />
+  
+  <!-- 太阳 -->
+  <circle cx="680" cy="80" r="40" fill="#FFD700" />
+  
+  <!-- 云朵 1 (缓慢飘动) -->
+  <g fill="white" opacity="0.9">
+    <g>
+      <circle cx="100" cy="80" r="20"/>
+      <circle cx="130" cy="70" r="25"/>
+      <circle cx="160" cy="80" r="20"/>
+      <rect x="100" y="80" width="60" height="20" rx="10"/>
+      <animateTransform attributeName="transform" type="translate" from="800 0" to="-200 0" dur="15s" repeatCount="indefinite" />
+    </g>
+  </g>
+
+  <!-- 云朵 2 (更慢飘动) -->
+  <g fill="white" opacity="0.8">
+    <g>
+      <circle cx="300" cy="120" r="15"/>
+      <circle cx="320" cy="110" r="20"/>
+      <circle cx="340" cy="120" r="15"/>
+      <rect x="300" y="120" width="40" height="15" rx="7"/>
+      <animateTransform attributeName="transform" type="translate" from="800 0" to="-400 0" dur="20s" repeatCount="indefinite" />
+    </g>
+  </g>
+
+  <!-- 远山 -->
+  <path d="M0 355 Q 100 280 200 355 Q 300 280 400 355 Q 500 280 600 355 Q 700 280 800 355 Z" fill="#A5D6A7" opacity="0.6" />
+
+  <!-- 地面 -->
+  <rect x="0" y="355" width="800" height="50" fill="#8D6E63" />
+  <line x1="0" y1="355" x2="800" y2="355" stroke="#5D4037" stroke-width="2" />
+
+  <!-- 远处的草丛 (慢速后退) -->
+  <g>
+    <g fill="#388E3C">
+      <path d="M150 355 Q155 345 160 355 Z" />
+      <path d="M300 355 Q305 340 310 355 Z" />
+      <path d="M450 355 Q455 348 460 355 Z" />
+      <path d="M600 355 Q605 342 610 355 Z" />
+      <path d="M750 355 Q755 345 760 355 Z" />
+      <path d="M900 355 Q905 340 910 355 Z" />
+    </g>
+    <animateTransform attributeName="transform" type="translate" from="0 0" to="-800 0" dur="4s" repeatCount="indefinite" />
+  </g>
+
+  <!-- 近处的草丛 (快速后退，视差效果) -->
+  <g>
+    <g fill="#4CAF50">
+      <path d="M100 355 Q105 340 110 355 Z" />
+      <path d="M250 355 Q255 345 260 355 Z" />
+      <path d="M400 355 Q405 338 410 355 Z" />
+      <path d="M550 355 Q555 348 560 355 Z" />
+      <path d="M700 355 Q705 342 710 355 Z" />
+      <path d="M850 355 Q855 345 860 355 Z" />
+    </g>
+    <animateTransform attributeName="transform" type="translate" from="0 0" to="-800 0" dur="2s" repeatCount="indefinite" />
+  </g>
+
+  <!-- 汽车与长颈鹿组合 (整体带有上下颠簸动画) -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4; 0 0; 0 3; 0 0" dur="0.6s" repeatCount="indefinite" />
+    
+    <!-- 长颈鹿身体 (坐在车里) -->
+    <rect x="320" y="270" width="70" height="50" fill="#FBC02D" />
+    
+    <!-- 长颈鹿脖子 -->
+    <path d="M325 280 Q315 200 345 150 L370 150 Q360 210 380 280 Z" fill="#FBC02D" />
+    
+    <!-- 长颈鹿鬃毛 -->
+    <path d="M345 150 Q315 200 325 280" fill="none" stroke="#5D4037" stroke-width="4" stroke-dasharray="3,3" />
+    
+    <!-- 脖子上的斑点 -->
+    <circle cx="335" cy="180" r="7" fill="#795548"/>
+    <circle cx="350" cy="200" r="8" fill="#795548"/>
+    <circle cx="330" cy="220" r="6" fill="#795548"/>
+    <circle cx="345" cy="240" r="9" fill="#795548"/>
+    <circle cx="360" cy="260" r="7" fill="#795548"/>
+    <circle cx="335" cy="270" r="5" fill="#795548"/>
+    
+    <!-- 长颈鹿头部 (带有轻微摇摆动画) -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="0 360 150; 5 360 150; 0 360 150; -3 360 150; 0 360 150" dur="4s" repeatCount="indefinite" />
+      
+      <!-- 头部底色 -->
+      <ellipse cx="360" cy="130" rx="28" ry="18" fill="#FBC02D" />
+      <!-- 鼻部 -->
+      <ellipse cx="385" cy="135" rx="16" ry="12" fill="#FBC02D" />
+      <!-- 鼻孔 -->
+      <circle cx="392" cy="132" r="2" fill="#4E342E" /> 
+      <circle cx="395" cy="139" r="2" fill="#4E342E" />
+      <!-- 微笑嘴巴 -->
+      <path d="M 380 143 Q 388 148 395 142" fill="none" stroke="#4E342E" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- 眼睛 -->
+      <circle cx="355" cy="125" r="3" fill="#3E2723" />
+      <circle cx="356" cy="124" r="1" fill="white" />
+      <!-- 耳朵 -->
+      <path d="M340 120 Q325 115 330 105 Q340 110 348 120 Z" fill="#FBC02D" />
+      <!-- 角 (Ossicones) -->
+      <line x1="350" y1="118" x2="345" y2="98" stroke="#FBC02D" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="345" cy="96" r="4" fill="#795548" />
+      <line x1="362" y1="118" x2="360" y2="98" stroke="#FBC02D" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="360" cy="96" r="4" fill="#795548" />
+      <!-- 头部斑点 -->
+      <circle cx="350" cy="115" r="5" fill="#795548"/>
+      <circle cx="370" cy="125" r="4" fill="#795548"/>
+      <circle cx="345" cy="135" r="3" fill="#795548"/>
+    </g>
+    
+    <!-- 汽车底盘 -->
+    <rect x="270" y="310" width="200" height="20" rx="5" fill="#E53935" />
+    <rect x="265" y="325" width="210" height="5" rx="2" fill="#B71C1C" />
+    
+    <!-- 车尾板 (充当座椅靠背) -->
+    <rect x="270" y="270" width="55" height="40" rx="5" fill="#E53935" />
+    <!-- 车尾灯 -->
+    <rect x="270" y="280" width="5" height="10" rx="2" fill="#FFEB3B" />
+    
+    <!-- 前挡板与引擎盖 -->
+    <path d="M 420 310 L 460 310 Q 470 310 470 295 L 470 280 Q 470 270 450 270 L 420 270 Z" fill="#E53935" />
+    <!-- 挡风玻璃 -->
+    <path d="M 420 270 L 425 250 Q 430 245 440 245 L 450 245 Q 455 245 455 255 L 450 270 Z" fill="#81D4FA" opacity="0.8" />
+    <!-- 车头灯 -->
+    <circle cx="465" cy="285" r="4" fill="#FFF59D" />
+    
+    <!-- 方向盘 -->
+    <line x1="390" y1="310" x2="390" y2="285" stroke="#333" stroke-width="3"/>
+    <path d="M 375 285 Q 390 275 405 285" fill="none" stroke="#333" stroke-width="4"/>
+    
+    <!-- 长颈鹿手臂及蹄子 (搭在方向盘上) -->
+    <path d="M360 280 Q380 285 390 285" fill="none" stroke="#FBC02D" stroke-width="10" stroke-linecap="round"/>
+    <ellipse cx="390" cy="285" rx="8" ry="6" fill="#FBC02D"/>
+    <circle cx="388" cy="283" r="2" fill="#795548"/>
+    <circle cx="392" cy="287" r="2" fill="#795548"/>
+    <circle cx="375" cy="282" r="3" fill="#795548"/>
+    
+    <!-- 后车轮 (带旋转动画) -->
+    <g transform="translate(310, 330)">
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="0.5s" repeatCount="indefinite" />
+        <circle r="22" fill="#212121" />
+        <circle r="10" fill="#9E9E9E" />
+        <line x1="-22" y1="0" x2="22" y2="0" stroke="#616161" stroke-width="3"/>
+        <line x1="0" y1="-22" x2="0" y2="22" stroke="#616161" stroke-width="3"/>
+        <line x1="-15" y1="-15" x2="15" y2="15" stroke="#616161" stroke-width="3"/>
+        <line x1="-15" y1="15" x2="15" y2="-15" stroke="#616161" stroke-width="3"/>
+      </g>
+    </g>
+    
+    <!-- 前车轮 (带旋转动画) -->
+    <g transform="translate(420, 330)">
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="0.5s" repeatCount="indefinite" />
+        <circle r="22" fill="#212121" />
+        <circle r="10" fill="#9E9E9E" />
+        <line x1="-22" y1="0" x2="22" y2="0" stroke="#616161" stroke-width="3"/>
+        <line x1="0" y1="-22" x2="0" y2="22" stroke="#616161" stroke-width="3"/>
+        <line x1="-15" y1="-15" x2="15" y2="15" stroke="#616161" stroke-width="3"/>
+        <line x1="-15" y1="15" x2="15" y2="-15" stroke="#616161" stroke-width="3"/>
+      </g>
+    </g>
+    
+    <!-- 速度线 (表现风速与车速) -->
+    <g stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.4">
+      <line y1="290" y2="290">
+        <animate attributeName="x1" values="260; 50" dur="0.4s" repeatCount="indefinite" />
+        <animate attributeName="x2" values="290; 80" dur="0.4s" repeatCount="indefinite" />
+      </line>
+      <line y1="315" y2="315">
+        <animate attributeName="x1" values="240; 30" dur="0.3s" repeatCount="indefinite" />
+        <animate attributeName="x2" values="270; 60" dur="0.3s" repeatCount="indefinite" />
+      </line>
+      <line y1="335" y2="335">
+        <animate attributeName="x1" values="250; 40" dur="0.5s" repeatCount="indefinite" />
+        <animate attributeName="x2" values="280; 70" dur="0.5s" repeatCount="indefinite" />
+      </line>
+    </g>
+  </g>
+</svg>

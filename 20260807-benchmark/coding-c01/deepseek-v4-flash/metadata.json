@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c01",
+  "model_alias": "deepseek-v4-flash",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "6bf905e2433a84c8f0903d795f8e83058b3316a071444a37e5d15d576f4af87b",
+  "source_answer_sha256": "216fa553f2cadb2fc6a9a211e1da1363a8cf2adc1129de03453c0d997255c3be",
+  "external_urls": [
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/",
+    "http://localhost:8080/aurora.html`"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

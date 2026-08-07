@@ -1,0 +1,19 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "glm-5.2",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "869639baa95de5432c8b904e6aea4c953fb0f7abdbab0ce04bda061fb0295f38",
+  "source_answer_sha256": "2a7c6aae672bc0bb6d63787f7aa4726f93ecfd01b7afa6f28d1cae292b749dd3",
+  "external_urls": [
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/",
+    "https://unpkg.com/three-globe@2.31.0/example/img/earth-blue-marble.jpg",
+    "https://unpkg.com/three-globe@2.31.0/example/img/earth-night.jpg",
+    "https://unpkg.com/three-globe@2.31.0/example/img/earth-topology.png",
+    "https://unpkg.com/three-globe@2.31.0/example/img/earth-water.png",
+    "http://localhost:8000/globe.html`"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

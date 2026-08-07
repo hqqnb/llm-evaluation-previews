@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c04",
+  "model_alias": "kimi-k3",
+  "artifact_type": "svg",
+  "artifact_file": "answer.svg",
+  "artifact_sha256": "d76bc8bb6b6f0bb37a934745fa1f4c6024e1e56e8fee15c3b60467f307f23e61",
+  "source_answer_sha256": "d1b12847100b77ebfc5d296dd21a58ca0d292e1d574b3d5475a56c5bcf7df3bd",
+  "external_urls": [
+    "http://www.w3.org/2000/svg",
+    "http://localhost:8000/giraffe-drive.svg`"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

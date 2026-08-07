@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c01",
+  "model_alias": "gpt-5.5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "cc9f2447aa12be9b731a6dc2d4d9cae5266ba223a43beb1c132da6745a121fc9",
+  "source_answer_sha256": "7830cf4579e1639f03d96a16f83a90fae7c3f1d880e4210ac373f86b4404b41d",
+  "external_urls": [
+    "http://localhost:8080",
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

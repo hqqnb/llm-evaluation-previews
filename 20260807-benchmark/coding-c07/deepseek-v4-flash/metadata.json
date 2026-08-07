@@ -1,0 +1,16 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "deepseek-v4-flash",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "e6116bf4a1b2db29b01631f475a2c334f310c109ce30ef411610825eeaa58fe3",
+  "source_answer_sha256": "6be39ceebe24c9e82871f028a7806da1197999df9e69407b387bf989172e8a5a",
+  "external_urls": [
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/",
+    "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
+    "https://unpkg.com/three-globe/example/img/earth-night.jpg"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}
