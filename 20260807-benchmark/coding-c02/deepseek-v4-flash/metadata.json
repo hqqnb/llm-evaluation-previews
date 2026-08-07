@@ -4,8 +4,8 @@
   "model_alias": "deepseek-v4-flash",
   "artifact_type": "html",
   "artifact_file": "index.html",
-  "artifact_sha256": "ebad8715855ece2f6e4e6fbac8895a6ef569dfe2e7604e43cbb485596ca89a1c",
-  "source_answer_sha256": "184ee7ecc8cdebf5497656da3046b3dbc268950351413546abaacda1b1b2fd43",
+  "artifact_sha256": "3db319b795be4e79d73d60ec9b1e1e94f95dbb025553c4d6670b97e87da10990",
+  "source_answer_sha256": "de7df48b5b79ffca056468f675ead41c4342c3f183ef36c88a31cdc7683489c0",
   "external_urls": [],
   "extraction_policy": "mechanical-only-no-code-repair"
 }

@@ -4,8 +4,8 @@
   "model_alias": "deepseek-v4-flash",
   "artifact_type": "svg",
   "artifact_file": "answer.svg",
-  "artifact_sha256": "3e420009694fa31089482ecba23144cc102128ea499f44b8190d8575e3c56288",
-  "source_answer_sha256": "69636b658ebe57e6b8ac5d678c5ddf93a688279d9dfcfe9f1f2b59bfd684a245",
+  "artifact_sha256": "e85cd96e67ec559c57a82f9d07dd28ca5140bc6bf049ce78b414a0670c48d201",
+  "source_answer_sha256": "ca8430eb6b221e8bebc468b8aaf91b0be3d0a4e3058268161360b8532163821f",
   "external_urls": [
     "http://www.w3.org/2000/svg"
   ],

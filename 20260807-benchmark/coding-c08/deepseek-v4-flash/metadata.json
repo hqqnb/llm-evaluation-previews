@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "deepseek-v4-flash",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "b84f3beca1990729cf04822fc2e6888b56c5550fe7d5ed89e573212dce23258a",
+  "source_answer_sha256": "31b34d96c749a535759427d427bb932d74352764229b84567a5fc98845e45dd8",
+  "external_urls": [
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

@@ -4,11 +4,12 @@
   "model_alias": "deepseek-v4-flash",
   "artifact_type": "html",
   "artifact_file": "index.html",
-  "artifact_sha256": "977d283233dfa425a5d97b88ea3ba73d982e33488f67ab017acbcfcf0868bb06",
-  "source_answer_sha256": "5bd3627e04faa45b8122bedf252bdbe951f8d8e94fc3b94a89635382e58e843b",
+  "artifact_sha256": "247e2e1ed7480bd4f56440da89f618faad8ea802aa99c8486cf9b8b7401d4d66",
+  "source_answer_sha256": "b057d0b3e4f75d64d9f2360671b1a67ae917019d13612da399a2604b269e3781",
   "external_urls": [
-    "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "https://unpkg.com/three@0.160.0/examples/jsm/"
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js",
+    "http://localhost:8000/contact-lens-case.html`"
   ],
   "extraction_policy": "mechanical-only-no-code-repair"
 }

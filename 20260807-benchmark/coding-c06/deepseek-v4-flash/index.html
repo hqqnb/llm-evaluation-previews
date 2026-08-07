@@ -1,758 +1,801 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🏹 弓箭射击模拟游戏</title>
-<style>
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    margin: 0;
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: #1e2a34;
-    color: #eee;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  #app {
-    width: 100%;
-    max-width: 1200px;
-    padding: 20px;
-  }
-  h1 {
-    text-align: center;
-    color: #ffd700;
-    margin: 0 0 15px;
-    font-size: 28px;
-  }
-  #main {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  #gamePanel {
-    flex: 1 1 820px;
-    max-width: 820px;
-    background: #2a3945;
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
-  #topBar {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-  button {
-    background: #f1c40f;
-    border: none;
-    color: #1e2a34;
-    font-weight: bold;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 15px;
-    transition: background 0.2s;
-  }
-  button:hover {
-    background: #ffd700;
-  }
-  #timer {
-    font-size: 18px;
-    font-weight: bold;
-    color: #fff;
-  }
-  #status {
-    font-size: 14px;
-    color: #ddd;
-    flex: 1;
-    text-align: right;
-  }
-  canvas {
-    width: 100%;
-    height: auto;
-    background: #3e6b2e;
-    border-radius: 8px;
-    display: block;
-    cursor: crosshair;
-  }
-  #instructions {
-    font-size: 13px;
-    color: #aaa;
-    margin-top: 8px;
-    text-align: center;
-  }
-  #leaderboardPanel {
-    flex: 0 0 320px;
-    background: #2a3945;
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
-  #leaderboardPanel h2 {
-    margin-top: 0;
-    color: #ffd700;
-    font-size: 20px;
-    text-align: center;
-  }
-  .rankTip {
-    font-size: 12px;
-    text-align: center;
-    color: #aaa;
-    margin-top: -5px;
-    margin-bottom: 10px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-  }
-  th, td {
-    padding: 8px;
-    text-align: center;
-    border-bottom: 1px solid #3a4a55;
-  }
-  th {
-    color: #ffd700;
-  }
-  tr.highlight {
-    background: rgba(241, 196, 15, 0.15);
-  }
-  .empty {
-    color: #888;
-    padding: 20px;
-  }
-  #clearScoresBtn {
-    margin-top: 12px;
-    width: 100%;
-    background: #e74c3c;
-    color: #fff;
-  }
-  #clearScoresBtn:hover {
-    background: #ff6b5e;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏹 弓箭射击模拟游戏</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #0f2b3b, #2d5f6e);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      max-width: 1100px;
+      width: 100%;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #ffd966;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      margin: 10px 0 4px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #dce9ef;
+      margin: 0 0 18px;
+      font-size: 15px;
+    }
+    .game-area {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+      cursor: crosshair;
+      background: #000;
+    }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .overlay.hidden {
+      display: none;
+    }
+    .overlay-content {
+      background: rgba(20, 40, 60, 0.92);
+      border: 2px solid #ffd966;
+      border-radius: 16px;
+      padding: 28px 36px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+    .overlay-content p {
+      margin: 6px 0;
+      color: #eef7ff;
+    }
+    .info-bar {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 16px 0;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      padding: 14px 10px;
+    }
+    .info-bar div {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      color: #fff;
+      font-size: 15px;
+    }
+    .btn {
+      background: #ffd966;
+      color: #1b3b4f;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.15s;
+      font-family: inherit;
+    }
+    .btn:hover {
+      background: #ffed9e;
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+    .btn.small {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    .btn.gray {
+      background: #7f8c8d;
+      color: #fff;
+    }
+    .btn.gray:hover {
+      background: #95a5a6;
+    }
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    .leaderboard {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 16px;
+      padding: 16px 18px;
+      max-width: 800px;
+      margin: 20px auto 0;
+    }
+    .leaderboard h2 {
+      text-align: center;
+      color: #ffd966;
+      margin: 0 0 12px;
+    }
+    .leaderboard table {
+      width: 100%;
+      border-collapse: collapse;
+      color: #fff;
+    }
+    .leaderboard th,
+    .leaderboard td {
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      text-align: center;
+    }
+    .leaderboard th {
+      background: rgba(255, 215, 0, 0.15);
+      font-weight: 700;
+    }
+    .empty {
+      color: #aac3d0;
+      padding: 20px !important;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal.hidden {
+      display: none;
+    }
+    .modal-content {
+      background: linear-gradient(135deg, #2b5a6a, #1b3b4f);
+      border: 2px solid #ffd966;
+      border-radius: 16px;
+      padding: 30px 40px;
+      text-align: center;
+      min-width: 320px;
+      max-width: 90vw;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    }
+    .modal-content h2 {
+      color: #ffd966;
+      margin: 0 0 10px;
+    }
+    .modal-content p {
+      color: #eef7ff;
+      margin: 8px 0;
+      font-size: 16px;
+    }
+    .modal input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      margin-top: 12px;
+      text-align: center;
+      font-family: inherit;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+  </style>
 </head>
 <body>
-<div id="app">
-  <h1>🏹 弓箭射击模拟游戏</h1>
-  <div id="main">
-    <div id="gamePanel">
-      <div id="topBar">
-        <button id="startBtn">开始游戏</button>
-        <span id="timer">用时: 0.00s</span>
-        <span id="status">点击「开始游戏」开始</span>
+  <div class="container">
+    <h1>🏹 弓箭射击模拟游戏</h1>
+    <p class="subtitle">移动鼠标瞄准，点击发射；命中全部 4 个靶子，用时越短排名越高！</p>
+
+    <div class="game-area">
+      <canvas id="gameCanvas" width="1100" height="650"></canvas>
+      <div id="overlay" class="overlay">
+        <div class="overlay-content">
+          <h2>🎯 准备射击</h2>
+          <p>移动鼠标调整瞄准</p>
+          <p>白色虚线是预计弹道</p>
+          <p>鼠标离弓越远，箭速越快</p>
+          <button id="startBtn" class="btn">开始游戏</button>
+        </div>
       </div>
-      <canvas id="gameCanvas" width="800" height="600"></canvas>
-      <div id="instructions">移动鼠标瞄准，点击射击。命中全部 4 个靶子后计时结束。</div>
     </div>
-    <div id="leaderboardPanel">
+
+    <div class="info-bar">
+      <div>⏱ 用时：<span id="timerDisplay">0.00</span>s</div>
+      <div>🎯 命中：<span id="hitCount">0</span>/4</div>
+      <div>🏹 已射：<span id="arrowCount">0</span> 箭</div>
+      <div id="speedDisplay">速度：0</div>
+      <button id="resetBtn" class="btn small">重置</button>
+    </div>
+
+    <div class="leaderboard">
       <h2>🏆 排行榜</h2>
-      <p class="rankTip">用时越短，名次越高</p>
       <table>
         <thead>
           <tr>
-            <th>排名</th>
+            <th>名次</th>
+            <th>玩家</th>
             <th>用时</th>
-            <th>完成时间</th>
-            <th>备注</th>
+            <th>日期</th>
           </tr>
         </thead>
         <tbody id="leaderboardBody"></tbody>
       </table>
-      <button id="clearScoresBtn">清空排行榜</button>
     </div>
   </div>
-</div>
 
-<script>
-(() => {
-  'use strict';
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>🎯 全部命中！</h2>
+      <p>用时：<span id="finalTime">0.00</span> 秒</p>
+      <p id="rankPreview"></p>
+      <input id="playerName" type="text" maxlength="10" placeholder="输入昵称" />
+      <div class="modal-buttons">
+        <button id="saveBtn" class="btn">保存成绩</button>
+        <button id="againBtn" class="btn">再来一局</button>
+        <button id="closeModalBtn" class="btn gray">关闭</button>
+      </div>
+    </div>
+  </div>
 
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const startBtn = document.getElementById('startBtn');
-  const timerEl = document.getElementById('timer');
-  const statusEl = document.getElementById('status');
-  const leaderboardBody = document.getElementById('leaderboardBody');
-  const clearScoresBtn = document.getElementById('clearScoresBtn');
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const GROUND_Y = 580;
+    const GRAVITY = 300;
+    const BOW = { x: 125, y: 510 };
+    const SHOT_ORIGIN = { x: BOW.x, y: BOW.y };
+    const STORAGE_KEY = 'archery_leaderboard_v1';
 
-  const STORAGE_KEY = 'archery_leaderboard_v1';
-  const BOW_X = 400;
-  const BOW_Y = 545;
-
-  let state = 'idle';       // idle / playing / finished
-  let startTime = 0;
-  let elapsedTime = 0;
-  let targets = createTargets();
-  let shots = [];
-  let effects = [];
-  let lastPlayId = null;
-  let mouse = { x: 400, y: 300, inside: false };
-
-  let audioCtx = null;
-  function playTone(freq, duration, type = 'sine', volume = 0.02) {
-    try {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + duration);
-    } catch (e) {
-      // 不阻止游戏运行
-    }
-  }
-
-  function createTargets() {
-    return [
-      { id: 0, name: '左远', x: 170, y: 240, r: 36, hit: false },
-      { id: 1, name: '右远', x: 630, y: 240, r: 36, hit: false },
-      { id: 2, name: '左近', x: 120, y: 420, r: 52, hit: false },
-      { id: 3, name: '右近', x: 680, y: 420, r: 52, hit: false }
+    const targets = [
+      { id: 1, x: 330, y: 470, radius: 50, hit: false },
+      { id: 2, x: 540, y: 400, radius: 50, hit: false },
+      { id: 3, x: 760, y: 460, radius: 50, hit: false },
+      { id: 4, x: 930, y: 320, radius: 50, hit: false }
     ];
-  }
 
-  function loadScores() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      return [];
-    }
-  }
+    let state = 'idle';
+    let arrows = [];
+    const hitTargets = new Set();
+    let arrowCount = 0;
+    let startTime = 0;
+    let elapsed = 0;
+    let finalTimeValue = null;
+    let lastTime = performance.now();
+    const mouse = { x: 700, y: 300 };
 
-  function saveScores(scores) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
-    } catch (e) {
-      // 隐私模式下可能失败
-    }
-  }
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const hitCountDisplay = document.getElementById('hitCount');
+    const arrowCountDisplay = document.getElementById('arrowCount');
+    const speedDisplay = document.getElementById('speedDisplay');
+    const leaderboardBody = document.getElementById('leaderboardBody');
+    const modal = document.getElementById('modal');
+    const finalTimeDisplay = document.getElementById('finalTime');
+    const rankPreview = document.getElementById('rankPreview');
+    const playerNameInput = document.getElementById('playerName');
+    const saveBtn = document.getElementById('saveBtn');
+    const againBtn = document.getElementById('againBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
 
-  function startGame() {
-    targets = createTargets();
-    shots = [];
-    effects = [];
-    elapsedTime = 0;
-    lastPlayId = null;
-
-    timerEl.textContent = '用时: 0.00s';
-    state = 'playing';
-    startTime = performance.now();
-    startBtn.textContent = '重新开始';
-    statusEl.textContent = '游戏进行中… 已命中 0/4';
-    renderLeaderboard();
-  }
-
-  startBtn.addEventListener('click', startGame);
-
-  clearScoresBtn.addEventListener('click', () => {
-    if (confirm('确定清空排行榜吗？')) {
+    function loadRecords() {
       try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch (e) {}
-      lastPlayId = null;
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (!data) return [];
+        const arr = JSON.parse(data);
+        if (!Array.isArray(arr)) return [];
+        return arr
+          .filter(r => r && Number.isFinite(Number(r.time)))
+          .map(r => ({
+            name: String(r.name || '匿名射手'),
+            time: Number(r.time),
+            date: r.date || ''
+          }))
+          .sort((a, b) => a.time - b.time);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveRecords(records) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      } catch (e) {
+        // 本地存储不可用时静默忽略
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, function(c) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[c];
+      });
+    }
+
+    function renderLeaderboard() {
+      const records = loadRecords();
+      const top = records.slice(0, 10);
+      if (top.length === 0) {
+        leaderboardBody.innerHTML = '<tr><td colspan="4" class="empty">暂无记录，快来创造纪录吧！</td></tr>';
+        return;
+      }
+      const medals = ['🥇', '🥈', '🥉'];
+      leaderboardBody.innerHTML = top.map((r, i) => {
+        const rankText = i < 3 ? medals[i] : '#' + (i + 1);
+        const timeText = Number.isFinite(r.time) ? r.time.toFixed(2) : '--';
+        return (
+          '<tr>' +
+          '<td>' + rankText + '</td>' +
+          '<td>' + escapeHtml(r.name) + '</td>' +
+          '<td>' + timeText + 's</td>' +
+          '<td>' + escapeHtml(r.date) + '</td>' +
+          '</tr>'
+        );
+      }).join('');
+    }
+
+    function resetGameState() {
+      state = 'idle';
+      arrows = [];
+      hitTargets.clear();
+      targets.forEach(t => { t.hit = false; });
+      arrowCount = 0;
+      elapsed = 0;
+      finalTimeValue = null;
+      timerDisplay.textContent = '0.00';
+      hitCountDisplay.textContent = '0';
+      arrowCountDisplay.textContent = '0';
+      saveBtn.disabled = false;
+      saveBtn.textContent = '保存成绩';
+      modal.classList.add('hidden');
+    }
+
+    function resetGame() {
+      resetGameState();
+      overlay.classList.remove('hidden');
+    }
+
+    function startGame() {
+      resetGameState();
+      overlay.classList.add('hidden');
+      state = 'playing';
+      startTime = performance.now();
+      lastTime = performance.now();
+    }
+
+    function getAimVector() {
+      let dx = mouse.x - BOW.x;
+      let dy = mouse.y - BOW.y;
+      if (dx < 30) dx = 30;
+      const dist = Math.hypot(dx, dy);
+      const speed = Math.max(120, Math.min(1500, dist));
+      const nx = dx / dist;
+      const ny = dy / dist;
+      return { vx: nx * speed, vy: ny * speed, speed };
+    }
+
+    function update(dt) {
+      if (state === 'playing') {
+        elapsed = (performance.now() - startTime) / 1000;
+        timerDisplay.textContent = elapsed.toFixed(2);
+      }
+      const { speed } = getAimVector();
+      speedDisplay.textContent = '速度：' + Math.round(speed);
+      updateArrows(dt);
+    }
+
+    function updateArrows(dt) {
+      const STEPS = 8;
+      for (let i = arrows.length - 1; i >= 0; i--) {
+        const a = arrows[i];
+        if (a.stuck) continue;
+        const subDt = dt / STEPS;
+
+        for (let step = 0; step < STEPS; step++) {
+          if (a.stuck) break;
+
+          a.x += a.vx * subDt;
+          a.y += a.vy * subDt;
+          a.vy += GRAVITY * subDt;
+          a.angle = Math.atan2(a.vy, a.vx);
+
+          for (const t of targets) {
+            if (a.stuck) break;
+            const d = Math.hypot(a.x - t.x, a.y - t.y);
+            if (d <= t.radius) {
+              a.stuck = true;
+              if (!t.hit) {
+                t.hit = true;
+                hitTargets.add(t.id);
+                hitCountDisplay.textContent = hitTargets.size;
+                if (hitTargets.size === targets.length) {
+                  finishGame();
+                }
+              }
+              break;
+            }
+          }
+
+          if (!a.stuck) {
+            if (a.y >= GROUND_Y) {
+              a.y = GROUND_Y;
+              a.stuck = true;
+              a.angle = Math.atan2(a.vy, a.vx);
+            } else if (a.x < -50 || a.x > W + 50 || a.y < -100) {
+              arrows.splice(i, 1);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    function finishGame() {
+      state = 'finished';
+      elapsed = (performance.now() - startTime) / 1000;
+      timerDisplay.textContent = elapsed.toFixed(2);
+      finalTimeValue = Math.round(elapsed * 100) / 100;
+      finalTimeDisplay.textContent = finalTimeValue.toFixed(2);
+
+      const records = loadRecords();
+      let previewRank = 1;
+      for (const r of records) {
+        if (r.time <= finalTimeValue) previewRank++;
+        else break;
+      }
+      rankPreview.textContent = '当前成绩可进入第 ' + previewRank + ' 名（保存后更新）';
+
+      playerNameInput.value = '射手' + (records.length + 1);
+      saveBtn.disabled = false;
+      saveBtn.textContent = '保存成绩';
+      modal.classList.remove('hidden');
+      playerNameInput.focus();
+    }
+
+    function saveRecord() {
+      if (finalTimeValue === null || saveBtn.disabled) return;
+      const name = playerNameInput.value.trim() || '匿名射手';
+      const records = loadRecords();
+      const record = {
+        name: name,
+        time: finalTimeValue,
+        date: new Date().toLocaleString('zh-CN', { hour12: false })
+      };
+      records.push(record);
+      records.sort((a, b) => a.time - b.time || String(a.date).localeCompare(String(b.date)));
+      const rank = records.indexOf(record) + 1;
+      saveRecords(records.slice(0, 50));
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = '已保存 ✓';
+      rankPreview.textContent = '已保存！当前排名：第 ' + rank + ' 名';
       renderLeaderboard();
     }
-  });
 
-  function setMouseFromEvent(e) {
-    const rect = canvas.getBoundingClientRect();
-    mouse.x = (e.clientX - rect.left) * canvas.width / rect.width;
-    mouse.y = (e.clientY - rect.top) * canvas.height / rect.height;
-  }
-
-  canvas.addEventListener('mouseenter', (e) => {
-    mouse.inside = true;
-    setMouseFromEvent(e);
-  });
-
-  canvas.addEventListener('mousemove', (e) => {
-    mouse.inside = true;
-    setMouseFromEvent(e);
-  });
-
-  canvas.addEventListener('mouseleave', () => {
-    mouse.inside = false;
-  });
-
-  canvas.addEventListener('click', (e) => {
-    setMouseFromEvent(e);
-
-    if (state === 'idle') {
-      statusEl.textContent = '请先点击「开始游戏」';
-      return;
-    }
-    if (state === 'finished') {
-      statusEl.textContent = '本轮已结束，点击「重新开始」再来一局';
-      return;
+    function hideModal() {
+      modal.classList.add('hidden');
     }
 
-    shootAt(mouse.x, mouse.y);
-  });
+    function drawSky() {
+      const grd = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      grd.addColorStop(0, '#3a7bd5');
+      grd.addColorStop(1, '#b8e1f9');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, W, H);
 
-  function shootAt(x, y) {
-    const dx = x - BOW_X;
-    const dy = y - BOW_Y;
-    const dist = Math.hypot(dx, dy);
-    const duration = Math.min(0.55, 0.15 + dist / 1800);
-
-    shots.push({
-      startX: BOW_X,
-      startY: BOW_Y,
-      endX: x,
-      endY: y,
-      time: performance.now(),
-      duration,
-      resolved: false
-    });
-
-    playTone(180, 0.1, 'triangle', 0.02);
-  }
-
-  function updateShots(now) {
-    for (const shot of shots) {
-      if (shot.resolved) continue;
-      if (now - shot.time >= shot.duration) {
-        shot.resolved = true;
-        if (state === 'playing') {
-          resolveShot(shot, now);
-        }
-      }
-    }
-  }
-
-  function resolveShot(shot, now) {
-    let hitAny = false;
-    let hitNew = false;
-
-    for (const t of targets) {
-      const d = Math.hypot(shot.endX - t.x, shot.endY - t.y);
-      if (d <= t.r) {
-        hitAny = true;
-        if (!t.hit) {
-          t.hit = true;
-          hitNew = true;
-          effects.push({ type: 'ring', x: t.x, y: t.y, time: now });
-          effects.push({
-            type: 'text',
-            x: t.x,
-            y: t.y - t.r - 14,
-            text: '命中!',
-            color: '#2ecc71',
-            time: now
-          });
-          playTone(880, 0.12, 'square', 0.02);
-        }
-        break;
-      }
-    }
-
-    if (hitNew) {
-      const hitCount = targets.filter(t => t.hit).length;
-      if (state === 'playing') {
-        statusEl.textContent = `游戏进行中… 已命中 ${hitCount}/4`;
-      }
-      if (targets.every(t => t.hit)) {
-        finishGame(now);
-      }
-    } else if (hitAny) {
-      effects.push({
-        type: 'text',
-        x: shot.endX,
-        y: shot.endY - 15,
-        text: '已命中过',
-        color: '#f1c40f',
-        time: now
-      });
-    } else {
-      effects.push({
-        type: 'text',
-        x: shot.endX,
-        y: shot.endY - 15,
-        text: '脱靶',
-        color: '#e74c3c',
-        time: now
-      });
-      playTone(140, 0.15, 'sawtooth', 0.01);
-    }
-  }
-
-  function finishGame(now) {
-    state = 'finished';
-    elapsedTime = (now - startTime) / 1000;
-    timerEl.textContent = `用时: ${elapsedTime.toFixed(2)}s`;
-
-    const scores = loadScores();
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    scores.push({
-      id,
-      time: elapsedTime,
-      date: new Date().toLocaleString()
-    });
-    scores.sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
-    saveScores(scores);
-
-    lastPlayId = id;
-    const rank = scores.findIndex(s => s.id === id) + 1;
-    statusEl.textContent = `🎉 命中全部靶子！用时 ${elapsedTime.toFixed(2)} 秒，本次排名第 ${rank} 名`;
-    startBtn.textContent = '再来一局';
-
-    playTone(523, 0.15, 'square', 0.02);
-    setTimeout(() => playTone(659, 0.15, 'square', 0.02), 120);
-    setTimeout(() => playTone(784, 0.2, 'square', 0.02), 240);
-
-    renderLeaderboard();
-  }
-
-  function renderLeaderboard() {
-    leaderboardBody.innerHTML = '';
-    const scores = loadScores();
-
-    if (scores.length === 0) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = '<td colspan="4" class="empty">暂无记录</td>';
-      leaderboardBody.appendChild(tr);
-      return;
-    }
-
-    scores.slice(0, 10).forEach((s, i) => {
-      const tr = document.createElement('tr');
-      if (s.id === lastPlayId) tr.classList.add('highlight');
-
-      let rankText = `${i + 1}`;
-      if (i === 0) rankText = '🥇 1';
-      else if (i === 1) rankText = '🥈 2';
-      else if (i === 2) rankText = '🥉 3';
-
-      const mark = s.id === lastPlayId ? '⭐ 本次' : '';
-      tr.innerHTML = `
-        <td>${rankText}</td>
-        <td>${s.time.toFixed(2)}s</td>
-        <td>${s.date}</td>
-        <td>${mark}</td>
-      `;
-      leaderboardBody.appendChild(tr);
-    });
-  }
-
-  function updateEffects(now) {
-    effects = effects.filter(e => now - e.time < 1100);
-  }
-
-  function drawBackground() {
-    const sky = ctx.createLinearGradient(0, 0, 0, 220);
-    sky.addColorStop(0, '#4a90d9');
-    sky.addColorStop(1, '#bcdff1');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, 800, 220);
-
-    ctx.fillStyle = '#ffe066';
-    ctx.beginPath();
-    ctx.arc(700, 55, 28, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.beginPath();
-    ctx.ellipse(110, 70, 42, 20, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(150, 82, 35, 18, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    const ground = ctx.createLinearGradient(0, 220, 0, 600);
-    ground.addColorStop(0, '#6f9e4f');
-    ground.addColorStop(1, '#3e6b2e');
-    ctx.fillStyle = ground;
-    ctx.fillRect(0, 220, 800, 380);
-
-    ctx.strokeStyle = '#2f5d27';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, 220);
-    ctx.lineTo(800, 220);
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(50, BOW_Y + 5);
-    ctx.lineTo(750, BOW_Y + 5);
-    ctx.stroke();
-  }
-
-  function drawTarget(t) {
-    const r = t.r;
-
-    // 阴影
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
-    ctx.beginPath();
-    ctx.ellipse(t.x, t.y + r * 1.1, r * 1.5, r * 0.35, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 木支架
-    ctx.strokeStyle = '#5d3a1a';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(t.x - r * 0.55, t.y + r * 0.8);
-    ctx.lineTo(t.x - r * 1.3, t.y + r * 2.0);
-    ctx.moveTo(t.x + r * 0.55, t.y + r * 0.8);
-    ctx.lineTo(t.x + r * 1.3, t.y + r * 2.0);
-    ctx.stroke();
-
-    // 靶板外圈
-    ctx.fillStyle = '#8b5a2b';
-    ctx.beginPath();
-    ctx.arc(t.x, t.y, r + 3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 靶环
-    const rings = [
-      { ratio: 1.0, color: '#ffffff' },
-      { ratio: 0.8, color: '#2c3e50' },
-      { ratio: 0.6, color: '#2980b9' },
-      { ratio: 0.4, color: '#dd2c2c' },
-      { ratio: 0.2, color: '#f1c40f' }
-    ];
-
-    for (const ring of rings) {
-      ctx.fillStyle = ring.color;
+      ctx.fillStyle = '#ffe680';
       ctx.beginPath();
-      ctx.arc(t.x, t.y, r * ring.ratio, 0, Math.PI * 2);
+      ctx.arc(960, 80, 38, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath();
+      ctx.arc(170, 110, 26, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(205, 100, 32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(235, 112, 24, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(700, 150, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(730, 140, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(758, 152, 20, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // 已命中效果
-    if (t.hit) {
-      ctx.strokeStyle = '#2ecc71';
-      ctx.lineWidth = 5;
+    function drawGround() {
+      ctx.fillStyle = '#6baa4e';
+      ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+      ctx.fillStyle = '#87c96f';
+      ctx.fillRect(0, GROUND_Y, W, 12);
+      ctx.fillStyle = '#4d8a39';
+      for (let i = 0; i < W; i += 24) {
+        ctx.beginPath();
+        ctx.moveTo(i, GROUND_Y + 8);
+        ctx.lineTo(i + 6, GROUND_Y - 6);
+        ctx.lineTo(i + 12, GROUND_Y + 8);
+        ctx.fill();
+      }
+    }
+
+    function drawTarget(t) {
+      const cx = t.x;
+      const cy = t.y;
+      const r = t.radius;
+
+      ctx.strokeStyle = '#6d4c2f';
+      ctx.lineWidth = 10;
       ctx.beginPath();
-      ctx.arc(t.x, t.y, r + 8, 0, Math.PI * 2);
+      ctx.moveTo(cx, cy + r - 6);
+      ctx.lineTo(cx, GROUND_Y);
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillStyle = '#4a2f1a';
+      ctx.fillRect(cx - 30, GROUND_Y - 8, 60, 14);
+
       ctx.beginPath();
-      ctx.arc(t.x, t.y, r * 0.95, 0, Math.PI * 2);
+      ctx.arc(cx + 3, cy + 3, r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
       ctx.fill();
 
-      ctx.fillStyle = '#2ecc71';
-      ctx.font = `bold ${Math.round(r * 0.8)}px sans-serif`;
+      const colors = ['#f7f2ea', '#333333', '#1f6fd9', '#e03a3a', '#f6c945'];
+      const radii = [r, r * 0.78, r * 0.56, r * 0.36, r * 0.18];
+
+      for (let i = 0; i < colors.length; i++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, radii[i], 0, Math.PI * 2);
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      ctx.font = 'bold 16px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('✓', t.x, t.y);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.strokeText('T' + t.id, cx, cy - r - 16);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('T' + t.id, cx, cy - r - 16);
+
+      if (t.hit) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(46,204,113,0.25)';
+        ctx.fill();
+        ctx.strokeStyle = '#2ecc71';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        ctx.font = 'bold 52px sans-serif';
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillText('✓', cx, cy + 2);
+      }
     }
 
-    // 靶子编号
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(`靶 ${t.id + 1}`, t.x, t.y - r - 6);
-  }
+    function drawBow() {
+      const bx = BOW.x;
+      const by = BOW.y;
 
-  function drawShots(now) {
-    for (const shot of shots) {
-      const p = shot.resolved ? 1 : Math.min(1, (now - shot.time) / shot.duration);
-      const x = shot.startX + (shot.endX - shot.startX) * p;
-      const y = shot.startY + (shot.endY - shot.startY) * p;
-      const angle = Math.atan2(shot.endY - shot.startY, shot.endX - shot.startX);
-
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
-
-      ctx.strokeStyle = '#7a4a21';
-      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#7a4a2b';
+      ctx.lineWidth = 7;
       ctx.beginPath();
-      ctx.moveTo(-36, 0);
-      ctx.lineTo(0, 0);
+      ctx.moveTo(bx, by - 80);
+      ctx.quadraticCurveTo(bx + 52, by - 25, bx + 45, by);
+      ctx.quadraticCurveTo(bx + 52, by + 25, bx, by + 80);
       ctx.stroke();
 
-      ctx.fillStyle = '#c0c0c0';
+      ctx.strokeStyle = '#e8e8e8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bx, by - 80);
+      ctx.lineTo(bx - 8, by);
+      ctx.lineTo(bx, by + 80);
+      ctx.stroke();
+
+      ctx.fillStyle = '#4a2f1a';
+      ctx.fillRect(bx - 8, by - 6, 18, 12);
+    }
+
+    function drawNockedArrow() {
+      if (state === 'finished') return;
+      const { vx, vy } = getAimVector();
+      const angle = Math.atan2(vy, vx);
+
+      ctx.save();
+      ctx.translate(BOW.x, BOW.y);
+      ctx.rotate(angle);
+      ctx.lineCap = 'butt';
+      ctx.strokeStyle = '#a4713b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-32, 0);
+      ctx.lineTo(4, 0);
+      ctx.stroke();
+
+      ctx.fillStyle = '#d35400';
       ctx.beginPath();
       ctx.moveTo(10, 0);
-      ctx.lineTo(-4, -5);
-      ctx.lineTo(-4, 5);
+      ctx.lineTo(0, -4);
+      ctx.lineTo(0, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTrajectory() {
+      const { vx, vy } = getAimVector();
+      let x = SHOT_ORIGIN.x;
+      let y = SHOT_ORIGIN.y;
+      let vv = vy;
+      const dt = 1 / 30;
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([6, 10]);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (let i = 0; i < 80; i++) {
+        x += vx * dt;
+        y += vv * dt;
+        vv += GRAVITY * dt;
+        if (y >= GROUND_Y || x < -20 || x > W + 20) break;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawMouseHint() {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, 9, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(mouse.x - 15, mouse.y);
+      ctx.lineTo(mouse.x + 15, mouse.y);
+      ctx.moveTo(mouse.x, mouse.y - 15);
+      ctx.lineTo(mouse.x, mouse.y + 15);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawArrow(a) {
+      ctx.save();
+      ctx.translate(a.x, a.y);
+      ctx.rotate(a.angle);
+      ctx.lineCap = 'butt';
+      ctx.strokeStyle = '#9c6b3c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-30, 0);
+      ctx.lineTo(4, 0);
+      ctx.stroke();
+
+      ctx.fillStyle = '#d35400';
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.lineTo(-1, -5);
+      ctx.lineTo(-1, 5);
       ctx.closePath();
       ctx.fill();
 
       ctx.fillStyle = '#e74c3c';
       ctx.beginPath();
-      ctx.moveTo(-36, 0);
-      ctx.lineTo(-46, -6);
-      ctx.lineTo(-46, 6);
+      ctx.moveTo(-30, -4);
+      ctx.lineTo(-21, 0);
+      ctx.lineTo(-30, 4);
       ctx.closePath();
       ctx.fill();
-
       ctx.restore();
     }
-  }
 
-  function drawEffects(now) {
-    for (const effect of effects) {
-      const age = now - effect.time;
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      drawSky();
+      drawGround();
 
-      if (effect.type === 'ring') {
-        if (age > 0.6) continue;
-        const progress = age / 0.6;
-        const radius = 10 + progress * 60;
-        const alpha = 1 - progress;
-        ctx.strokeStyle = `rgba(46,204,113,${alpha})`;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(effect.x, effect.y, radius, 0, Math.PI * 2);
-        ctx.stroke();
+      targets.forEach(drawTarget);
+      drawBow();
+      drawNockedArrow();
+
+      if (state === 'playing') {
+        drawTrajectory();
+        drawMouseHint();
       }
 
-      if (effect.type === 'text') {
-        if (age > 1.0) continue;
-        const alpha = 1 - age;
-        ctx.globalAlpha = Math.max(0, alpha);
-        ctx.font = 'bold 22px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = effect.color || '#fff';
-        ctx.fillText(effect.text, effect.x, effect.y - age * 35);
-        ctx.globalAlpha = 1;
-      }
-    }
-  }
-
-  function drawBow() {
-    const angle = Math.atan2(mouse.y - BOW_Y, mouse.x - BOW_X);
-
-    ctx.save();
-    ctx.translate(BOW_X, BOW_Y);
-    ctx.rotate(angle);
-
-    // 搭在弓上的箭
-    ctx.strokeStyle = '#7a4a21';
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.moveTo(18, 0);
-    ctx.lineTo(74, 0);
-    ctx.stroke();
-
-    ctx.fillStyle = '#c0c0c0';
-    ctx.beginPath();
-    ctx.moveTo(84, 0);
-    ctx.lineTo(68, -6);
-    ctx.lineTo(68, 6);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#e74c3c';
-    ctx.beginPath();
-    ctx.moveTo(18, 0);
-    ctx.lineTo(6, -6);
-    ctx.lineTo(6, 6);
-    ctx.closePath();
-    ctx.fill();
-
-    // 弓身
-    ctx.strokeStyle = '#5d3a1a';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.arc(0, 0, 32, -1.2, 1.2);
-    ctx.stroke();
-
-    // 弓弦
-    ctx.strokeStyle = '#ddd';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(-1.2) * 32, Math.sin(-1.2) * 32);
-    ctx.lineTo(Math.cos(1.2) * 32, Math.sin(1.2) * 32);
-    ctx.stroke();
-
-    // 握把
-    ctx.fillStyle = '#8b5a2b';
-    ctx.beginPath();
-    ctx.arc(0, 0, 6, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  function drawCrosshair() {
-    if (!mouse.inside) return;
-
-    const x = mouse.x;
-    const y = mouse.y;
-
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(x, y, 10, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(x - 16, y);
-    ctx.lineTo(x - 5, y);
-    ctx.moveTo(x + 5, y);
-    ctx.lineTo(x + 16, y);
-    ctx.moveTo(x, y - 16);
-    ctx.lineTo(x, y - 5);
-    ctx.moveTo(x, y + 5);
-    ctx.lineTo(x, y + 16);
-    ctx.stroke();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.beginPath();
-    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function draw(now) {
-    ctx.clearRect(0, 0, 800, 600);
-    drawBackground();
-
-    // 先画远处靶子，再画近处靶子
-    const sortedTargets = [...targets].sort((a, b) => a.y - b.y);
-    for (const t of sortedTargets) {
-      drawTarget(t);
+      arrows.forEach(drawArrow);
     }
 
-    drawShots(now);
-    drawEffects(now);
-    drawBow();
-    drawCrosshair();
-  }
-
-  function loop(now) {
-    if (state === 'playing') {
-      elapsedTime = (now - startTime) / 1000;
-      timerEl.textContent = `用时: ${elapsedTime.toFixed(2)}s`;
+    function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
     }
 
-    updateShots(now);
-    updateEffects(now);
-    draw(now);
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = (e.clientX - rect.left) * (W / rect.width);
+      mouse.y = (e.clientY - rect.top) * (H / rect.height);
+    });
 
+    canvas.addEventListener('click', () => {
+      if (state !== 'playing') return;
+      const { vx, vy } = getAimVector();
+      arrows.push({
+        x: SHOT_ORIGIN.x,
+        y: SHOT_ORIGIN.y,
+        vx,
+        vy,
+        angle: Math.atan2(vy, vx),
+        stuck: false
+      });
+      arrowCount++;
+      arrowCountDisplay.textContent = arrowCount;
+    });
+
+    startBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+    saveBtn.addEventListener('click', saveRecord);
+    againBtn.addEventListener('click', startGame);
+    closeModalBtn.addEventListener('click', hideModal);
+    playerNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveBtn.click();
+    });
+
+    renderLeaderboard();
     requestAnimationFrame(loop);
-  }
-
-  renderLeaderboard();
-  requestAnimationFrame(loop);
-})();
-</script>
+  </script>
 </body>
 </html>
