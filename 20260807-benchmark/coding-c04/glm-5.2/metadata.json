@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c04",
+  "model_alias": "glm-5.2",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "e714dd52002256d862bc224e631a7965918ec9c55469ea813c548c494db33a0c",
+  "source_answer_sha256": "a379e76aadb81a725ef3b7c74b51145fb067b0d10f505dbd351b245a52b3977b",
+  "external_urls": [
+    "http://www.w3.org/2000/svg"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}
