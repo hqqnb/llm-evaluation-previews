@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "kimi-k3-retry",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "c110f219209e388923e20cc58db8011071d95a8de1727b53524e56cbb678757e",
+  "source": "user-provided-web-retry-2026-08-07",
+  "extraction_policy": "user-supplied-runnable-retry",
+  "repair": "replaced CapsuleGeometry (not in r128) with CylinderGeometry"
+}
