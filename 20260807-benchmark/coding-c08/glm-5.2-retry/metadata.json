@@ -1,0 +1,10 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "glm-5.2-retry",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "83377f38a285d5c772da35607dd7e23485e8561bfd19c403abdefb2c616c5a80",
+  "source": "user-provided-web-retry-2026-08-07",
+  "extraction_policy": "user-supplied-runnable-retry"
+}
