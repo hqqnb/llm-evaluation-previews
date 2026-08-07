@@ -376,8 +376,8 @@ function refreshTip(){
 }
 function updateHUD(){
   caps.forEach(c=>{
-    c.chip.classList.toggle('open',c.open);
-    c.chip.querySelector('.st').textContent=c.open?'已打开':'已关闭';
+    c.cfg.chip.classList.toggle('open',c.open);
+    c.cfg.chip.querySelector('.st').textContent=c.open?'已打开':'已关闭';
   });
 }
 function toggle(i,silent){
