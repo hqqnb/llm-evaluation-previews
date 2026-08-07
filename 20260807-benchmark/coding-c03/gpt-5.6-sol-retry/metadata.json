@@ -1,0 +1,10 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c03",
+  "model_alias": "gpt-5.6-sol-retry",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "2b6d0f917e974830515e60885243983765bbf8d09aabd7e9fd0b304884102800",
+  "source": "collector-retry-2026-08-07",
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

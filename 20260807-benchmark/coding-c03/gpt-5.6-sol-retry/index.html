@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  />
+  <title>Three.js 隐形眼镜盒</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family:
+        Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 25%, #28465a 0%, #142634 42%, #08131c 100%);
+    }
+
+    body {
+      position: relative;
+    }
+
+    #app,
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      touch-action: none;
+      outline: none;
+    }
+
+    .panel {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      width: min(340px, calc(100vw - 40px));
+      padding: 18px;
+      color: #f8fbff;
+      background: rgba(7, 20, 30, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 18px;
+      box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      pointer-events: none;
+    }
+
+    .panel h1 {
+      margin: 0 0 8px;
+      font-size: clamp(20px, 3vw, 28px);
+      line-height: 1.15;
+      letter-spacing: 0.02em;
+    }
+
+    .panel p {
+      margin: 0;
+      color: rgba(236, 246, 255, 0.72);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      margin-top: 12px;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 12px;
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .dot.left {
+      color: #48b9ff;
+      background: currentColor;
+    }
+
+    .dot.right {
+      color: #ff729e;
+      background: currentColor;
+    }
+
+    .toolbar {
+      position: fixed;
+      left: 50%;
+      bottom: max(20px, env(safe-area-inset-bottom));
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+      padding: 8px;
+      transform: translateX(-50%);
+      background: rgba(7, 20, 30, 0.64);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    button {
+      min-width: 96px;
+      padding: 10px 14px;
+      color: #f4f9ff;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 11px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition:
+        transform 150ms ease,
+        background 150ms ease,
+        border-color 150ms ease;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.28);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:focus-visible {
+      outline: 2px solid #8fd7ff;
+      outline-offset: 2px;
+    }
+
+    .loading {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: #0b1720;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      transition:
+        opacity 400ms ease,
+        visibility 400ms ease;
+    }
+
+    .loading.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    @media (max-width: 600px) {
+      .panel {
+        top: 12px;
+        left: 12px;
+        width: calc(100vw - 24px);
+        padding: 14px 15px;
+      }
+
+      .panel p {
+        font-size: 12px;
+      }
+
+      .legend {
+        margin-top: 8px;
+      }
+
+      .toolbar {
+        width: calc(100vw - 24px);
+      }
+
+      button {
+        flex: 1;
+        min-width: 0;
+        padding-inline: 8px;
+      }
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div id="app" aria-label="可交互的隐形眼镜盒 3D 模型"></div>
+
+  <section class="panel">
+    <h1>隐形眼镜盒</h1>
+    <p>
+      点击带有 <strong>L</strong> 或 <strong>R</strong> 标识的盒盖即可独立打开或关闭。
+      拖动旋转视角，滚轮或双指缩放。
+    </p>
+    <div class="legend">
+      <span><i class="dot left"></i>L · 左眼</span>
+      <span><i class="dot right"></i>R · 右眼</span>
+    </div>
+  </section>
+
+  <nav class="toolbar" aria-label="模型控制">
+    <button id="toggleAll" type="button">全部打开</button>
+    <button id="resetView" type="button">重置视角</button>
+  </nav>
+
+  <div id="loading" class="loading">正在构建 3D 模型…</div>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    const app = document.querySelector("#app");
+    const loading = document.querySelector("#loading");
+    const toggleAllButton = document.querySelector("#toggleAll");
+    const resetViewButton = document.querySelector("#resetView");
+
+    // -------------------------------------------------------------------------
+    // 基础场景
+    // -------------------------------------------------------------------------
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0c1b26, 0.045);
+
+    const camera = new THREE.PerspectiveCamera(
+      40,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
+    camera.position.set(6.6, 5.1, 7.9);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: "high-performance"
+    });
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    app.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.065;
+    controls.target.set(0, 0.6, 0);
+    controls.minDistance = 5;
+    controls.maxDistance = 16;
+    controls.minPolarAngle = 0.28;
+    controls.maxPolarAngle = Math.PI * 0.49;
+
+    const defaultCameraPosition = camera.position.clone();
+    const defaultTarget = controls.target.clone();
+
+    // -------------------------------------------------------------------------
+    // 灯光
+    // -------------------------------------------------------------------------
+
+    const hemisphereLight = new THREE.HemisphereLight(0xc9edff, 0x17222a, 2.1);
+    scene.add(hemisphereLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 4.5);
+    keyLight.position.set(4.5, 8, 5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(2048, 2048);
+    keyLight.shadow.camera.left = -7;
+    keyLight.shadow.camera.right = 7;
+    keyLight.shadow.camera.top = 7;
+    keyLight.shadow.camera.bottom = -7;
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 25;
+    keyLight.shadow.bias = -0.0003;
+    scene.add(keyLight);
+
+    const blueFill = new THREE.PointLight(0x55bfff, 18, 10, 2);
+    blueFill.position.set(-4, 2.7, 2.7);
+    scene.add(blueFill);
+
+    const pinkFill = new THREE.PointLight(0xff789f, 14, 9, 2);
+    pinkFill.position.set(4, 2.5, 1.8);
+    scene.add(pinkFill);
+
+    // -------------------------------------------------------------------------
+    // 地面
+    // -------------------------------------------------------------------------
+
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(11, 96),
+      new THREE.MeshStandardMaterial({
+        color: 0x132735,
+        roughness: 0.76,
+        metalness: 0.08
+      })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.03;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const floorGlow = new THREE.Mesh(
+      new THREE.RingGeometry(2.4, 5.5, 96),
+      new THREE.MeshBasicMaterial({
+        color: 0x437b96,
+        transparent: true,
+        opacity: 0.075,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+    floorGlow.rotation.x = -Math.PI / 2;
+    floorGlow.position.y = -0.015;
+    scene.add(floorGlow);
+
+    // -------------------------------------------------------------------------
+    // 材质
+    // -------------------------------------------------------------------------
+
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xf2f7fa,
+      roughness: 0.32,
+      metalness: 0.02,
+      clearcoat: 0.45,
+      clearcoatRoughness: 0.2
+    });
+
+    const baseSideMaterial = new THREE.MeshStandardMaterial({
+      color: 0xcad7dd,
+      roughness: 0.5
+    });
+
+    const leftMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x159be8,
+      roughness: 0.25,
+      metalness: 0.04,
+      clearcoat: 0.8,
+      clearcoatRoughness: 0.15
+    });
+
+    const rightMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xf04d82,
+      roughness: 0.25,
+      metalness: 0.04,
+      clearcoat: 0.8,
+      clearcoatRoughness: 0.15
+    });
+
+    const hingeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xb8c7ce,
+      roughness: 0.35,
+      metalness: 0.46
+    });
+
+    const wellMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xa6deee,
+      roughness: 0.18,
+      transmission: 0.45,
+      transparent: true,
+      opacity: 0.78,
+      thickness: 0.35,
+      ior: 1.33,
+      clearcoat: 1
+    });
+
+    const innerShadowMaterial = new THREE.MeshStandardMaterial({
+      color: 0x3d6574,
+      roughness: 0.22,
+      metalness: 0.02
+    });
+
+    // -------------------------------------------------------------------------
+    // 几何辅助函数
+    // -------------------------------------------------------------------------
+
+    function createRoundedRectShape(width, depth, radius) {
+      const x = -width / 2;
+      const y = -depth / 2;
+      const shape = new THREE.Shape();
+
+      shape.moveTo(x + radius, y);
+      shape.lineTo(x + width - radius, y);
+      shape.quadraticCurveTo(x + width, y, x + width, y + radius);
+      shape.lineTo(x + width, y + depth - radius);
+      shape.quadraticCurveTo(
+        x + width,
+        y + depth,
+        x + width - radius,
+        y + depth
+      );
+      shape.lineTo(x + radius, y + depth);
+      shape.quadraticCurveTo(x, y + depth, x, y + depth - radius);
+      shape.lineTo(x, y + radius);
+      shape.quadraticCurveTo(x, y, x + radius, y);
+
+      return shape;
+    }
+
+    function enableShadows(object) {
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+    }
+
+    function createLabelTexture(letter, subtitle, accentColor) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 512;
+
+      const context = canvas.getContext("2d");
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      const glow = context.createRadialGradient(256, 230, 30, 256, 230, 220);
+      glow.addColorStop(0, "rgba(255,255,255,0.28)");
+      glow.addColorStop(1, "rgba(255,255,255,0)");
+
+      context.fillStyle = glow;
+      context.fillRect(0, 0, 512, 512);
+
+      context.beginPath();
+      context.arc(256, 250, 183, 0, Math.PI * 2);
+      context.fillStyle = "rgba(3, 18, 30, 0.20)";
+      context.fill();
+
+      context.lineWidth = 13;
+      context.strokeStyle = "rgba(255,255,255,0.88)";
+      context.stroke();
+
+      context.shadowColor = "rgba(0,0,0,0.28)";
+      context.shadowBlur = 20;
+      context.shadowOffsetY = 8;
+
+      context.fillStyle = "#ffffff";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.font = '900 250px Arial, "Microsoft YaHei", sans-serif';
+      context.fillText(letter, 256, 220);
+
+      context.shadowBlur = 0;
+      context.shadowOffsetY = 0;
+      context.font = '700 38px Arial, "Microsoft YaHei", sans-serif';
+      context.letterSpacing = "8px";
+      context.fillStyle = "rgba(255,255,255,0.92)";
+      context.fillText(subtitle, 256, 386);
+
+      context.beginPath();
+      context.arc(256, 438, 10, 0, Math.PI * 2);
+      context.fillStyle = accentColor;
+      context.fill();
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return texture;
+    }
+
+    // -------------------------------------------------------------------------
+    // 盒体
+    // -------------------------------------------------------------------------
+
+    const caseGroup = new THREE.Group();
+    caseGroup.rotation.y = 0;
+    scene.add(caseGroup);
+
+    const baseGeometry = new THREE.ExtrudeGeometry(
+      createRoundedRectShape(5.35, 2.3, 0.58),
+      {
+        depth: 0.42,
+        steps: 1,
+        bevelEnabled: true,
+        bevelSegments: 5,
+        bevelSize: 0.09,
+        bevelThickness: 0.08,
+        curveSegments: 24
+      }
+    );
+
+    baseGeometry.rotateX(-Math.PI / 2);
+
+    const base = new THREE.Mesh(baseGeometry, baseMaterial);
+    base.position.y = 0.22;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    caseGroup.add(base);
+
+    // 底部略深色的装饰层。
+    const lowerBaseGeometry = new THREE.ExtrudeGeometry(
+      createRoundedRectShape(5.18, 2.12, 0.5),
+      {
+        depth: 0.22,
+        bevelEnabled: true,
+        bevelSegments: 3,
+        bevelSize: 0.05,
+        bevelThickness: 0.05,
+        curveSegments: 20
+      }
+    );
+
+    lowerBaseGeometry.rotateX(-Math.PI / 2);
+
+    const lowerBase = new THREE.Mesh(lowerBaseGeometry, baseSideMaterial);
+    lowerBase.position.y = 0.11;
+    lowerBase.castShadow = true;
+    lowerBase.receiveShadow = true;
+    caseGroup.add(lowerBase);
+
+    // 中间连接装饰。
+    const bridge = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.23, 0.45, 10, 24),
+      baseMaterial
+    );
+    bridge.rotation.z = Math.PI / 2;
+    bridge.scale.set(1, 1.1, 0.85);
+    bridge.position.set(0, 0.72, 0);
+    bridge.castShadow = true;
+    bridge.receiveShadow = true;
+    caseGroup.add(bridge);
+
+    // -------------------------------------------------------------------------
+    // 储液槽
+    // -------------------------------------------------------------------------
+
+    function createWell(x) {
+      const wellGroup = new THREE.Group();
+      wellGroup.position.x = x;
+
+      const cavity = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.78, 0.72, 0.12, 64),
+        innerShadowMaterial
+      );
+      cavity.position.y = 0.68;
+      cavity.receiveShadow = true;
+      wellGroup.add(cavity);
+
+      const liquid = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.68, 0.67, 0.045, 64),
+        wellMaterial
+      );
+      liquid.position.y = 0.755;
+      liquid.receiveShadow = true;
+      wellGroup.add(liquid);
+
+      const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.78, 0.085, 18, 64),
+        baseMaterial
+      );
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = 0.75;
+      rim.castShadow = true;
+      rim.receiveShadow = true;
+      wellGroup.add(rim);
+
+      // 液体高光。
+      const highlight = new THREE.Mesh(
+        new THREE.CircleGeometry(0.29, 40),
+        new THREE.MeshBasicMaterial({
+          color: 0xe8fbff,
+          transparent: true,
+          opacity: 0.18,
+          depthWrite: false
+        })
+      );
+      highlight.rotation.x = -Math.PI / 2;
+      highlight.position.set(-0.2, 0.785, -0.15);
+      highlight.scale.y = 0.52;
+      wellGroup.add(highlight);
+
+      caseGroup.add(wellGroup);
+    }
+
+    createWell(-1.48);
+    createWell(1.48);
+
+    // -------------------------------------------------------------------------
+    // 可开合盒盖
+    // -------------------------------------------------------------------------
+
+    const lids = [];
+    const clickableObjects = [];
+
+    function createLid({
+      x,
+      letter,
+      subtitle,
+      material,
+      accentColor
+    }) {
+      const hingeZ = -0.88;
+
+      // 这个 Group 是盒盖的旋转支点。
+      const lidPivot = new THREE.Group();
+      lidPivot.position.set(x, 0.76, hingeZ);
+      lidPivot.userData.open = false;
+      lidPivot.userData.targetRotation = 0;
+      lidPivot.userData.letter = letter;
+      caseGroup.add(lidPivot);
+
+      const cap = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.93, 0.94, 0.2, 72, 2),
+        material
+      );
+      cap.position.set(0, 0.13, -hingeZ);
+      cap.castShadow = true;
+      cap.receiveShadow = true;
+      cap.userData.lid = lidPivot;
+      lidPivot.add(cap);
+
+      const upperRim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.82, 0.055, 16, 72),
+        new THREE.MeshPhysicalMaterial({
+          color: 0xffffff,
+          roughness: 0.16,
+          metalness: 0.03,
+          transparent: true,
+          opacity: 0.52,
+          clearcoat: 1
+        })
+      );
+      upperRim.rotation.x = Math.PI / 2;
+      upperRim.position.set(0, 0.238, -hingeZ);
+      upperRim.castShadow = true;
+      upperRim.userData.lid = lidPivot;
+      lidPivot.add(upperRim);
+
+      // 盖子底部内衬，打开后可见。
+      const underside = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.77, 0.81, 0.035, 64),
+        new THREE.MeshStandardMaterial({
+          color: 0xe8f0f2,
+          roughness: 0.4
+        })
+      );
+      underside.position.set(0, 0.012, -hingeZ);
+      underside.castShadow = true;
+      underside.receiveShadow = true;
+      underside.userData.lid = lidPivot;
+      lidPivot.add(underside);
+
+      const innerRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.69, 0.035, 12, 64),
+        new THREE.MeshStandardMaterial({
+          color: 0xaebdc3,
+          roughness: 0.42
+        })
+      );
+      innerRing.rotation.x = Math.PI / 2;
+      innerRing.position.set(0, -0.009, -hingeZ);
+      innerRing.userData.lid = lidPivot;
+      lidPivot.add(innerRing);
+
+      // L/R 纹理标识。
+      const labelTexture = createLabelTexture(
+        letter,
+        subtitle,
+        accentColor
+      );
+
+      const label = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.42, 1.42),
+        new THREE.MeshBasicMaterial({
+          map: labelTexture,
+          transparent: true,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+          toneMapped: false
+        })
+      );
+      label.rotation.x = -Math.PI / 2;
+      label.position.set(0, 0.245, -hingeZ);
+      label.userData.lid = lidPivot;
+      lidPivot.add(label);
+
+      // 铰链固定部分。
+      const hinge = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.115, 0.115, 1.02, 32),
+        hingeMaterial
+      );
+      hinge.rotation.z = Math.PI / 2;
+      hinge.position.set(x, 0.74, hingeZ);
+      hinge.castShadow = true;
+      hinge.receiveShadow = true;
+      caseGroup.add(hinge);
+
+      // 铰链两端。
+      for (const side of [-1, 1]) {
+        const hingeEnd = new THREE.Mesh(
+          new THREE.SphereGeometry(0.125, 24, 16),
+          hingeMaterial
+        );
+        hingeEnd.position.set(x + side * 0.51, 0.74, hingeZ);
+        hingeEnd.castShadow = true;
+        caseGroup.add(hingeEnd);
+      }
+
+      enableShadows(lidPivot);
+
+      clickableObjects.push(cap, upperRim, underside, innerRing, label);
+      lids.push(lidPivot);
+
+      return lidPivot;
+    }
+
+    createLid({
+      x: -1.48,
+      letter: "L",
+      subtitle: "LEFT",
+      material: leftMaterial,
+      accentColor: "#6bd0ff"
+    });
+
+    createLid({
+      x: 1.48,
+      letter: "R",
+      subtitle: "RIGHT",
+      material: rightMaterial,
+      accentColor: "#ff9dbe"
+    });
+
+    // -------------------------------------------------------------------------
+    // 点击、悬停与动画
+    // -------------------------------------------------------------------------
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const pointerStart = new THREE.Vector2();
+    let pointerMoved = false;
+    let hoveredLid = null;
+
+    function updatePointer(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    }
+
+    function getIntersectedLid() {
+      raycaster.setFromCamera(pointer, camera);
+      const intersections = raycaster.intersectObjects(
+        clickableObjects,
+        false
+      );
+
+      return intersections.length
+        ? intersections[0].object.userData.lid
+        : null;
+    }
+
+    function setLidOpen(lid, open) {
+      lid.userData.open = open;
+      // 负值表示绕 X 轴向后打开，略大于 100 度。
+      lid.userData.targetRotation = open ? -1.92 : 0;
+    }
+
+    function toggleLid(lid) {
+      setLidOpen(lid, !lid.userData.open);
+      updateToggleAllButton();
+    }
+
+    function updateToggleAllButton() {
+      const allOpen = lids.every((lid) => lid.userData.open);
+      toggleAllButton.textContent = allOpen ? "全部关闭" : "全部打开";
+    }
+
+    renderer.domElement.addEventListener("pointerdown", (event) => {
+      pointerStart.set(event.clientX, event.clientY);
+      pointerMoved = false;
+    });
+
+    renderer.domElement.addEventListener("pointermove", (event) => {
+      if (
+        Math.hypot(
+          event.clientX - pointerStart.x,
+          event.clientY - pointerStart.y
+        ) > 5
+      ) {
+        pointerMoved = true;
+      }
+
+      updatePointer(event);
+      hoveredLid = getIntersectedLid();
+      renderer.domElement.style.cursor = hoveredLid ? "pointer" : "grab";
+    });
+
+    renderer.domElement.addEventListener("pointerup", (event) => {
+      if (pointerMoved) return;
+
+      updatePointer(event);
+      const lid = getIntersectedLid();
+
+      if (lid) {
+        toggleLid(lid);
+      }
+    });
+
+    renderer.domElement.addEventListener("pointerleave", () => {
+      hoveredLid = null;
+      renderer.domElement.style.cursor = "grab";
+    });
+
+    toggleAllButton.addEventListener("click", () => {
+      const shouldOpen = !lids.every((lid) => lid.userData.open);
+      lids.forEach((lid) => setLidOpen(lid, shouldOpen));
+      updateToggleAllButton();
+    });
+
+    resetViewButton.addEventListener("click", () => {
+      camera.position.copy(defaultCameraPosition);
+      controls.target.copy(defaultTarget);
+      controls.update();
+    });
+
+    // -------------------------------------------------------------------------
+    // 响应式和渲染循环
+    // -------------------------------------------------------------------------
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min(clock.getDelta(), 0.05);
+      const smoothing = 1 - Math.exp(-8.5 * delta);
+
+      for (const lid of lids) {
+        lid.rotation.x = THREE.MathUtils.lerp(
+          lid.rotation.x,
+          lid.userData.targetRotation,
+          smoothing
+        );
+      }
+
+      // 悬停时让盒盖产生轻微高亮。
+      for (const lid of lids) {
+        const cap = lid.children.find(
+          (child) =>
+            child.isMesh &&
+            child.geometry?.type === "CylinderGeometry" &&
+            child.position.y > 0.1
+        );
+
+        if (cap?.material?.emissive) {
+          const targetIntensity = lid === hoveredLid ? 0.16 : 0;
+          cap.material.emissive.set(
+            lid.userData.letter === "L" ? 0x158dcc : 0xcc315f
+          );
+          cap.material.emissiveIntensity = THREE.MathUtils.lerp(
+            cap.material.emissiveIntensity,
+            targetIntensity,
+            smoothing
+          );
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    updateToggleAllButton();
+    animate();
+
+    requestAnimationFrame(() => {
+      loading.classList.add("hidden");
+    });
+  </script>
+</body>
+</html>
