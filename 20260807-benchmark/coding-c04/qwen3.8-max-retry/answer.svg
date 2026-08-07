@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <!-- SKY -->
+  <rect width="800" height="600" fill="#bde0fe"/>
+
+  <!-- SUN -->
+  <circle cx="680" cy="90" r="45" fill="#ffd166">
+    <animate attributeName="r" values="45;49;45" dur="3s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- DRIFTING CLOUDS -->
+  <g fill="#ffffff" opacity="0.95">
+    <g>
+      <animateTransform attributeName="transform" type="translate" from="850 0" to="-250 0" dur="16s" repeatCount="indefinite"/>
+      <ellipse cx="0" cy="110" rx="55" ry="22"/>
+      <ellipse cx="42" cy="95" rx="40" ry="20"/>
+      <ellipse cx="-42" cy="100" rx="35" ry="17"/>
+    </g>
+    <g>
+      <animateTransform attributeName="transform" type="translate" from="900 0" to="-300 0" dur="24s" begin="-9s" repeatCount="indefinite"/>
+      <ellipse cx="0" cy="190" rx="48" ry="18"/>
+      <ellipse cx="36" cy="177" rx="32" ry="15"/>
+    </g>
+  </g>
+
+  <!-- HILLS -->
+  <ellipse cx="150" cy="500" rx="260" ry="90" fill="#a7d7a9"/>
+  <ellipse cx="620" cy="510" rx="300" ry="100" fill="#95d5b2"/>
+
+  <!-- GROUND & ROAD -->
+  <rect y="480" width="800" height="120" fill="#74c69d"/>
+  <rect y="500" width="800" height="62" fill="#6c757d"/>
+
+  <!-- MOVING ROAD DASHES (car is driving right) -->
+  <line x1="0" y1="531" x2="800" y2="531" stroke="#ffd166" stroke-width="8" stroke-dasharray="50 70">
+    <animate attributeName="stroke-dashoffset" from="0" to="120" dur="0.5s" repeatCount="indefinite"/>
+  </line>
+
+  <!-- PASSING BUSH -->
+  <g fill="#40916c">
+    <animateTransform attributeName="transform" type="translate" from="860 0" to="-160 0" dur="7s" repeatCount="indefinite"/>
+    <circle cx="0" cy="492" r="16"/>
+    <circle cx="18" cy="496" r="12"/>
+    <circle cx="-16" cy="496" r="11"/>
+  </g>
+
+  <!-- EXHAUST PUFFS -->
+  <g fill="#ced4da">
+    <circle cx="255" cy="470" r="6" opacity="0.8">
+      <animate attributeName="cx" values="255;190" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="470;440" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="5;14" dur="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0" dur="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="255" cy="470" r="6" opacity="0.8">
+      <animate attributeName="cx" values="255;190" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="470;440" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="5;14" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="255" cy="470" r="6" opacity="0.8">
+      <animate attributeName="cx" values="255;190" dur="1.2s" begin="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="470;440" dur="1.2s" begin="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="5;14" dur="1.2s" begin="0.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0" dur="1.2s" begin="0.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- CAR + GIRAFFE (bounces together) -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0 0; 0 -5; 0 0" dur="0.5s" repeatCount="indefinite"/>
+
+    <!-- GIRAFFE -->
+    <g>
+      <!-- mane (behind neck) -->
+      <line x1="393" y1="410" x2="461" y2="182" stroke="#c98136" stroke-width="10" stroke-linecap="round"/>
+      <!-- neck -->
+      <line x1="408" y1="425" x2="478" y2="180" stroke="#f4a83c" stroke-width="42" stroke-linecap="round"/>
+      <!-- spots -->
+      <circle cx="425" cy="356" r="8" fill="#a5651e"/>
+      <circle cx="439" cy="309" r="8" fill="#a5651e"/>
+      <circle cx="453" cy="262" r="7" fill="#a5651e"/>
+      <circle cx="464" cy="224" r="6" fill="#a5651e"/>
+      <!-- head -->
+      <g>
+        <animateTransform attributeName="transform" type="rotate" values="0 478 180; 3 478 180; 0 478 180" dur="1.8s" repeatCount="indefinite"/>
+        <!-- ossicones -->
+        <line x1="482" y1="140" x2="476" y2="115" stroke="#c98136" stroke-width="5" stroke-linecap="round"/>
+        <line x1="498" y1="138" x2="496" y2="112" stroke="#c98136" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="476" cy="115" r="5.5" fill="#8d5a2b"/>
+        <circle cx="496" cy="112" r="5.5" fill="#8d5a2b"/>
+        <!-- ear -->
+        <ellipse cx="468" cy="142" rx="11" ry="6" fill="#f4a83c" transform="rotate(-30 468 142)"/>
+        <!-- face -->
+        <ellipse cx="496" cy="158" rx="28" ry="20" fill="#f4a83c"/>
+        <ellipse cx="522" cy="165" rx="15" ry="11" fill="#f8c98f"/>
+        <circle cx="527" cy="163" r="2.5" fill="#6b4423"/>
+        <!-- blinking eye -->
+        <circle cx="488" cy="150" r="4" fill="#333">
+          <animate attributeName="r" values="4;4;0.7;4" keyTimes="0;0.9;0.95;1" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="489.5" cy="148.5" r="1.2" fill="#fff"/>
+      </g>
+    </g>
+
+    <!-- TINY CAR BODY -->
+    <rect x="270" y="405" width="282" height="75" rx="24" fill="#e63946"/>
+    <rect x="300" y="424" width="92" height="32" rx="9" fill="#c1121f"/>
+    <rect x="368" y="434" width="14" height="5" rx="2.5" fill="#f1faee"/>
+    <!-- windshield -->
+    <path d="M 452 405 L 474 356 L 482 405 Z" fill="#caf0f8" opacity="0.9"/>
+    <!-- lights & bumper -->
+    <circle cx="549" cy="440" r="9" fill="#ffe066"/>
+    <rect x="268" y="432" width="8" height="15" rx="3" fill="#ef233c"/>
+    <rect x="264" y="466" width="294" height="10" rx="5" fill="#adb5bd"/>
+
+    <!-- REAR WHEEL -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" from="0 330 480" to="360 330 480" dur="0.7s" repeatCount="indefinite"/>
+      <circle cx="330" cy="480" r="33" fill="#2b2d42"/>
+      <line x1="330" y1="455" x2="330" y2="505" stroke="#f1faee" stroke-width="5"/>
+      <line x1="305" y1="480" x2="355" y2="480" stroke="#f1faee" stroke-width="5"/>
+      <circle cx="330" cy="480" r="9" fill="#f1faee"/>
+    </g>
+    <!-- FRONT WHEEL -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" from="0 480 480" to="360 480 480" dur="0.7s" repeatCount="indefinite"/>
+      <circle cx="480" cy="480" r="33" fill="#2b2d42"/>
+      <line x1="480" y1="455" x2="480" y2="505" stroke="#f1faee" stroke-width="5"/>
+      <line x1="455" y1="480" x2="505" y2="480" stroke="#f1faee" stroke-width="5"/>
+      <circle cx="480" cy="480" r="9" fill="#f1faee"/>
+    </g>
+  </g>
+
+  <!-- SPEED LINES -->
+  <g stroke="#ffffff" stroke-width="5" stroke-linecap="round">
+    <line x1="180" y1="410" x2="240" y2="410">
+      <animate attributeName="opacity" values="0;1;0" dur="0.6s" repeatCount="indefinite"/>
+    </line>
+    <line x1="160" y1="445" x2="235" y2="445">
+      <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="0.2s" repeatCount="indefinite"/>
+    </line>
+    <line x1="190" y1="375" x2="245" y2="375">
+      <animate attributeName="opacity" values="0;1;0" dur="0.6s" begin="0.4s" repeatCount="indefinite"/>
+    </line>
+  </g>
+</svg>

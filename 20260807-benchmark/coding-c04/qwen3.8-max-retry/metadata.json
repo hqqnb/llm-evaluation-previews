@@ -1,0 +1,10 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c04",
+  "model_alias": "qwen3.8-max-retry",
+  "artifact_type": "svg",
+  "artifact_file": "answer.svg",
+  "artifact_sha256": "52e272b9089a80e8c01c8a62dddc50512d5c748d08762d3da7f8facde29ad3cd",
+  "source": "user-provided-web-retry-2026-08-07",
+  "extraction_policy": "user-supplied-runnable-retry"
+}
