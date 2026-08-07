@@ -1,0 +1,10 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "opus-4.8-retry",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "2d9b992bf1db0120a26caedd0f3b54d19a5d04d616f1e2c6cfc0068da07f586b",
+  "source": "collector-retry-2026-08-07",
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

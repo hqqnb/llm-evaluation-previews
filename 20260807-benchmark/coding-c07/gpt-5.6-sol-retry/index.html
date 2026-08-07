@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  />
+  <title>3D 全球数据可视化地球仪</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family:
+        Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 45%, #071d35 0%, #020711 42%, #000207 100%);
+      color: #eef8ff;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    #app,
+    #scene-container {
+      position: fixed;
+      inset: 0;
+    }
+
+    #scene-container canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      outline: none;
+    }
+
+    #scene-container canvas:active {
+      cursor: grabbing;
+    }
+
+    .glass {
+      background:
+        linear-gradient(
+          145deg,
+          rgba(8, 26, 47, 0.88),
+          rgba(3, 11, 24, 0.72)
+        );
+      border: 1px solid rgba(112, 210, 255, 0.22);
+      box-shadow:
+        0 14px 40px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    #header {
+      position: fixed;
+      z-index: 10;
+      top: 22px;
+      left: 26px;
+      max-width: calc(100vw - 420px);
+      pointer-events: none;
+    }
+
+    #header h1 {
+      margin: 0 0 7px;
+      font-size: clamp(20px, 2.2vw, 32px);
+      line-height: 1;
+      letter-spacing: 0.08em;
+      font-weight: 720;
+      text-shadow: 0 0 24px rgba(68, 198, 255, 0.4);
+    }
+
+    #header p {
+      margin: 0;
+      color: rgba(214, 239, 255, 0.72);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    #status-bar {
+      position: fixed;
+      z-index: 10;
+      left: 26px;
+      bottom: 22px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 9px 13px;
+      border-radius: 999px;
+      color: rgba(224, 246, 255, 0.78);
+      font-size: 12px;
+      pointer-events: none;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #61eaff;
+      box-shadow: 0 0 12px #25cfff;
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 0.55;
+        transform: scale(0.8);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.15);
+      }
+    }
+
+    #control-panel {
+      position: fixed;
+      z-index: 20;
+      top: 22px;
+      right: 22px;
+      width: min(330px, calc(100vw - 44px));
+      max-height: calc(100vh - 44px);
+      overflow: auto;
+      padding: 18px;
+      border-radius: 18px;
+    }
+
+    #control-panel::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    #control-panel::-webkit-scrollbar-thumb {
+      background: rgba(115, 215, 255, 0.3);
+      border-radius: 10px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .panel-title strong {
+      font-size: 15px;
+      letter-spacing: 0.06em;
+    }
+
+    .live-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border: 1px solid rgba(87, 237, 255, 0.3);
+      border-radius: 999px;
+      color: #74efff;
+      background: rgba(45, 208, 255, 0.07);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+    }
+
+    .section {
+      margin-top: 17px;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 9px;
+      color: rgba(224, 244, 255, 0.68);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .metric-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .metric-btn,
+    .utility-btn,
+    #play-button {
+      border: 1px solid rgba(110, 205, 255, 0.18);
+      color: rgba(225, 244, 255, 0.74);
+      background: rgba(83, 183, 255, 0.06);
+      border-radius: 9px;
+      cursor: pointer;
+      transition:
+        background 0.18s,
+        color 0.18s,
+        border-color 0.18s,
+        transform 0.18s;
+    }
+
+    .metric-btn {
+      padding: 9px 5px;
+      font-size: 12px;
+    }
+
+    .metric-btn:hover,
+    .utility-btn:hover,
+    #play-button:hover {
+      color: white;
+      border-color: rgba(86, 225, 255, 0.55);
+      background: rgba(56, 198, 255, 0.14);
+    }
+
+    .metric-btn.active {
+      color: #001019;
+      border-color: #6cecff;
+      background: linear-gradient(135deg, #6cecff, #49aaff);
+      box-shadow: 0 0 18px rgba(74, 205, 255, 0.25);
+      font-weight: 700;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 38px 1fr 44px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #play-button {
+      width: 38px;
+      height: 34px;
+      padding: 0;
+      font-size: 14px;
+    }
+
+    #year-label {
+      color: #78eaff;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #55dfff;
+      cursor: pointer;
+    }
+
+    .legend-gradient {
+      width: 100%;
+      height: 8px;
+      margin: 8px 0 5px;
+      border-radius: 999px;
+      background:
+        linear-gradient(
+          90deg,
+          hsl(220, 85%, 55%),
+          hsl(170, 85%, 55%),
+          hsl(65, 90%, 56%),
+          hsl(0, 88%, 58%)
+        );
+      box-shadow: 0 0 14px rgba(74, 197, 255, 0.14);
+    }
+
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      color: rgba(207, 234, 250, 0.52);
+      font-size: 10px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-top: 15px;
+    }
+
+    .stat {
+      padding: 10px 8px;
+      border: 1px solid rgba(105, 205, 255, 0.11);
+      border-radius: 10px;
+      background: rgba(66, 166, 226, 0.045);
+    }
+
+    .stat-value {
+      display: block;
+      overflow: hidden;
+      color: #dff8ff;
+      font-size: 16px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stat-label {
+      display: block;
+      margin-top: 3px;
+      color: rgba(203, 233, 249, 0.48);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 10px;
+      color: rgba(218, 240, 252, 0.68);
+      font-size: 12px;
+    }
+
+    .switch {
+      position: relative;
+      width: 38px;
+      height: 21px;
+      flex: 0 0 auto;
+    }
+
+    .switch input {
+      width: 0;
+      height: 0;
+      opacity: 0;
+    }
+
+    .switch-slider {
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(111, 203, 255, 0.2);
+      border-radius: 999px;
+      background: rgba(101, 148, 181, 0.18);
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .switch-slider::before {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #9ab8c8;
+      content: "";
+      transition: 0.2s;
+    }
+
+    .switch input:checked + .switch-slider {
+      background: rgba(57, 213, 255, 0.3);
+      box-shadow: 0 0 12px rgba(61, 222, 255, 0.2);
+    }
+
+    .switch input:checked + .switch-slider::before {
+      transform: translateX(17px);
+      background: #66eaff;
+      box-shadow: 0 0 8px #45dfff;
+    }
+
+    .utility-btn {
+      width: 100%;
+      margin-top: 14px;
+      padding: 9px;
+      font-size: 12px;
+    }
+
+    #city-popup,
+    #route-tooltip {
+      position: fixed;
+      z-index: 100;
+      display: none;
+      pointer-events: none;
+    }
+
+    #city-popup {
+      width: 240px;
+      padding: 13px 14px;
+      border-radius: 13px;
+    }
+
+    #city-popup.visible,
+    #route-tooltip.visible {
+      display: block;
+    }
+
+    .popup-city {
+      margin-bottom: 3px;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .popup-country {
+      margin-bottom: 10px;
+      color: #6fe8ff;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+
+    .popup-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 4px 0;
+      border-top: 1px solid rgba(107, 206, 255, 0.08);
+      color: rgba(218, 241, 252, 0.66);
+      font-size: 11px;
+    }
+
+    .popup-row b {
+      color: #eafaff;
+      font-weight: 600;
+    }
+
+    #route-tooltip {
+      min-width: 190px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .route-title {
+      margin-bottom: 5px;
+      color: #9af4ff;
+      font-weight: 700;
+    }
+
+    .route-detail {
+      color: rgba(227, 245, 255, 0.72);
+      line-height: 1.6;
+    }
+
+    #loading {
+      position: fixed;
+      z-index: 200;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle, rgba(4, 21, 39, 0.94), rgba(0, 3, 10, 0.98));
+      transition:
+        opacity 0.6s,
+        visibility 0.6s;
+    }
+
+    #loading.hidden {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    .loader-content {
+      text-align: center;
+    }
+
+    .loader-ring {
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 16px;
+      border: 2px solid rgba(86, 217, 255, 0.13);
+      border-top-color: #62e9ff;
+      border-radius: 50%;
+      box-shadow: 0 0 25px rgba(63, 210, 255, 0.15);
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #loading-text {
+      color: rgba(220, 246, 255, 0.75);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+    }
+
+    @media (max-width: 720px) {
+      #header {
+        top: 16px;
+        left: 16px;
+        max-width: calc(100vw - 32px);
+      }
+
+      #header h1 {
+        font-size: 19px;
+      }
+
+      #header p {
+        display: none;
+      }
+
+      #control-panel {
+        top: auto;
+        right: 12px;
+        bottom: 12px;
+        left: 12px;
+        width: auto;
+        max-height: 43vh;
+        padding: 14px;
+      }
+
+      #status-bar {
+        bottom: calc(43vh + 24px);
+        left: 14px;
+      }
+
+      .stats {
+        display: none;
+      }
+
+      .section {
+        margin-top: 12px;
+      }
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div id="app">
+    <div id="scene-container"></div>
+
+    <header id="header">
+      <h1>GLOBAL DATA ATLAS</h1>
+      <p>Interactive Earth Intelligence Visualization</p>
+    </header>
+
+    <aside id="control-panel" class="glass">
+      <div class="panel-title">
+        <strong>全球数据控制台</strong>
+        <span class="live-tag">● LIVE</span>
+      </div>
+
+      <section class="section">
+        <div class="section-label">
+          <span>数据指标</span>
+          <span id="metric-description">地区生产总值</span>
+        </div>
+
+        <div class="metric-buttons">
+          <button class="metric-btn active" data-metric="gdp">GDP</button>
+          <button class="metric-btn" data-metric="population">人口</button>
+          <button class="metric-btn" data-metric="flights">航班量</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-label">
+          <span>时间轴</span>
+          <span>2018—2024</span>
+        </div>
+
+        <div class="timeline-row">
+          <button id="play-button" title="播放时间轴">▶</button>
+          <input
+            id="timeline"
+            type="range"
+            min="2018"
+            max="2024"
+            step="1"
+            value="2024"
+            aria-label="年份"
+          />
+          <span id="year-label">2024</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-label">
+          <span>国家/地区热力</span>
+          <span id="heat-unit">万亿美元</span>
+        </div>
+
+        <div class="legend-gradient"></div>
+        <div class="legend-labels">
+          <span>低</span>
+          <span>中等</span>
+          <span>高</span>
+        </div>
+      </section>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-value" id="stat-cities">12</span>
+          <span class="stat-label">主要城市</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-routes">15</span>
+          <span class="stat-label">动态航线</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-value">94.6T</span>
+          <span class="stat-label" id="stat-value-label">全球 GDP</span>
+        </div>
+      </div>
+
+      <section class="section">
+        <div class="section-label">
+          <span>显示设置</span>
+        </div>
+
+        <div class="option-row">
+          <span>地球自动旋转</span>
+          <label class="switch">
+            <input id="rotation-toggle" type="checkbox" checked />
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <div class="option-row">
+          <span>国家热力图层</span>
+          <label class="switch">
+            <input id="heat-toggle" type="checkbox" checked />
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <div class="option-row">
+          <span>动态航线</span>
+          <label class="switch">
+            <input id="routes-toggle" type="checkbox" checked />
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <button id="reset-camera" class="utility-btn">重置观察视角</button>
+    </aside>
+
+    <div id="status-bar" class="glass">
+      <span class="status-dot"></span>
+      <span id="status-text">拖拽旋转 · 滚轮缩放 · 点击城市</span>
+    </div>
+
+    <div id="city-popup" class="glass"></div>
+    <div id="route-tooltip" class="glass"></div>
+
+    <div id="loading">
+      <div class="loader-content">
+        <div class="loader-ring"></div>
+        <div id="loading-text">正在加载地球数据...</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    // ------------------------------------------------------------
+    // 基础 DOM
+    // ------------------------------------------------------------
+
+    const container = document.querySelector("#scene-container");
+    const loading = document.querySelector("#loading");
+    const loadingText = document.querySelector("#loading-text");
+    const cityPopup = document.querySelector("#city-popup");
+    const routeTooltip = document.querySelector("#route-tooltip");
+
+    const timeline = document.querySelector("#timeline");
+    const yearLabel = document.querySelector("#year-label");
+    const playButton = document.querySelector("#play-button");
+
+    const metricDescription = document.querySelector("#metric-description");
+    const heatUnit = document.querySelector("#heat-unit");
+    const statValue = document.querySelector("#stat-value");
+    const statValueLabel = document.querySelector("#stat-value-label");
+
+    const rotationToggle = document.querySelector("#rotation-toggle");
+    const heatToggle = document.querySelector("#heat-toggle");
+    const routesToggle = document.querySelector("#routes-toggle");
+    const resetCameraButton = document.querySelector("#reset-camera");
+
+    // ------------------------------------------------------------
+    // 数据
+    // ------------------------------------------------------------
+
+    const cities = [
+      {
+        id: "beijing",
+        name: "北京",
+        country: "中国",
+        lat: 39.9042,
+        lon: 116.4074,
+        population: 21.89,
+        gdp: 0.64,
+        flights: 58.2
+      },
+      {
+        id: "shanghai",
+        name: "上海",
+        country: "中国",
+        lat: 31.2304,
+        lon: 121.4737,
+        population: 24.87,
+        gdp: 0.69,
+        flights: 61.5
+      },
+      {
+        id: "tokyo",
+        name: "东京",
+        country: "日本",
+        lat: 35.6762,
+        lon: 139.6503,
+        population: 37.1,
+        gdp: 2.05,
+        flights: 72.1
+      },
+      {
+        id: "singapore",
+        name: "新加坡",
+        country: "新加坡",
+        lat: 1.3521,
+        lon: 103.8198,
+        population: 5.92,
+        gdp: 0.5,
+        flights: 68.7
+      },
+      {
+        id: "dubai",
+        name: "迪拜",
+        country: "阿联酋",
+        lat: 25.2048,
+        lon: 55.2708,
+        population: 3.65,
+        gdp: 0.18,
+        flights: 86.9
+      },
+      {
+        id: "london",
+        name: "伦敦",
+        country: "英国",
+        lat: 51.5072,
+        lon: -0.1276,
+        population: 9.65,
+        gdp: 0.97,
+        flights: 79.4
+      },
+      {
+        id: "paris",
+        name: "巴黎",
+        country: "法国",
+        lat: 48.8566,
+        lon: 2.3522,
+        population: 11.2,
+        gdp: 0.93,
+        flights: 70.3
+      },
+      {
+        id: "newyork",
+        name: "纽约",
+        country: "美国",
+        lat: 40.7128,
+        lon: -74.006,
+        population: 19.5,
+        gdp: 2.3,
+        flights: 88.5
+      },
+      {
+        id: "losangeles",
+        name: "洛杉矶",
+        country: "美国",
+        lat: 34.0522,
+        lon: -118.2437,
+        population: 12.9,
+        gdp: 1.3,
+        flights: 75.6
+      },
+      {
+        id: "saopaulo",
+        name: "圣保罗",
+        country: "巴西",
+        lat: -23.5505,
+        lon: -46.6333,
+        population: 22.6,
+        gdp: 0.44,
+        flights: 43.2
+      },
+      {
+        id: "sydney",
+        name: "悉尼",
+        country: "澳大利亚",
+        lat: -33.8688,
+        lon: 151.2093,
+        population: 5.3,
+        gdp: 0.39,
+        flights: 45.8
+      },
+      {
+        id: "johannesburg",
+        name: "约翰内斯堡",
+        country: "南非",
+        lat: -26.2041,
+        lon: 28.0473,
+        population: 6.2,
+        gdp: 0.14,
+        flights: 24.6
+      }
+    ];
+
+    const routeDefinitions = [
+      ["beijing", "shanghai", "MU5102"],
+      ["beijing", "tokyo", "CA181"],
+      ["shanghai", "singapore", "SQ825"],
+      ["tokyo", "losangeles", "NH006"],
+      ["tokyo", "sydney", "JL051"],
+      ["singapore", "dubai", "EK355"],
+      ["singapore", "sydney", "SQ231"],
+      ["dubai", "london", "EK001"],
+      ["dubai", "johannesburg", "EK761"],
+      ["london", "newyork", "BA117"],
+      ["london", "paris", "BA304"],
+      ["paris", "saopaulo", "AF460"],
+      ["newyork", "losangeles", "AA001"],
+      ["newyork", "saopaulo", "UA149"],
+      ["sydney", "losangeles", "QF011"]
+    ];
+
+    const cityById = new Map(cities.map((city) => [city.id, city]));
+
+    const metricMeta = {
+      gdp: {
+        label: "地区生产总值",
+        unit: "万亿美元",
+        globalLabel: "全球 GDP",
+        globalValues: {
+          2018: 86.4,
+          2019: 87.8,
+          2020: 85.3,
+          2021: 97.2,
+          2022: 101.0,
+          2023: 104.8,
+          2024: 109.5
+        }
+      },
+      population: {
+        label: "人口规模",
+        unit: "百万人",
+        globalLabel: "全球人口",
+        globalValues: {
+          2018: 7.63,
+          2019: 7.71,
+          2020: 7.79,
+          2021: 7.87,
+          2022: 7.95,
+          2023: 8.05,
+          2024: 8.12
+        }
+      },
+      flights: {
+        label: "航空运输量",
+        unit: "百万架次",
+        globalLabel: "年度航班量",
+        globalValues: {
+          2018: 38.1,
+          2019: 38.9,
+          2020: 16.9,
+          2021: 20.1,
+          2022: 28.4,
+          2023: 35.3,
+          2024: 37.8
+        }
+      }
+    };
+
+    let currentMetric = "gdp";
+    let currentYear = 2024;
+    let timelinePlaying = false;
+    let timelineAccumulator = 0;
+
+    // ------------------------------------------------------------
+    // Three.js 场景
+    // ------------------------------------------------------------
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x020711, 0.055);
+
+    const camera = new THREE.PerspectiveCamera(
+      42,
+      window.innerWidth / window.innerHeight,
+      0.01,
+      100
+    );
+    camera.position.set(0, 0.25, 3.45);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: "high-performance"
+    });
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.055;
+    controls.enablePan = false;
+    controls.minDistance = 1.55;
+    controls.maxDistance = 7;
+    controls.rotateSpeed = 0.55;
+    controls.zoomSpeed = 0.75;
+    controls.target.set(0, 0, 0);
+
+    const clock = new THREE.Clock();
+    const earthGroup = new THREE.Group();
+    scene.add(earthGroup);
+
+    const routeGroup = new THREE.Group();
+    const cityGroup = new THREE.Group();
+
+    earthGroup.add(routeGroup);
+    earthGroup.add(cityGroup);
+
+    const EARTH_RADIUS = 1;
+    const HEAT_RADIUS = 1.006;
+    const CITY_RADIUS = 1.025;
+
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin("anonymous");
+
+    const dayTextureURL =
+      "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg";
+    const nightTextureURL =
+      "https://threejs.org/examples/textures/planets/earth_lights_2048.png";
+
+    function loadTexture(url) {
+      return new Promise((resolve, reject) => {
+        textureLoader.load(
+          url,
+          (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.anisotropy = Math.min(
+              8,
+              renderer.capabilities.getMaxAnisotropy()
+            );
+            resolve(texture);
+          },
+          undefined,
+          reject
+        );
+      });
+    }
+
+    // ------------------------------------------------------------
+    // 星空
+    // ------------------------------------------------------------
+
+    function createStars() {
+      const count = 4200;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+
+      const color = new THREE.Color();
+
+      for (let i = 0; i < count; i++) {
+        const radius = THREE.MathUtils.randFloat(12, 35);
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(THREE.MathUtils.randFloatSpread(2));
+
+        positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = radius * Math.cos(phi);
+        positions[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+
+        const tint = Math.random();
+        color.setHSL(
+          tint > 0.75 ? 0.58 : 0.62,
+          tint > 0.75 ? 0.38 : 0.15,
+          THREE.MathUtils.randFloat(0.65, 1)
+        );
+
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(positions, 3)
+      );
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 0.026,
+        sizeAttenuation: true,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.82,
+        depthWrite: false
+      });
+
+      scene.add(new THREE.Points(geometry, material));
+    }
+
+    createStars();
+
+    // ------------------------------------------------------------
+    // 地球 Shader：白天地表 + 夜间城市灯光 + 日夜分界
+    // ------------------------------------------------------------
+
+    const sunDirection = new THREE.Vector3(3, 1.4, 2.6).normalize();
+
+    const earthVertexShader = `
+      varying vec2 vUv;
+      varying vec3 vWorldNormal;
+
+      void main() {
+        vUv = uv;
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const earthFragmentShader = `
+      uniform sampler2D dayMap;
+      uniform sampler2D nightMap;
+      uniform vec3 sunDirection;
+
+      varying vec2 vUv;
+      varying vec3 vWorldNormal;
+
+      void main() {
+        vec3 normal = normalize(vWorldNormal);
+        float sunLight = dot(normal, normalize(sunDirection));
+
+        // 平滑日夜分界线
+        float dayMix = smoothstep(-0.12, 0.18, sunLight);
+        float twilight = 1.0 - smoothstep(0.0, 0.24, abs(sunLight));
+
+        vec3 dayColor = texture2D(dayMap, vUv).rgb;
+        vec3 nightLights = texture2D(nightMap, vUv).rgb;
+
+        // 夜半球降低地表亮度，并强化城市灯光
+        vec3 darkSurface = dayColor * vec3(0.025, 0.055, 0.095);
+        vec3 nightColor = darkSurface + nightLights * 2.15;
+
+        vec3 color = mix(nightColor, dayColor, dayMix);
+
+        // 日落区域轻微暖色大气
+        color += vec3(0.18, 0.055, 0.015) * twilight * 0.2;
+
+        // 向阳面轻微增强
+        color *= 0.82 + max(sunLight, 0.0) * 0.28;
+
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `;
+
+    // ------------------------------------------------------------
+    // 大气光晕
+    // ------------------------------------------------------------
+
+    function createAtmosphere() {
+      const geometry = new THREE.SphereGeometry(1.085, 96, 96);
+
+      const material = new THREE.ShaderMaterial({
+        transparent: true,
+        side: THREE.BackSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vWorldPosition;
+
+          void main() {
+            vNormal = normalize(mat3(modelMatrix) * normal);
+            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPosition.xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vNormal;
+          varying vec3 vWorldPosition;
+
+          void main() {
+            vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+            float intensity = pow(0.72 - dot(vNormal, viewDirection), 2.2);
+            vec3 atmosphereColor = vec3(0.08, 0.58, 1.0);
+            gl_FragColor = vec4(
+              atmosphereColor,
+              intensity * 0.72
+            );
+          }
+        `
+      });
+
+      earthGroup.add(new THREE.Mesh(geometry, material));
+    }
+
+    createAtmosphere();
+
+    // ------------------------------------------------------------
+    // 热力 CanvasTexture
+    // ------------------------------------------------------------
+
+    const heatCanvas = document.createElement("canvas");
+    heatCanvas.width = 2048;
+    heatCanvas.height = 1024;
+
+    const heatCtx = heatCanvas.getContext("2d");
+    const heatTexture = new THREE.CanvasTexture(heatCanvas);
+    heatTexture.colorSpace = THREE.SRGBColorSpace;
+    heatTexture.anisotropy = Math.min(
+      8,
+      renderer.capabilities.getMaxAnisotropy()
+    );
+
+    const heatMaterial = new THREE.MeshBasicMaterial({
+      map: heatTexture,
+      transparent: true,
+      opacity: 0.58,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      blending: THREE.NormalBlending
+    });
+
+    const heatMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(HEAT_RADIUS, 128, 128),
+      heatMaterial
+    );
+
+    earthGroup.add(heatMesh);
+
+    let countriesGeoJSON = null;
+
+    function hashString(text) {
+      let hash = 2166136261;
+
+      for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+
+      return Math.abs(hash >>> 0);
+    }
+
+    function countryMetricValue(countryName, metric, year) {
+      const hash = hashString(`${countryName}-${metric}`);
+      const base = (hash % 1000) / 1000;
+      const regionalWave =
+        Math.sin(hash * 0.00013 + (year - 2018) * 0.62) * 0.11;
+
+      let yearFactor = (year - 2018) / 6;
+
+      if (metric === "flights") {
+        const covidFactor = {
+          2018: 0.88,
+          2019: 1,
+          2020: 0.28,
+          2021: 0.4,
+          2022: 0.67,
+          2023: 0.88,
+          2024: 1
+        }[year];
+
+        return THREE.MathUtils.clamp(
+          Math.pow(base, 0.7) * covidFactor + regionalWave,
+          0,
+          1
+        );
+      }
+
+      if (metric === "population") {
+        yearFactor *= 0.15;
+      }
+
+      return THREE.MathUtils.clamp(
+        Math.pow(base, metric === "gdp" ? 1.55 : 0.92) +
+          yearFactor * 0.14 +
+          regionalWave,
+        0,
+        1
+      );
+    }
+
+    function heatColor(value, alpha = 0.63) {
+      const hue = THREE.MathUtils.lerp(220, 0, value);
+      const lightness = THREE.MathUtils.lerp(51, 58, value);
+      return `hsla(${hue}, 88%, ${lightness}%, ${alpha})`;
+    }
+
+    function lonToCanvasX(lon) {
+      return ((lon + 180) / 360) * heatCanvas.width;
+    }
+
+    function latToCanvasY(lat) {
+      return ((90 - lat) / 180) * heatCanvas.height;
+    }
+
+    function drawGeoRing(ctx, ring) {
+      if (!ring || ring.length < 3) return;
+
+      let lastX = null;
+      let activeSegment = false;
+
+      for (let i = 0; i < ring.length; i++) {
+        const [lon, lat] = ring[i];
+        const x = lonToCanvasX(lon);
+        const y = latToCanvasY(lat);
+
+        if (
+          lastX === null ||
+          Math.abs(x - lastX) > heatCanvas.width * 0.5
+        ) {
+          ctx.moveTo(x, y);
+          activeSegment = true;
+        } else if (activeSegment) {
+          ctx.lineTo(x, y);
+        }
+
+        lastX = x;
+      }
+
+      ctx.closePath();
+    }
+
+    function drawCountryFeature(feature) {
+      if (!feature?.geometry) return;
+
+      const name =
+        feature.properties?.name ||
+        feature.properties?.ADMIN ||
+        feature.properties?.NAME ||
+        "Unknown";
+
+      const value = countryMetricValue(
+        name,
+        currentMetric,
+        currentYear
+      );
+
+      heatCtx.beginPath();
+
+      if (feature.geometry.type === "Polygon") {
+        feature.geometry.coordinates.forEach((ring) => {
+          drawGeoRing(heatCtx, ring);
+        });
+      } else if (feature.geometry.type === "MultiPolygon") {
+        feature.geometry.coordinates.forEach((polygon) => {
+          polygon.forEach((ring) => {
+            drawGeoRing(heatCtx, ring);
+          });
+        });
+      } else {
+        return;
+      }
+
+      heatCtx.fillStyle = heatColor(value);
+      heatCtx.fill("evenodd");
+
+      heatCtx.strokeStyle = `rgba(112, 226, 255, ${
+        0.08 + value * 0.13
+      })`;
+      heatCtx.lineWidth = 0.65;
+      heatCtx.stroke();
+    }
+
+    function drawFallbackHeat() {
+      const points = [
+        [-100, 40],
+        [-55, -12],
+        [5, 50],
+        [30, 5],
+        [80, 22],
+        [115, 35],
+        [138, 36],
+        [150, -28]
+      ];
+
+      points.forEach(([lon, lat], index) => {
+        const x = lonToCanvasX(lon);
+        const y = latToCanvasY(lat);
+        const radius = 70 + index * 5;
+        const value = countryMetricValue(
+          `fallback-${index}`,
+          currentMetric,
+          currentYear
+        );
+
+        const gradient = heatCtx.createRadialGradient(
+          x,
+          y,
+          0,
+          x,
+          y,
+          radius
+        );
+
+        gradient.addColorStop(0, heatColor(value, 0.48));
+        gradient.addColorStop(1, heatColor(value, 0));
+
+        heatCtx.fillStyle = gradient;
+        heatCtx.beginPath();
+        heatCtx.arc(x, y, radius, 0, Math.PI * 2);
+        heatCtx.fill();
+      });
+    }
+
+    function redrawHeatMap() {
+      heatCtx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
+
+      if (countriesGeoJSON?.features) {
+        countriesGeoJSON.features.forEach(drawCountryFeature);
+      } else {
+        drawFallbackHeat();
+      }
+
+      heatTexture.needsUpdate = true;
+    }
+
+    async function loadCountryData() {
+      const geoJSONURL =
+        "https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json";
+
+      try {
+        const response = await fetch(geoJSONURL);
+
+        if (!response.ok) {
+          throw new Error(`GeoJSON HTTP ${response.status}`);
+        }
+
+        countriesGeoJSON = await response.json();
+        redrawHeatMap();
+      } catch (error) {
+        console.warn("国家 GeoJSON 加载失败，使用备用热力层：", error);
+        countriesGeoJSON = null;
+        redrawHeatMap();
+      }
+    }
+
+    // ------------------------------------------------------------
+    // 经纬度与球面坐标
+    // ------------------------------------------------------------
+
+    function latLonToVector3(lat, lon, radius = 1) {
+      const latRad = THREE.MathUtils.degToRad(lat);
+      const lonRad = THREE.MathUtils.degToRad(lon);
+
+      return new THREE.Vector3(
+        radius * Math.cos(latRad) * Math.cos(lonRad),
+        radius * Math.sin(latRad),
+        -radius * Math.cos(latRad) * Math.sin(lonRad)
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 城市发光点
+    // ------------------------------------------------------------
+
+    function createGlowTexture() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 128;
+      canvas.height = 128;
+
+      const ctx = canvas.getContext("2d");
+      const gradient = ctx.createRadialGradient(
+        64,
+        64,
+        1,
+        64,
+        64,
+        62
+      );
+
+      gradient.addColorStop(0, "rgba(255,255,255,1)");
+      gradient.addColorStop(0.12, "rgba(120,245,255,0.95)");
+      gradient.addColorStop(0.35, "rgba(33,190,255,0.5)");
+      gradient.addColorStop(1, "rgba(0,80,255,0)");
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 128, 128);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    const glowTexture = createGlowTexture();
+    const cityPickTargets = [];
+    const cityVisuals = [];
+
+    function getCityValue(city, metric, year) {
+      const yearsFromBase = year - 2024;
+
+      if (metric === "gdp") {
+        return city.gdp * Math.pow(1.045, yearsFromBase);
+      }
+
+      if (metric === "population") {
+        return city.population * Math.pow(1.009, yearsFromBase);
+      }
+
+      const flightYearFactor = {
+        2018: 0.91,
+        2019: 1,
+        2020: 0.29,
+        2021: 0.42,
+        2022: 0.69,
+        2023: 0.89,
+        2024: 1
+      }[year];
+
+      return city.flights * flightYearFactor;
+    }
+
+    function createCities() {
+      const sphereGeometry = new THREE.SphereGeometry(0.018, 18, 18);
+      const pickGeometry = new THREE.SphereGeometry(0.055, 12, 12);
+
+      cities.forEach((city) => {
+        const position = latLonToVector3(
+          city.lat,
+          city.lon,
+          CITY_RADIUS
+        );
+
+        const marker = new THREE.Group();
+        marker.position.copy(position);
+        marker.quaternion.setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          position.clone().normalize()
+        );
+
+        const coreMaterial = new THREE.MeshBasicMaterial({
+          color: 0xb9fbff,
+          toneMapped: false
+        });
+
+        const core = new THREE.Mesh(sphereGeometry, coreMaterial);
+        marker.add(core);
+
+        const pinMaterial = new THREE.MeshBasicMaterial({
+          color: 0x34d9ff,
+          transparent: true,
+          opacity: 0.7,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          toneMapped: false
+        });
+
+        const pin = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.004, 0.012, 0.065, 8),
+          pinMaterial
+        );
+        pin.position.y = 0.035;
+        marker.add(pin);
+
+        const glowMaterial = new THREE.SpriteMaterial({
+          map: glowTexture,
+          color: 0x4edfff,
+          transparent: true,
+          opacity: 0.75,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          toneMapped: false
+        });
+
+        const glow = new THREE.Sprite(glowMaterial);
+        glow.scale.set(0.13, 0.13, 0.13);
+        glow.position.y = 0.018;
+        marker.add(glow);
+
+        const pickMaterial = new THREE.MeshBasicMaterial({
+          transparent: true,
+          opacity: 0,
+          depthWrite: false
+        });
+
+        const pickMesh = new THREE.Mesh(pickGeometry, pickMaterial);
+        pickMesh.position.copy(position);
+        pickMesh.userData.city = city;
+
+        cityGroup.add(marker);
+        cityGroup.add(pickMesh);
+
+        cityPickTargets.push(pickMesh);
+        cityVisuals.push({
+          city,
+          marker,
+          core,
+          glow,
+          pin,
+          position: position.clone()
+        });
+      });
+    }
+
+    createCities();
+
+    // ------------------------------------------------------------
+    // 航线弧线和流动光点
+    // ------------------------------------------------------------
+
+    const routeLines = [];
+    const routeAnimations = [];
+
+    function sphericalInterpolate(start, end, t) {
+      const a = start.clone().normalize();
+      const b = end.clone().normalize();
+
+      const dot = THREE.MathUtils.clamp(a.dot(b), -1, 1);
+      const angle = Math.acos(dot);
+
+      if (angle < 0.0001) {
+        return a;
+      }
+
+      const sinAngle = Math.sin(angle);
+      const weightA = Math.sin((1 - t) * angle) / sinAngle;
+      const weightB = Math.sin(t * angle) / sinAngle;
+
+      return a.multiplyScalar(weightA).add(b.multiplyScalar(weightB));
+    }
+
+    function createArcCurve(cityA, cityB) {
+      const start = latLonToVector3(cityA.lat, cityA.lon, 1);
+      const end = latLonToVector3(cityB.lat, cityB.lon, 1);
+
+      const angularDistance = Math.acos(
+        THREE.MathUtils.clamp(
+          start.clone().normalize().dot(end.clone().normalize()),
+          -1,
+          1
+        )
+      );
+
+      const altitude =
+        0.10 + Math.min(0.34, angularDistance * 0.14);
+
+      const points = [];
+
+      for (let i = 0; i <= 96; i++) {
+        const t = i / 96;
+        const lift = Math.sin(Math.PI * t) * altitude;
+        const point = sphericalInterpolate(start, end, t)
+          .normalize()
+          .multiplyScalar(EARTH_RADIUS + 0.018 + lift);
+
+        points.push(point);
+      }
+
+      return new THREE.CatmullRomCurve3(points);
+    }
+
+    function getRouteVolume(route, year) {
+      const base = route.cityA.flights + route.cityB.flights;
+      const yearFactor = {
+        2018: 0.89,
+        2019: 1,
+        2020: 0.27,
+        2021: 0.43,
+        2022: 0.7,
+        2023: 0.9,
+        2024: 1
+      }[year];
+
+      return base * 0.5 * yearFactor;
+    }
+
+    function createRoutes() {
+      const flowGeometry = new THREE.SphereGeometry(0.013, 12, 12);
+
+      routeDefinitions.forEach(
+        ([fromId, toId, flightCode], index) => {
+          const cityA = cityById.get(fromId);
+          const cityB = cityById.get(toId);
+          const curve = createArcCurve(cityA, cityB);
+          const points = curve.getPoints(128);
+
+          const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+          const material = new THREE.LineBasicMaterial({
+            color: 0x35cfff,
+            transparent: true,
+            opacity: 0.53,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            toneMapped: false
+          });
+
+          const line = new THREE.Line(geometry, material);
+          line.userData.route = {
+            cityA,
+            cityB,
+            flightCode,
+            index
+          };
+
+          routeGroup.add(line);
+          routeLines.push(line);
+
+          const flowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xc9ffff,
+            transparent: true,
+            opacity: 0.95,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            toneMapped: false
+          });
+
+          const flowDot = new THREE.Mesh(flowGeometry, flowMaterial);
+          routeGroup.add(flowDot);
+
+          routeAnimations.push({
+            line,
+            curve,
+            dot: flowDot,
+            offset: index / routeDefinitions.length,
+            speed: 0.07 + (index % 5) * 0.012
+          });
+        }
+      );
+    }
+
+    createRoutes();
+
+    document.querySelector("#stat-cities").textContent =
+      cityPickTargets.length;
+    document.querySelector("#stat-routes").textContent =
+      routeLines.length;
+
+    // ------------------------------------------------------------
+    // 指标更新
+    // ------------------------------------------------------------
+
+    function normalizeCityMetric(city, metric, year) {
+      const values = cities.map((item) =>
+        getCityValue(item, metric, year)
+      );
+      const value = getCityValue(city, metric, year);
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+
+      return (value - min) / Math.max(0.0001, max - min);
+    }
+
+    function updateMetricVisuals() {
+      const meta = metricMeta[currentMetric];
+
+      metricDescription.textContent = meta.label;
+      heatUnit.textContent = meta.unit;
+      statValueLabel.textContent = meta.globalLabel;
+
+      const globalValue = meta.globalValues[currentYear];
+
+      if (currentMetric === "gdp") {
+        statValue.textContent = `${globalValue.toFixed(1)}T`;
+      } else if (currentMetric === "population") {
+        statValue.textContent = `${globalValue.toFixed(2)}B`;
+      } else {
+        statValue.textContent = `${globalValue.toFixed(1)}M`;
+      }
+
+      cityVisuals.forEach((visual) => {
+        const normalized = normalizeCityMetric(
+          visual.city,
+          currentMetric,
+          currentYear
+        );
+
+        const color = new THREE.Color().setHSL(
+          THREE.MathUtils.lerp(0.55, 0.02, normalized),
+          0.92,
+          0.65
+        );
+
+        visual.core.material.color.copy(color);
+        visual.glow.material.color.copy(color);
+        visual.pin.material.color.copy(color);
+
+        const scale = 0.84 + normalized * 0.68;
+        visual.marker.scale.setScalar(scale);
+      });
+
+      routeAnimations.forEach((animation) => {
+        const route = animation.line.userData.route;
+        const volume = getRouteVolume(route, currentYear);
+        const normalized = THREE.MathUtils.clamp(volume / 90, 0, 1);
+
+        const routeColor = new THREE.Color().setHSL(
+          THREE.MathUtils.lerp(0.58, 0.04, normalized),
+          0.9,
+          0.62
+        );
+
+        animation.line.material.color.copy(routeColor);
+        animation.line.material.opacity =
+          0.25 + normalized * 0.53;
+        animation.dot.material.color.copy(routeColor);
+      });
+
+      redrawHeatMap();
+
+      if (cityPopup.classList.contains("visible")) {
+        cityPopup.classList.remove("visible");
+      }
+    }
+
+    function setMetric(metric) {
+      currentMetric = metric;
+
+      document.querySelectorAll(".metric-btn").forEach((button) => {
+        button.classList.toggle(
+          "active",
+          button.dataset.metric === metric
+        );
+      });
+
+      updateMetricVisuals();
+    }
+
+    function setYear(year) {
+      currentYear = Number(year);
+      timeline.value = currentYear;
+      yearLabel.textContent = currentYear;
+      updateMetricVisuals();
+    }
+
+    document.querySelectorAll(".metric-btn").forEach((button) => {
+      button.addEventListener("click", () => {
+        setMetric(button.dataset.metric);
+      });
+    });
+
+    timeline.addEventListener("input", () => {
+      setYear(timeline.value);
+    });
+
+    playButton.addEventListener("click", () => {
+      timelinePlaying = !timelinePlaying;
+      playButton.textContent = timelinePlaying ? "❚❚" : "▶";
+      playButton.title = timelinePlaying ? "暂停时间轴" : "播放时间轴";
+    });
+
+    heatToggle.addEventListener("change", () => {
+      heatMesh.visible = heatToggle.checked;
+    });
+
+    routesToggle.addEventListener("change", () => {
+      routeGroup.visible = routesToggle.checked;
+      routeTooltip.classList.remove("visible");
+    });
+
+    resetCameraButton.addEventListener("click", () => {
+      camera.position.set(0, 0.25, 3.45);
+      controls.target.set(0, 0, 0);
+      controls.update();
+      earthGroup.rotation.set(0, 0, 0);
+    });
+
+    // ------------------------------------------------------------
+    // 鼠标拾取：城市点击、航线悬停
+    // ------------------------------------------------------------
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.params.Line.threshold = 0.035;
+
+    const pointer = new THREE.Vector2();
+    let pointerDownPosition = { x: 0, y: 0 };
+    let hoveredRoute = null;
+    let selectedCity = null;
+    let dragging = false;
+
+    controls.addEventListener("start", () => {
+      dragging = true;
+    });
+
+    controls.addEventListener("end", () => {
+      dragging = false;
+    });
+
+    function updatePointer(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+
+      pointer.x =
+        ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y =
+        -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(pointer, camera);
+    }
+
+    function setFloatingPosition(element, clientX, clientY, offset = 14) {
+      const rect = element.getBoundingClientRect();
+
+      let left = clientX + offset;
+      let top = clientY + offset;
+
+      if (left + rect.width > window.innerWidth - 10) {
+        left = clientX - rect.width - offset;
+      }
+
+      if (top + rect.height > window.innerHeight - 10) {
+        top = clientY - rect.height - offset;
+      }
+
+      element.style.left = `${Math.max(10, left)}px`;
+      element.style.top = `${Math.max(10, top)}px`;
+    }
+
+    function formatCityValue(city, metric, year) {
+      const value = getCityValue(city, metric, year);
+
+      if (metric === "gdp") {
+        return `$${value.toFixed(2)} 万亿美元`;
+      }
+
+      if (metric === "population") {
+        return `${value.toFixed(2)} 百万人`;
+      }
+
+      return `${value.toFixed(1)} 百万航班指数`;
+    }
+
+    function showCityPopup(city, clientX, clientY) {
+      selectedCity = city;
+
+      cityPopup.innerHTML = `
+        <div class="popup-city">${city.name}</div>
+        <div class="popup-country">${city.country} · ${currentYear}</div>
+
+        <div class="popup-row">
+          <span>当前指标</span>
+          <b>${metricMeta[currentMetric].label}</b>
+        </div>
+
+        <div class="popup-row">
+          <span>指标数值</span>
+          <b>${formatCityValue(city, currentMetric, currentYear)}</b>
+        </div>
+
+        <div class="popup-row">
+          <span>人口</span>
+          <b>${getCityValue(city, "population", currentYear).toFixed(2)} M</b>
+        </div>
+
+        <div class="popup-row">
+          <span>GDP</span>
+          <b>$${getCityValue(city, "gdp", currentYear).toFixed(2)} T</b>
+        </div>
+
+        <div class="popup-row">
+          <span>坐标</span>
+          <b>${city.lat.toFixed(2)}°, ${city.lon.toFixed(2)}°</b>
+        </div>
+      `;
+
+      cityPopup.classList.add("visible");
+      setFloatingPosition(cityPopup, clientX, clientY, 16);
+    }
+
+    function showRouteTooltip(route, clientX, clientY) {
+      const volume = getRouteVolume(route, currentYear);
+
+      routeTooltip.innerHTML = `
+        <div class="route-title">
+          ${route.cityA.name} → ${route.cityB.name}
+        </div>
+        <div class="route-detail">
+          航班编号：${route.flightCode}<br />
+          年份：${currentYear}<br />
+          航班量指数：${volume.toFixed(1)}<br />
+          状态：动态运行中
+        </div>
+      `;
+
+      routeTooltip.classList.add("visible");
+      setFloatingPosition(routeTooltip, clientX, clientY, 12);
+    }
+
+    renderer.domElement.addEventListener("pointerdown", (event) => {
+      pointerDownPosition = {
+        x: event.clientX,
+        y: event.clientY
+      };
+    });
+
+    renderer.domElement.addEventListener("pointermove", (event) => {
+      updatePointer(event);
+
+      const cityIntersections = raycaster.intersectObjects(
+        cityPickTargets,
+        false
+      );
+
+      if (cityIntersections.length > 0) {
+        renderer.domElement.style.cursor = "pointer";
+        routeTooltip.classList.remove("visible");
+        return;
+      }
+
+      if (!routesToggle.checked) {
+        renderer.domElement.style.cursor = dragging ? "grabbing" : "grab";
+        return;
+      }
+
+      const routeIntersections = raycaster.intersectObjects(
+        routeLines,
+        false
+      );
+
+      if (routeIntersections.length > 0) {
+        const line = routeIntersections[0].object;
+
+        if (hoveredRoute && hoveredRoute !== line) {
+          hoveredRoute.material.opacity =
+            hoveredRoute.userData.defaultOpacity ??
+            hoveredRoute.material.opacity;
+        }
+
+        hoveredRoute = line;
+
+        if (hoveredRoute.userData.defaultOpacity === undefined) {
+          hoveredRoute.userData.defaultOpacity =
+            hoveredRoute.material.opacity;
+        }
+
+        hoveredRoute.material.opacity = 1;
+        renderer.domElement.style.cursor = "pointer";
+
+        showRouteTooltip(
+          hoveredRoute.userData.route,
+          event.clientX,
+          event.clientY
+        );
+      } else {
+        if (hoveredRoute) {
+          hoveredRoute.material.opacity =
+            hoveredRoute.userData.defaultOpacity ??
+            hoveredRoute.material.opacity;
+        }
+
+        hoveredRoute = null;
+        routeTooltip.classList.remove("visible");
+        renderer.domElement.style.cursor = dragging ? "grabbing" : "grab";
+      }
+    });
+
+    renderer.domElement.addEventListener("click", (event) => {
+      const movement = Math.hypot(
+        event.clientX - pointerDownPosition.x,
+        event.clientY - pointerDownPosition.y
+      );
+
+      if (movement > 5) {
+        return;
+      }
+
+      updatePointer(event);
+
+      const cityIntersections = raycaster.intersectObjects(
+        cityPickTargets,
+        false
+      );
+
+      if (cityIntersections.length > 0) {
+        const city = cityIntersections[0].object.userData.city;
+        showCityPopup(city, event.clientX, event.clientY);
+      } else {
+        selectedCity = null;
+        cityPopup.classList.remove("visible");
+      }
+    });
+
+    renderer.domElement.addEventListener("pointerleave", () => {
+      routeTooltip.classList.remove("visible");
+
+      if (hoveredRoute) {
+        hoveredRoute.material.opacity =
+          hoveredRoute.userData.defaultOpacity ??
+          hoveredRoute.material.opacity;
+        hoveredRoute = null;
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 加载地球纹理
+    // ------------------------------------------------------------
+
+    let earthMesh = null;
+
+    async function createEarth() {
+      loadingText.textContent = "正在加载地球昼夜纹理...";
+
+      try {
+        const [dayMap, nightMap] = await Promise.all([
+          loadTexture(dayTextureURL),
+          loadTexture(nightTextureURL)
+        ]);
+
+        const geometry = new THREE.SphereGeometry(
+          EARTH_RADIUS,
+          128,
+          128
+        );
+
+        const material = new THREE.ShaderMaterial({
+          uniforms: {
+            dayMap: { value: dayMap },
+            nightMap: { value: nightMap },
+            sunDirection: { value: sunDirection }
+          },
+          vertexShader: earthVertexShader,
+          fragmentShader: earthFragmentShader
+        });
+
+        earthMesh = new THREE.Mesh(geometry, material);
+        earthGroup.add(earthMesh);
+
+        // 确保地球本体位于热力层、城市与航线之后渲染关系正确
+        earthMesh.renderOrder = 0;
+        heatMesh.renderOrder = 1;
+        cityGroup.renderOrder = 2;
+        routeGroup.renderOrder = 3;
+      } catch (error) {
+        console.error("地球纹理加载失败：", error);
+
+        const fallbackMaterial = new THREE.MeshPhongMaterial({
+          color: 0x0b5483,
+          emissive: 0x021325,
+          shininess: 18
+        });
+
+        earthMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(EARTH_RADIUS, 96, 96),
+          fallbackMaterial
+        );
+
+        earthGroup.add(earthMesh);
+
+        const light = new THREE.DirectionalLight(0xffffff, 2.4);
+        light.position.copy(sunDirection);
+        scene.add(light);
+
+        loadingText.textContent = "纹理加载失败，已启用备用地球";
+      }
+    }
+
+    // ------------------------------------------------------------
+    // 夜间区域城市发光增强
+    // ------------------------------------------------------------
+
+    const tempWorldPosition = new THREE.Vector3();
+
+    function updateCityNightLights(elapsedTime) {
+      cityVisuals.forEach((visual, index) => {
+        visual.marker.getWorldPosition(tempWorldPosition);
+
+        const normal = tempWorldPosition.clone().normalize();
+        const sunlight = normal.dot(sunDirection);
+
+        const nightFactor =
+          1 - THREE.MathUtils.smoothstep(sunlight, -0.1, 0.2);
+
+        const pulse =
+          0.84 +
+          Math.sin(elapsedTime * 2.5 + index * 1.37) * 0.16;
+
+        visual.glow.material.opacity =
+          (0.34 + nightFactor * 0.66) * pulse;
+
+        const baseScale =
+          0.11 + nightFactor * 0.055 + pulse * 0.005;
+
+        visual.glow.scale.set(baseScale, baseScale, baseScale);
+      });
+    }
+
+    // ------------------------------------------------------------
+    // 动画
+    // ------------------------------------------------------------
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.elapsedTime;
+
+      controls.update();
+
+      if (rotationToggle.checked && !dragging) {
+        earthGroup.rotation.y += delta * 0.045;
+      }
+
+      routeAnimations.forEach((animation, index) => {
+        const t =
+          (elapsed * animation.speed + animation.offset) % 1;
+
+        animation.dot.position.copy(
+          animation.curve.getPointAt(t)
+        );
+
+        const pulse =
+          0.8 + Math.sin(elapsed * 6 + index * 0.7) * 0.2;
+
+        animation.dot.scale.setScalar(pulse);
+      });
+
+      updateCityNightLights(elapsed);
+
+      if (timelinePlaying) {
+        timelineAccumulator += delta;
+
+        if (timelineAccumulator >= 1.15) {
+          timelineAccumulator = 0;
+
+          const nextYear =
+            currentYear >= 2024 ? 2018 : currentYear + 1;
+
+          setYear(nextYear);
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // ------------------------------------------------------------
+    // 响应式
+    // ------------------------------------------------------------
+
+    function handleResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.addEventListener("resize", handleResize);
+
+    // ------------------------------------------------------------
+    // 初始化
+    // ------------------------------------------------------------
+
+    async function init() {
+      redrawHeatMap();
+      updateMetricVisuals();
+
+      await createEarth();
+
+      loadingText.textContent = "正在加载国家边界数据...";
+      await loadCountryData();
+
+      setTimeout(() => {
+        loading.classList.add("hidden");
+      }, 300);
+
+      animate();
+    }
+
+    init();
+  </script>
+</body>
+</html>
