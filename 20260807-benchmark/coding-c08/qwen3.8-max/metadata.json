@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "qwen3.8-max",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "eb0bbdaf707a2a56972357d1073a1bf905c82fd3e18f51b2cf5111bcd9a9ea19",
+  "source_answer_sha256": "4e9959e3fbe148077b213a42dfa3d352bd65ef3fa873087ed225247441e80be5",
+  "external_urls": [],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

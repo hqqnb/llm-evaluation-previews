@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>隐形眼镜盒 · 3D 交互模型</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: radial-gradient(1200px 800px at 50% 28%, #fdfdff 0%, #dfe9f2 58%, #c3d4e3 100%);
+  }
+  #app { position: fixed; inset: 0; }
+  #app canvas { display: block; cursor: grab; }
+  #app canvas:active { cursor: grabbing; }
+  .panel {
+    position: fixed; z-index: 10;
+    background: rgba(255,255,255,.72);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.65);
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(50,70,90,.14);
+    padding: 14px 18px; color: #2c3e50;
+  }
+  #info { top: 18px; left: 18px; max-width: 330px; }
+  #info h1 { font-size: 17px; margin: 0 0 6px; letter-spacing: .5px; }
+  #info p { font-size: 12.5px; margin: 4px 0; color: #5b6b7b; line-height: 1.6; }
+  .legend { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; align-items: center; }
+  .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .legend b { margin-left: 6px; font-weight: 600; color: #2e7cd6; }
+  #toolbar { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 10px 12px; }
+  button {
+    border: none; border-radius: 10px; padding: 9px 18px;
+    font-size: 13.5px; cursor: pointer; font-family: inherit;
+    background: #2e7cd6; color: #fff; transition: all .18s ease;
+  }
+  button:hover { background: #1f66bd; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(46,124,214,.35); }
+  button.secondary { background: #eef3f8; color: #2c3e50; }
+  button.secondary:hover { background: #dde7f0; box-shadow: none; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="panel" id="info">
+  <h1>👁️ 隐形眼镜盒 · 3D</h1>
+  <p>🖱️ <b>点击盒盖</b>：拧开 / 拧上<br>🔄 拖动：旋转视角 ｜ 滚轮：缩放</p>
+  <div class="legend">
+    <span><i class="dot" style="background:#f2f2f6;border:1px solid #9aa"></i>L（左眼）<b id="statusL">已关闭</b></span>
+    <span><i class="dot" style="background:#2e7cd6"></i>R（右眼）<b id="statusR">已关闭</b></span>
+  </div>
+</div>
+
+<div class="panel" id="toolbar">
+  <button id="openAll">全部打开</button>
+  <button id="closeAll">全部关闭</button>
+  <button id="resetView" class="secondary">重置视角</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ============ 渲染器 / 场景 / 相机 ============ */
+const container = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+pmrem.dispose();
+
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(5.4, 4.6, 8.6);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.55, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 4;
+controls.maxDistance = 22;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.update();
+controls.saveState();
+
+/* ============ 灯光 / 地面 ============ */
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb0bec5, 0.5));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.6);
+dirLight.position.set(5, 9, 5);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+Object.assign(dirLight.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 25 });
+dirLight.shadow.bias = -0.0004;
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0xdfefff, 0.4);
+fillLight.position.set(-6, 4, -4);
+scene.add(fillLight);
+
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(30, 64),
+  new THREE.ShadowMaterial({ opacity: 0.22 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* ============ 文字贴图（Canvas 生成 L / R） ============ */
+function makeLabelTexture(letter, color) {
+  const s = 512, c = document.createElement('canvas');
+  c.width = c.height = s;
+  const ctx = c.getContext('2d');
+  ctx.strokeStyle = color; ctx.globalAlpha = 0.4; ctx.lineWidth = 16;
+  ctx.beginPath(); ctx.arc(s/2, s/2, s*0.44, 0, Math.PI*2); ctx.stroke();
+  ctx.globalAlpha = 1; ctx.fillStyle = color;
+  ctx.font = `900 ${s*0.58}px Arial, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(letter, s/2, s/2 + s*0.03);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return tex;
+}
+function makeDecalTexture(letter, color, sub) {
+  const s = 256, c = document.createElement('canvas');
+  c.width = c.height = s;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.font = `900 ${s*0.52}px Arial, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(letter, s/2, s*0.36);
+  ctx.globalAlpha = 0.75;
+  ctx.font = `700 ${s*0.15}px "PingFang SC","Microsoft YaHei",sans-serif`;
+  ctx.fillText(sub + '眼', s/2, s*0.78);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return tex;
+}
+
+/* ============ 尺寸常量 ============ */
+const WELL_X = 1.2, BASE_R = 1.32;
+const CAP_CLOSED_Y = 0.58, CAP_LIFT_Y = 1.35;
+
+/* ============ 盒身（体育场形拉伸体 + 倒角） ============ */
+const baseMat = new THREE.MeshPhysicalMaterial({
+  color: 0xf4f6f8, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.3
+});
+const shape = new THREE.Shape();
+shape.absarc(WELL_X, 0, BASE_R, -Math.PI/2, Math.PI/2, false);
+shape.absarc(-WELL_X, 0, BASE_R, Math.PI/2, Math.PI*1.5, false);
+shape.closePath();
+const baseGeo = new THREE.ExtrudeGeometry(shape, {
+  depth: 0.5, bevelEnabled: true, bevelThickness: 0.06,
+  bevelSize: 0.06, bevelSegments: 4, curveSegments: 64
+});
+baseGeo.rotateX(-Math.PI/2);
+baseGeo.translate(0, 0.06, 0);
+const base = new THREE.Mesh(baseGeo, baseMat);
+base.castShadow = base.receiveShadow = true;
+scene.add(base);
+
+/* ============ 镜盒凹槽（螺纹颈 + 护理液 + 镜片） ============ */
+const liquids = [];
+function createWell(x) {
+  const g = new THREE.Group();
+  g.position.x = x;
+
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.94, 0.46, 64), baseMat);
+  neck.position.y = 0.71;
+  neck.castShadow = neck.receiveShadow = true;
+  g.add(neck);
+
+  for (let i = 0; i < 3; i++) {           // 螺纹
+    const th = new THREE.Mesh(new THREE.TorusGeometry(0.925, 0.026, 12, 64), baseMat);
+    th.rotation.x = Math.PI/2;
+    th.position.y = 0.70 + i * 0.09;
+    g.add(th);
+  }
+
+  const innerMat = new THREE.MeshStandardMaterial({ color: 0xc4d0d8, roughness: 0.7, side: THREE.BackSide });
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.82, 48, 1, true), innerMat);
+  wall.position.y = 0.53;
+  const bottom = new THREE.Mesh(new THREE.CircleGeometry(0.8, 48),
+    new THREE.MeshStandardMaterial({ color: 0xc4d0d8, roughness: 0.7 }));
+  bottom.rotation.x = -Math.PI/2; bottom.position.y = 0.12;
+  g.add(wall, bottom);
+
+  const liquid = new THREE.Mesh(          // 护理液
+    new THREE.CylinderGeometry(0.78, 0.78, 0.3, 48),
+    new THREE.MeshPhysicalMaterial({ color: 0x7cc7ea, transparent: true, opacity: 0.75, roughness: 0.08, depthWrite: false })
+  );
+  liquid.position.y = 0.30; liquid.renderOrder = 1;
+  g.add(liquid);
+  liquids.push(liquid);
+
+  const lens = new THREE.Mesh(            // 漂浮的隐形眼镜
+    new THREE.SphereGeometry(0.55, 48, 24, 0, Math.PI*2, 0, 0.62),
+    new THREE.MeshPhysicalMaterial({ color: 0xeaf7ff, transparent: true, opacity: 0.35, roughness: 0.05, side: THREE.DoubleSide, depthWrite: false })
+  );
+  lens.scale.y = 0.55; lens.position.y = 0.226; lens.renderOrder = 2;
+  g.add(lens);
+
+  return g;
+}
+scene.add(createWell(-WELL_X), createWell(WELL_X));
+
+/* ============ 盒身 L/R 贴花 ============ */
+[['L', '#3a6ea5', '左', -WELL_X], ['R', '#2e7cd6', '右', WELL_X]].forEach(([l, col, sub, x]) => {
+  const p = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.66, 0.66),
+    new THREE.MeshStandardMaterial({ map: makeDecalTexture(l, col, sub), transparent: true, roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2 })
+  );
+  p.rotation.x = -Math.PI/2;
+  p.position.set(x, 0.622, 1.16);
+  p.receiveShadow = true;
+  scene.add(p);
+});
+
+/* ============ 盒盖 ============ */
+function createCap(letter, color, letterColor) {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshPhysicalMaterial({ color, roughness: 0.22, clearcoat: 0.9, clearcoatRoughness: 0.2 });
+  const mats = [mat];
+
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(1.06, 1.09, 0.5, 72, 1, true), mat);
+  shell.position.y = 0.25;
+  const topPlate = new THREE.Mesh(new THREE.CircleGeometry(1.06, 72), mat);
+  topPlate.rotation.x = -Math.PI/2; topPlate.position.y = 0.5;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.97, 0.075, 16, 72), mat);
+  rim.rotation.x = Math.PI/2; rim.position.y = 0.5;
+  group.add(shell, topPlate, rim);
+
+  const knurlGeo = new THREE.BoxGeometry(0.085, 0.36, 0.13);   // 防滑纹
+  for (let i = 0; i < 36; i++) {
+    const a = (i / 36) * Math.PI * 2;
+    const k = new THREE.Mesh(knurlGeo, mat);
+    k.position.set(Math.cos(a) * 1.07, 0.24, Math.sin(a) * 1.07);
+    k.rotation.y = Math.PI/2 - a;
+    group.add(k);
+  }
+
+  const labelMat = new THREE.MeshStandardMaterial({   // 顶部 L / R 标识
+    map: makeLabelTexture(letter, letterColor), transparent: true, roughness: 0.5,
+    polygonOffset: true, polygonOffsetFactor: -1
+  });
+  mats.push(labelMat);
+  const label = new THREE.Mesh(new THREE.CircleGeometry(0.8, 64), labelMat);
+  label.rotation.x = -Math.PI/2; label.position.y = 0.506;
+  group.add(label);
+
+  const innerMat = new THREE.MeshStandardMaterial({ color: 0x8f9aa3, roughness: 0.6, side: THREE.BackSide });
+  const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.94, 0.94, 0.44, 48, 1, true), innerMat);
+  inner.position.y = 0.24;
+  const innerTop = new THREE.Mesh(new THREE.CircleGeometry(0.94, 48),
+    new THREE.MeshStandardMaterial({ color: 0x8f9aa3, roughness: 0.6 }));
+  innerTop.rotation.x = Math.PI/2; innerTop.position.y = 0.46;
+  group.add(inner, innerTop);
+
+  group.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return { group, mats };
+}
+
+const capConfigs = [
+  { side: 'L', x: -WELL_X, color: 0xf7f7f9, letter: '#3a6ea5', park: new THREE.Vector3(-3.7, 0, 2.0) },
+  { side: 'R', x:  WELL_X, color: 0x2e7cd6, letter: '#ffffff', park: new THREE.Vector3( 3.7, 0, 2.0) }
+];
+const caps = capConfigs.map(cfg => {
+  const { group, mats } = createCap(cfg.side, cfg.color, cfg.letter);
+  group.position.set(cfg.x, CAP_CLOSED_Y, 0);
+  group.userData = { isCap: true, ...cfg, state: 'closed', mats,
+                     home: new THREE.Vector3(cfg.x, CAP_CLOSED_Y, 0) };
+  scene.add(group);
+  return group;
+});
+
+/* ============ 补间动画系统 ============ */
+const activeTweens = new Set();
+const easeInOutCubic = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
+function tween(duration, onUpdate, ease = easeInOutCubic) {
+  return new Promise(resolve => activeTweens.add({ elapsed: 0, duration, onUpdate, ease, resolve }));
+}
+
+/* ============ 开盖 / 合盖动画 ============ */
+const lerp = THREE.MathUtils.lerp;
+
+function wobbleLiquid(i) {
+  const lq = liquids[i];
+  tween(700, t => {
+    const s = 1 + Math.sin(t * Math.PI * 3) * 0.05 * (1 - t);
+    lq.scale.set(s, 1, s);
+  });
+}
+
+async function openCap(cap) {
+  const d = cap.userData, idx = d.side === 'L' ? 0 : 1;
+  d.state = 'opening'; updateStatus();
+  await tween(850, t => {                          // 拧松：旋转两圈并上升
+    cap.position.y = lerp(CAP_CLOSED_Y, CAP_LIFT_Y, t);
+    cap.rotation.y = t * Math.PI * 4;
+  });
+  const start = cap.position.clone();
+  await tween(650, t => {                          // 弧线移到旁边
+    cap.position.lerpVectors(start, d.park, t);
+    cap.position.y += Math.sin(t * Math.PI) * 0.5;
+  });
+  cap.position.copy(d.park);
+  d.state = 'open';
+  wobbleLiquid(idx);
+  updateStatus();
+}
+
+async function closeCap(cap) {
+  const d = cap.userData;
+  d.state = 'closing'; updateStatus();
+  const start = cap.position.clone();
+  const above = new THREE.Vector3(d.home.x, CAP_LIFT_Y, d.home.z);
+  await tween(650, t => {                          // 飞回凹槽上方
+    cap.position.lerpVectors(start, above, t);
+    cap.position.y += Math.sin(t * Math.PI) * 0.5;
+  });
+  await tween(850, t => {                          // 拧紧：反转两圈并下降
+    cap.position.y = lerp(CAP_LIFT_Y, CAP_CLOSED_Y, t);
+    cap.rotation.y = Math.PI * 4 * (1 - t);
+  });
+  cap.rotation.y = 0;
+  cap.position.copy(d.home);
+  d.state = 'closed'; updateStatus();
+}
+
+function toggleCap(cap) {
+  const s = cap.userData.state;
+  if (s === 'opening' || s === 'closing') return;   // 动画进行中忽略点击
+  s === 'closed' ? openCap(cap) : closeCap(cap);
+}
+
+/* ============ 拾取 / 交互 ============ */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+function pickCap(e) {
+  pointer.x = (e.clientX / innerWidth) * 2 - 1;
+  pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(caps, true);
+  if (!hits.length) return null;
+  let o = hits[0].object;
+  while (o && !o.userData.isCap) o = o.parent;
+  return o;
+}
+
+function setHighlight(cap, on) {
+  cap.userData.mats.forEach(m => m.emissive && m.emissive.setHex(on ? 0x2a2a2a : 0x000000));
+}
+
+let hovered = null;
+renderer.domElement.addEventListener('pointermove', e => {
+  const cap = pickCap(e);
+  if (cap !== hovered) {
+    if (hovered) setHighlight(hovered, false);
+    hovered = cap;
+    if (hovered) setHighlight(hovered, true);
+    renderer.domElement.style.cursor = cap ? 'pointer' : 'grab';
+  }
+});
+
+// 区分"点击"与"拖拽旋转"
+let downX = 0, downY = 0, downTime = 0;
+renderer.domElement.addEventListener('pointerdown', e => {
+  downX = e.clientX; downY = e.clientY; downTime = performance.now();
+});
+renderer.domElement.addEventListener('pointerup', e => {
+  const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+  if (moved < 6 && performance.now() - downTime < 400) {
+    const cap = pickCap(e);
+    if (cap) toggleCap(cap);
+  }
+});
+
+/* ============ UI ============ */
+function updateStatus() {
+  const map = { closed: '已关闭', opening: '打开中…', open: '已打开', closing: '关闭中…' };
+  caps.forEach(c => {
+    document.getElementById('status' + c.userData.side).textContent = map[c.userData.state];
+  });
+}
+updateStatus();
+
+document.getElementById('openAll').onclick  = () => caps.forEach(c => c.userData.state === 'closed' && toggleCap(c));
+document.getElementById('closeAll').onclick = () => caps.forEach(c => c.userData.state === 'open'   && toggleCap(c));
+document.getElementById('resetView').onclick = () => controls.reset();
+
+/* ============ 主循环 / 自适应 ============ */
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  for (const tw of [...activeTweens]) {
+    tw.elapsed += dt * 1000;
+    const raw = Math.min(tw.elapsed / tw.duration, 1);
+    tw.onUpdate(tw.ease(raw));
+    if (raw >= 1) { activeTweens.delete(tw); tw.resolve(); }
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

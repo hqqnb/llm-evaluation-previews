@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c03",
+  "model_alias": "kimi-k3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "f1f439b6ef90e7b9e6d93c8d0dd341ffaffa32c4a8a630a5099f42965b85d0cc",
+  "source_answer_sha256": "34fc5f6622a48ec28268bf039b121493022600b96e7443174144c78b08258d92",
+  "external_urls": [
+    "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "https://unpkg.com/three@0.160.0/examples/jsm/",
+    "http://localhost:8000/contact-lens-case.html`"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

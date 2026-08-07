@@ -1,0 +1,13 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c06",
+  "model_alias": "kimi-k3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "32d5a2ecf106fd12e8626652e92decd88de8e0f77c3fbff610a592061cb77419",
+  "source_answer_sha256": "458d19f4357278b93eff1400fac0eaa712595133c3a3a39226e3f2dae8f640f1",
+  "external_urls": [
+    "http://localhost:8000/archery_game.html"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}
