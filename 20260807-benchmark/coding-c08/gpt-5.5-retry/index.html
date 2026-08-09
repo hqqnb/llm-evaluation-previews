@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Breachline: Tactical FPS</title>
+    <script type="module" crossorigin src="./assets/index-DAAP_RFG.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-msO0UYQv.css">
+  </head>
+  <body>
+    <div id="app">
+      <div id="viewport" tabindex="0"></div>
+      <div id="blind"></div>
+      <div id="scope"></div>
+      <div id="crosshair"><i></i><i></i><i></i><i></i></div>
+      <canvas id="radar" width="180" height="180"></canvas>
+      <div id="status-bar"></div>
+      <div id="kill-feed"></div>
+      <div id="center-prompt"></div>
+      <aside id="buy-panel"></aside>
+      <section id="menu" class="overlay">
+        <div class="hero">
+          <p class="eyebrow">Browser Tactical FPS</p>
+          <h1>Breachline</h1>
+          <p class="lead">第一人称战术爆破模式：Dust2 复刻测试地图、三图轮换、购买经济、Bot 对抗、投掷物控场、下包拆包与完整回合结算。</p>
+          <div class="settings">
+            <label>地图<select id="map-select"></select></label>
+            <label>阵营<select id="team-select"><option value="T">T 方</option><option value="CT">CT 方</option></select></label>
+            <label>Bot 数<select id="bot-select"><option value="2">2v2</option><option selected value="4">5v5</option><option value="6">7v7</option></select></label>
+            <label>难度<select id="difficulty-select"><option value="easy">Easy</option><option selected value="normal">Normal</option><option value="hard">Hard</option><option value="expert">Expert</option></select></label>
+          </div>
+          <button id="start-button" class="primary">进入地图</button>
+          <p class="controls">WASD 移动，鼠标视角，左键射击/投掷，右键开镜，B 购买，E 下包/拆包，R 换弹，Shift 冲刺，Alt 静步，Ctrl 下蹲，1-5 切枪。</p>
+        </div>
+        <div id="map-brief" class="map-brief"></div>
+      </section>
+      <section id="pause" class="overlay hidden compact">
+        <h2>暂停</h2>
+        <button id="resume-button" class="primary">继续</button>
+        <button id="restart-button">重新开始</button>
+        <button id="menu-button">回到地图选择</button>
+      </section>
+      <section id="settlement" class="overlay hidden compact">
+        <h2 id="settlement-title">比赛结束</h2>
+        <div id="settlement-body"></div>
+        <button id="settlement-restart" class="primary">再来一局</button>
+      </section>
+    </div>
+  </body>
+</html>

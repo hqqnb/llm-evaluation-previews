@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "gpt-5.5-retry",
+  "artifact_type": "project",
+  "artifact_file": "index.html",
+  "source": "user-project-5.5-breachline",
+  "extraction_policy": "user-supplied-runnable-project",
+  "repair": "rebuilt with relative asset base",
+  "notes": "GPT-5.5 开发的 Breachline 战术 FPS（Vite + TypeScript + Three.js）"
+}
