@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TACTICAL STRIKE — 浏览器战术射击</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div id="hud-top">
+        <div id="score-left" class="score-box t-side"></div>
+        <div id="round-info"></div>
+        <div id="score-right" class="score-box ct-side"></div>
+      </div>
+      <canvas id="radar" width="240" height="240"></canvas>
+      <div id="timer-bar"><div id="timer-fill"></div><div id="timer-text"></div></div>
+      <div id="bomb-timer" class="hidden"></div>
+      <div id="killfeed"></div>
+      <div id="hitmarker"></div>
+      <div id="damage-vignette"></div>
+      <div id="flash-overlay"></div>
+      <div id="lowhp-vignette"></div>
+      <div id="crosshair">
+        <div class="ch-line ch-top"></div>
+        <div class="ch-line ch-bottom"></div>
+        <div class="ch-line ch-left"></div>
+        <div class="ch-line ch-right"></div>
+        <div class="ch-dot"></div>
+      </div>
+      <div id="interact-hint" class="hidden"></div>
+      <div id="hud-bottom">
+        <div id="health-block">
+          <div class="bar-label">生命</div>
+          <div class="bar"><div id="health-bar"></div></div>
+          <div id="health-num">100</div>
+          <div class="bar-label">护甲</div>
+          <div class="bar armor"><div id="armor-bar"></div></div>
+        </div>
+        <div id="weapon-block">
+          <div id="weapon-name"></div>
+          <div id="ammo"></div>
+        </div>
+        <div id="money-block">
+          <div id="money-label">金钱</div>
+          <div id="money">$0</div>
+        </div>
+      </div>
+      <div id="round-banner" class="hidden"></div>
+      <div id="spectate-info" class="hidden"></div>
+      <div id="hint-bottom"></div>
+    </div>
+
+    <!-- Buy menu -->
+    <div id="buy-menu" class="overlay hidden">
+      <div class="buy-header">
+        <div class="buy-title">购买菜单 <span id="buy-round"></span></div>
+        <div id="buy-money"></div>
+      </div>
+      <div id="buy-cats"></div>
+      <div id="buy-grid"></div>
+      <div class="buy-footer">B 关闭 · 数字键 1-7 选择类别 · 点击购买</div>
+    </div>
+
+    <!-- Main menu -->
+    <div id="main-menu" class="overlay">
+      <div class="menu-panel">
+        <h1 class="game-title">TACTICAL STRIKE</h1>
+        <div class="game-subtitle">经典 CS 风格 · 浏览器战术射击</div>
+        <div id="menu-buttons">
+          <button class="menu-btn primary" id="btn-start">开始游戏</button>
+          <button class="menu-btn" id="btn-controls">操作说明</button>
+          <button class="menu-btn" id="btn-about">关于</button>
+        </div>
+        <div id="menu-footer">v1.0 · 3 张地图 · 完整爆破模式与经济系统</div>
+      </div>
+    </div>
+
+    <!-- Match setup -->
+    <div id="setup-menu" class="overlay hidden">
+      <div class="setup-panel">
+        <h2>比赛设置</h2>
+        <div id="map-cards"></div>
+        <div class="setup-row">
+          <div class="setup-group">
+            <label>阵营</label>
+            <select id="setup-team">
+              <option value="T">恐怖分子 (T)</option>
+              <option value="CT" selected>反恐精英 (CT)</option>
+              <option value="random">随机</option>
+            </select>
+          </div>
+          <div class="setup-group">
+            <label>Bot 数量</label>
+            <select id="setup-bots">
+              <option value="2">每队 2 人</option>
+              <option value="3">每队 3 人</option>
+              <option value="4" selected>每队 4 人</option>
+              <option value="5">每队 5 人</option>
+            </select>
+          </div>
+          <div class="setup-group">
+            <label>Bot 难度</label>
+            <select id="setup-diff">
+              <option value="easy">简单</option>
+              <option value="normal" selected>普通</option>
+              <option value="hard">困难</option>
+            </select>
+          </div>
+          <div class="setup-group">
+            <label>获胜局数</label>
+            <select id="setup-win">
+              <option value="4">先到 4 胜</option>
+              <option value="8" selected>先到 8 胜</option>
+              <option value="13">先到 13 胜</option>
+            </select>
+          </div>
+        </div>
+        <div class="setup-actions">
+          <button class="menu-btn" id="btn-setup-back">返回</button>
+          <button class="menu-btn primary" id="btn-setup-start">开始比赛</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls-menu" class="overlay hidden">
+      <div class="menu-panel wide">
+        <h2>操作说明</h2>
+        <div class="controls-grid">
+          <div><b>WASD</b> 移动</div>
+          <div><b>鼠标</b> 视角</div>
+          <div><b>左键</b> 射击 / 投掷</div>
+          <div><b>右键</b> 瞄准 / 开镜</div>
+          <div><b>空格</b> 跳跃</div>
+          <div><b>Ctrl</b> 下蹲</div>
+          <div><b>Shift</b> 静步</div>
+          <div><b>Alt</b> 冲刺</div>
+          <div><b>R</b> 换弹</div>
+          <div><b>1-7</b> 切换武器</div>
+          <div><b>Q</b> 上一把武器</div>
+          <div><b>E</b> 下包 / 拆包 / 拾取</div>
+          <div><b>B</b> 购买菜单</div>
+          <div><b>Tab</b> 记分板</div>
+          <div><b>G</b> 丢弃武器</div>
+          <div><b>Esc</b> 暂停 / 释放鼠标</div>
+        </div>
+        <button class="menu-btn" id="btn-controls-back">返回</button>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div id="about-menu" class="overlay hidden">
+      <div class="menu-panel wide">
+        <h2>关于</h2>
+        <p>TACTICAL STRIKE 是一款纯浏览器实现的战术 FPS，包含完整爆破模式、经济系统、Bot AI、3 张地图（含 Dust2 复刻测试图）。所有模型、音效、纹理均由程序实时生成，无需外部素材。</p>
+        <button class="menu-btn" id="btn-about-back">返回</button>
+      </div>
+    </div>
+
+    <!-- Pause -->
+    <div id="pause-menu" class="overlay hidden">
+      <div class="menu-panel">
+        <h2>已暂停</h2>
+        <button class="menu-btn primary" id="btn-resume">继续游戏</button>
+        <button class="menu-btn" id="btn-restart">重新开始比赛</button>
+        <button class="menu-btn" id="btn-restart-round">重开本回合</button>
+        <button class="menu-btn" id="btn-pause-menu">返回主菜单</button>
+      </div>
+    </div>
+
+    <!-- Scoreboard -->
+    <div id="scoreboard" class="overlay hidden">
+      <div class="scoreboard-panel">
+        <h2 id="scoreboard-title">记分板</h2>
+        <div id="scoreboard-table"></div>
+      </div>
+    </div>
+
+    <!-- Match end -->
+    <div id="match-end" class="overlay hidden">
+      <div class="menu-panel">
+        <h2 id="match-end-title">比赛结束</h2>
+        <div id="match-end-score"></div>
+        <div id="match-end-stats"></div>
+        <button class="menu-btn primary" id="btn-rematch">再来一局</button>
+        <button class="menu-btn" id="btn-matchend-menu">返回主菜单</button>
+      </div>
+    </div>
+
+    <div id="console-log"></div>
+  </div>
+
+  <script src="libs/three.min.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/textures.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/maps/mapbase.js"></script>
+  <script src="js/maps/dust2.js"></script>
+  <script src="js/maps/factory.js"></script>
+  <script src="js/maps/outpost.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/weapons.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/bots.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

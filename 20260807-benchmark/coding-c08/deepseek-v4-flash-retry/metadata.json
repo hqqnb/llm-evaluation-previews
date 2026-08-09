@@ -1,0 +1,11 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c08",
+  "model_alias": "deepseek-v4-flash-retry",
+  "artifact_type": "project",
+  "artifact_file": "index.html",
+  "source": "codex-thread-019fdc9f-3bbd-7d91-8602-f0da52e5460f",
+  "extraction_policy": "user-supplied-runnable-project",
+  "repair": "none",
+  "notes": "DeepSeek 开发的完整多文件 FPS 项目（3 张地图、爆破模式、经济系统、Bot AI）"
+}
