@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#171a18">
+  <title>SANDLINE // 浏览器战术爆破 FPS</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23151815'/%3E%3Cpath d='M15 19h34v7H25v5h21v14H15v-7h22v-5H15z' fill='%23e9a642'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <canvas id="game-canvas" aria-label="SANDLINE 三维战术射击游戏"></canvas>
+
+  <div id="world-fx" aria-hidden="true">
+    <div id="damage-vignette"></div>
+    <div id="flash-overlay"></div>
+    <div id="scope-overlay">
+      <span class="scope-line scope-line-x"></span>
+      <span class="scope-line scope-line-y"></span>
+      <span class="scope-dot"></span>
+    </div>
+    <div id="letterbox"></div>
+  </div>
+
+  <main id="hud" class="is-hidden" aria-live="polite">
+    <section class="score-strip">
+      <div class="side-score side-score-t">
+        <span class="team-code">T</span>
+        <span id="t-alive" class="alive-pips" aria-label="T 存活人数"></span>
+        <strong id="score-t">0</strong>
+      </div>
+      <div class="round-clock">
+        <span id="round-number">第 1 回合</span>
+        <strong id="round-time">1:55</strong>
+        <span id="phase-label">准备阶段</span>
+      </div>
+      <div class="side-score side-score-ct">
+        <strong id="score-ct">0</strong>
+        <span id="ct-alive" class="alive-pips" aria-label="CT 存活人数"></span>
+        <span class="team-code">CT</span>
+      </div>
+      <div id="bomb-status" class="bomb-status" aria-label="炸弹状态">
+        <span class="bomb-glyph">◆</span>
+        <span id="bomb-label">C4</span>
+      </div>
+    </section>
+
+    <aside class="radar-frame">
+      <canvas id="radar" width="260" height="260" aria-label="战术雷达"></canvas>
+      <div class="radar-grid" aria-hidden="true"></div>
+      <span id="radar-callout">T 出生点</span>
+      <span class="radar-north">N</span>
+    </aside>
+
+    <section id="squad-panel" aria-label="队伍状态"></section>
+    <section id="kill-feed" aria-label="击杀提示"></section>
+
+    <section id="objective-panel">
+      <span class="objective-kicker">当前任务</span>
+      <strong id="objective-title">突破并安放炸弹</strong>
+      <span id="objective-detail">控制关键路线，清理包点</span>
+      <div class="objective-progress"><span id="objective-progress-bar"></span></div>
+    </section>
+
+    <section id="interaction-prompt" class="is-hidden">
+      <kbd>E</kbd>
+      <div>
+        <strong id="interaction-title">安放炸弹</strong>
+        <span id="interaction-detail">按住完成操作</span>
+      </div>
+    </section>
+
+    <section id="round-economy">
+      <span id="cash-value">$800</span>
+      <span id="economy-state">手枪局</span>
+    </section>
+
+    <section id="vitals">
+      <div class="vital">
+        <span class="vital-icon">+</span>
+        <strong id="health-value">100</strong>
+        <small>生命</small>
+      </div>
+      <div class="vital">
+        <span class="vital-icon shield">◇</span>
+        <strong id="armor-value">0</strong>
+        <small id="armor-label">护甲</small>
+      </div>
+    </section>
+
+    <section id="weapon-hud">
+      <div class="weapon-line">
+        <span id="weapon-mode">自动</span>
+        <strong id="weapon-name">AK-47</strong>
+      </div>
+      <div class="ammo-line">
+        <strong id="ammo-mag">30</strong>
+        <span>/</span>
+        <span id="ammo-reserve">90</span>
+      </div>
+      <div id="equipment-strip" aria-label="装备栏"></div>
+    </section>
+
+    <div id="crosshair" aria-hidden="true">
+      <i class="crosshair-top"></i>
+      <i class="crosshair-right"></i>
+      <i class="crosshair-bottom"></i>
+      <i class="crosshair-left"></i>
+      <b></b>
+    </div>
+    <div id="hit-marker" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div id="spectator-label" class="is-hidden">
+      <span>正在观战</span>
+      <strong id="spectator-name">BOT Viper</strong>
+    </div>
+    <div id="center-message" class="is-hidden"></div>
+  </main>
+
+  <section id="start-screen" class="screen is-active" aria-labelledby="game-title">
+    <div class="menu-backdrop" aria-hidden="true">
+      <div class="sun-disc"></div>
+      <div class="skyline skyline-far"></div>
+      <div class="skyline skyline-near"></div>
+      <div class="dust-layer"></div>
+    </div>
+
+    <header class="brand-lockup">
+      <span class="brand-index">SL / 07</span>
+      <h1 id="game-title">SANDLINE</h1>
+      <p>TACTICAL DEMOLITION</p>
+    </header>
+
+    <div class="setup-layout">
+      <section class="map-selector" aria-label="地图选择">
+        <div class="section-heading">
+          <span>01</span>
+          <div>
+            <strong>选择战区</strong>
+            <small>三张地图均支持完整爆破流程</small>
+          </div>
+        </div>
+
+        <div class="map-list">
+          <button class="map-option is-selected" type="button" data-map="dust2">
+            <span class="map-number">01</span>
+            <span class="map-copy">
+              <strong>Dust II 测试场</strong>
+              <small>经典双点结构 · 长短线夹击 · 中路控制</small>
+            </span>
+            <span class="map-diagram dust-diagram" aria-hidden="true"></span>
+          </button>
+          <button class="map-option" type="button" data-map="ironworks">
+            <span class="map-number">02</span>
+            <span class="map-copy">
+              <strong>钢铁工厂</strong>
+              <small>垂直交叉火力 · 快速转点 · 近距爆弹</small>
+            </span>
+            <span class="map-diagram iron-diagram" aria-hidden="true"></span>
+          </button>
+          <button class="map-option" type="button" data-map="monsoon">
+            <span class="map-number">03</span>
+            <span class="map-copy">
+              <strong>季风港</strong>
+              <small>烟墙控图 · 中距交火 · 慢速绕后</small>
+            </span>
+            <span class="map-diagram monsoon-diagram" aria-hidden="true"></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="mission-setup" aria-label="对局设置">
+        <div class="section-heading">
+          <span>02</span>
+          <div>
+            <strong>部署参数</strong>
+            <small>先赢 7 回合，半场后自动换边</small>
+          </div>
+        </div>
+
+        <fieldset class="segmented-field">
+          <legend>选择阵营</legend>
+          <label>
+            <input type="radio" name="team" value="T" checked>
+            <span><b>T</b> 恐怖分子</span>
+          </label>
+          <label>
+            <input type="radio" name="team" value="CT">
+            <span><b>CT</b> 反恐精英</span>
+          </label>
+        </fieldset>
+
+        <label class="range-field">
+          <span><b>Bot 数量</b><output id="bot-count-output">8</output></span>
+          <input id="bot-count" type="range" min="2" max="10" step="2" value="8">
+        </label>
+
+        <label class="select-field">
+          <span>Bot 难度</span>
+          <select id="difficulty">
+            <option value="recruit">新兵 · 慢反应 / 低命中</option>
+            <option value="regular" selected>常规 · 平衡战术</option>
+            <option value="veteran">老兵 · 准确协同</option>
+            <option value="elite">精英 · 快速控图</option>
+          </select>
+        </label>
+
+        <button id="start-match" class="primary-action" type="button">
+          <span>进入战区</span>
+          <small>启动完整爆破对局</small>
+          <i>→</i>
+        </button>
+      </section>
+    </div>
+
+    <footer class="control-rail">
+      <span><kbd>WASD</kbd> 移动</span>
+      <span><kbd>鼠标</kbd> 瞄准 / 射击 / 开镜</span>
+      <span><kbd>B</kbd> 购买</span>
+      <span><kbd>Shift</kbd> 静步</span>
+      <span><kbd>Ctrl</kbd> 下蹲</span>
+      <span><kbd>E</kbd> 下包 / 拆包</span>
+      <span><kbd>G</kbd> 丢枪</span>
+      <span><kbd>Esc</kbd> 暂停</span>
+    </footer>
+  </section>
+
+  <section id="buy-menu" class="overlay-panel is-hidden" aria-labelledby="buy-title">
+    <header>
+      <div>
+        <span>补给终端 / 购买阶段</span>
+        <h2 id="buy-title">装备配置</h2>
+      </div>
+      <div class="buy-balance">
+        <small>可用资金</small>
+        <strong id="buy-cash">$800</strong>
+      </div>
+      <button class="close-overlay" type="button" data-close="buy-menu" aria-label="关闭购买菜单">×</button>
+    </header>
+    <div class="buy-layout">
+      <nav id="buy-categories" aria-label="购买类别">
+        <button class="is-selected" type="button" data-category="rifle">步枪</button>
+        <button type="button" data-category="smg">冲锋枪</button>
+        <button type="button" data-category="sniper">狙击枪</button>
+        <button type="button" data-category="shotgun">霰弹枪</button>
+        <button type="button" data-category="pistol">手枪</button>
+        <button type="button" data-category="grenade">投掷物</button>
+        <button type="button" data-category="equipment">护甲装备</button>
+      </nav>
+      <div id="buy-items" aria-live="polite"></div>
+      <aside id="buy-detail">
+        <span id="buy-detail-class">突击步枪</span>
+        <h3 id="buy-detail-name">AK-47</h3>
+        <div id="buy-detail-art" aria-hidden="true"></div>
+        <dl>
+          <div><dt>伤害</dt><dd><i id="stat-damage"></i></dd></div>
+          <div><dt>射速</dt><dd><i id="stat-rate"></i></dd></div>
+          <div><dt>控制</dt><dd><i id="stat-control"></i></dd></div>
+          <div><dt>机动</dt><dd><i id="stat-mobility"></i></dd></div>
+        </dl>
+        <button id="buy-selected" type="button">购买 <span id="buy-detail-price">$2700</span></button>
+      </aside>
+    </div>
+    <footer>只能在出生区域和购买时间内购买 · <kbd>B</kbd> 关闭</footer>
+  </section>
+
+  <section id="scoreboard" class="overlay-panel compact-panel is-hidden" aria-labelledby="scoreboard-title">
+    <header>
+      <div>
+        <span id="scoreboard-map">Dust II 测试场</span>
+        <h2 id="scoreboard-title">战术计分板</h2>
+      </div>
+      <div id="scoreboard-score">0 : 0</div>
+    </header>
+    <div class="score-table">
+      <div class="score-row score-head"><span>队员</span><span>资金</span><span>K</span><span>D</span><span>状态</span></div>
+      <div id="scoreboard-rows"></div>
+    </div>
+  </section>
+
+  <section id="pause-menu" class="screen modal-screen is-hidden" aria-labelledby="pause-title">
+    <div class="modal-card">
+      <span class="modal-kicker">MATCH PAUSED</span>
+      <h2 id="pause-title">行动暂停</h2>
+      <button id="resume-match" class="primary-action" type="button"><span>返回战场</span><i>→</i></button>
+      <button id="restart-match" type="button">重新开始当前地图</button>
+      <button id="change-map" type="button">地图与阵营设置</button>
+      <button id="toggle-audio" type="button">声音：开启</button>
+      <p>鼠标灵敏度 <input id="sensitivity" type="range" min="0.35" max="1.8" step="0.05" value="0.8"></p>
+    </div>
+  </section>
+
+  <section id="death-screen" class="screen death-screen is-hidden" aria-live="assertive">
+    <div>
+      <span>行动失败</span>
+      <h2 id="death-killer">BOT Viper</h2>
+      <p><b id="death-weapon">AK-47</b> · <span id="death-distance">24m</span></p>
+      <small>3 秒后进入队友观战</small>
+    </div>
+  </section>
+
+  <section id="round-banner" class="screen round-banner is-hidden" aria-live="assertive">
+    <div>
+      <span id="round-banner-kicker">ROUND 01</span>
+      <h2 id="round-banner-title">恐怖分子胜利</h2>
+      <p id="round-banner-detail">目标已引爆</p>
+    </div>
+  </section>
+
+  <section id="result-screen" class="screen modal-screen is-hidden" aria-labelledby="result-title">
+    <div class="result-card">
+      <span id="result-kicker">任务完成</span>
+      <h2 id="result-title">7 : 4</h2>
+      <p id="result-summary">T 阵营赢得 Dust II 测试场</p>
+      <div class="result-stats">
+        <span><small>击杀</small><b id="result-kills">12</b></span>
+        <span><small>死亡</small><b id="result-deaths">8</b></span>
+        <span><small>爆头率</small><b id="result-headshots">42%</b></span>
+        <span><small>经济评分</small><b id="result-economy">78</b></span>
+      </div>
+      <button id="play-again" class="primary-action" type="button"><span>再来一局</span><i>→</i></button>
+      <button id="result-settings" type="button">返回地图选择</button>
+    </div>
+  </section>
+
+  <div id="loading-screen" class="screen loading-screen is-hidden">
+    <div class="loading-mark">SL</div>
+    <span id="loading-label">正在构筑战区</span>
+    <i><b id="loading-progress"></b></i>
+  </div>
+
+  <div id="mobile-warning" class="is-hidden">
+    <strong>建议使用桌面设备</strong>
+    <span>游戏支持窄屏菜单，但完整战斗需要键盘和鼠标。</span>
+  </div>
+
+  <script>
+    window.__sandlineBoot = { ready: false, errors: [] };
+    window.addEventListener("error", function (event) {
+      window.__sandlineBoot.errors.push({
+        type: "error",
+        message: event.message,
+        source: event.filename,
+        line: event.lineno,
+        column: event.colno
+      });
+    });
+    window.addEventListener("unhandledrejection", function (event) {
+      window.__sandlineBoot.errors.push({
+        type: "rejection",
+        message: String(event.reason && (event.reason.stack || event.reason.message) || event.reason)
+      });
+    });
+    window.__syncHudChips = function (chips) {
+      chips.forEach(function (c) {
+        c.cfg.chip.classList.toggle('open',c.open);
+      });
+    };
+  </script>
+  <script type="module" src="./src/game.js"></script>
+</body>
+</html>
