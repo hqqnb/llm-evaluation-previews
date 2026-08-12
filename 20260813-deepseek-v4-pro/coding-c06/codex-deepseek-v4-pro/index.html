@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1722">
+<title>弓箭射击模拟 · Archery Sim</title>
+<style>
+  :root {
+    --accent: #ffb84d;
+    --panel: rgba(16, 27, 40, .94);
+    --text: #f3f6fb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(1200px 700px at 50% 30%, #24384f, #0d1722);
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+  }
+  #wrap {
+    position: relative;
+    width: min(96vw, calc(96vh * 1.7143));
+    aspect-ratio: 1200 / 700;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+    cursor: crosshair;
+    touch-action: none;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: rgba(8, 14, 22, .42);
+    backdrop-filter: blur(3px);
+  }
+  .panel {
+    width: min(540px, 90%);
+    background: var(--panel);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 18px;
+    padding: 28px 34px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .45);
+    text-align: center;
+    max-height: 92%;
+    overflow: auto;
+  }
+  h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, #ffd98a, #ff9d5c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .subtitle { color: #9fb2c8; margin: 0 0 20px; font-size: 14px; }
+  .field { margin: 12px 0; text-align: left; }
+  label { font-size: 13px; color: #9fb2c8; display: block; margin-bottom: 6px; }
+  input[type=text] {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+    font-size: 15px;
+    outline: none;
+    user-select: text;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+  .btn {
+    font: inherit;
+    padding: 11px 24px;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: transform .12s, filter .12s;
+    color: #fff;
+    background: rgba(255, 255, 255, .09);
+    border: 1px solid rgba(255, 255, 255, .2);
+  }
+  .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+  .btn:active { transform: translateY(0); }
+  .btn.primary {
+    background: linear-gradient(90deg, #ffb84d, #ff8a3d);
+    border: none;
+    color: #241a0d;
+  }
+  .btnrow {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .rules {
+    margin: 14px 0 0;
+    padding: 13px 16px;
+    background: rgba(255, 255, 255, .05);
+    border-radius: 12px;
+    text-align: left;
+    font-size: 13px;
+    color: #c6d4e4;
+    line-height: 1.95;
+  }
+  .rules b { color: var(--accent); }
+
+  #hud {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 10px;
+    pointer-events: none;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .hud-item {
+    background: rgba(10, 18, 28, .72);
+    border: 1px solid rgba(255, 255, 255, .15);
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  #hudTimer { font-size: 15px; font-weight: 700; color: #ffd98a; }
+  #hint {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 18, 28, .62);
+    color: #c9d6e6;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    pointer-events: none;
+    display: none;
+    white-space: nowrap;
+  }
+
+  .big-time {
+    font-size: 46px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: #ffd98a;
+    margin: 6px 0;
+  }
+  .stat-row { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+  .stat { background: rgba(255, 255, 255, .06); border-radius: 10px; padding: 10px 20px; font-size: 13px; color: #9fb2c8; }
+  .stat b { display: block; font-size: 19px; color: #fff; font-variant-numeric: tabular-nums; }
+  #recordBadge {
+    display: none;
+    margin: 10px auto 0;
+    width: fit-content;
+    background: linear-gradient(90deg, #ffd54a, #ff8a3d);
+    color: #3a2507;
+    font-weight: 700;
+    padding: 5px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+
+  .board-scroll { max-height: 330px; overflow: auto; margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid rgba(255, 255, 255, .1); }
+  th { color: #9fb2c8; font-weight: 600; }
+  td { color: #dbe6f2; }
+  td.time { font-variant-numeric: tabular-nums; font-weight: 700; color: #ffd98a; }
+  tr.me td { background: rgba(255, 184, 77, .14); }
+  .empty { padding: 26px 0; color: #8fa3b8; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div class="hud-item" id="hudTimer">00:00.00</div>
+    <div class="hud-item" id="hudTargets">目标 0/4</div>
+    <div class="hud-item" id="hudShots">箭数 0</div>
+    <div class="hud-item" id="hudWind">风 无</div>
+  </div>
+  <div id="hint">按住并拖动瞄准蓄力 · 松开射箭 · 按 R 重新开始</div>
+
+  <div class="overlay" id="startScreen">
+    <div class="panel">
+      <h1>🏹 弓箭射击模拟</h1>
+      <p class="subtitle">命中全部 4 个靶子，用时越短，排名越高</p>
+      <div class="field">
+        <label for="nameInput">玩家昵称</label>
+        <input id="nameInput" type="text" maxlength="12" placeholder="输入你的名字（可留空）">
+      </div>
+      <div class="rules">
+        🎯 拖动鼠标瞄准并蓄力，松开射出箭矢；虚线为飞行轨迹预览<br>
+        🌬 箭矢受重力与随机风向影响，注意修正落点<br>
+        ⏱ 计时从开局开始，命中全部目标即停表<br>
+        🏆 成绩按用时自动写入本机排行榜（箭数越少也越好，名次先比时间）
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="startBtn">开始游戏</button>
+        <button class="btn" id="boardBtn">排行榜</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="resultScreen" style="display:none">
+    <div class="panel">
+      <h1>🎉 全部命中！</h1>
+      <p class="subtitle">本次成绩</p>
+      <div class="big-time" id="resultTime">00:00.00</div>
+      <div id="recordBadge">🏆 新纪录！</div>
+      <div class="stat-row">
+        <div class="stat"><b id="resultShots">0</b>射箭次数</div>
+        <div class="stat"><b id="resultRank">-</b>当前排名</div>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="againBtn">再来一局</button>
+        <button class="btn" id="resultBoardBtn">查看排行榜</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="boardScreen" style="display:none">
+    <div class="panel">
+      <h1>🏆 排行榜</h1>
+      <p class="subtitle">用时越短，名次越高（本机记录）</p>
+      <div class="board-scroll">
+        <table>
+          <thead>
+            <tr><th>名次</th><th>玩家</th><th>用时</th><th>箭数</th><th>日期</th></tr>
+          </thead>
+          <tbody id="boardList"></tbody>
+        </table>
+        <div class="empty" id="boardEmpty">暂无记录，来一局创造第一个纪录吧！</div>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="boardBackBtn">返回</button>
+        <button class="btn" id="clearBtn">清空记录</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = 1200, H = 700;
+  const GRAVITY = 420;      // px/s^2
+  const MAX_POWER = 800;    // px/s
+  const ARROW_L = 58;
+  const GROUND_Y = 620;
+  const BOW = { x: 180, y: 505 };
+  const KEY = 'archery_sim_scores_v1';
+  const NAME_KEY = 'archery_sim_name_v1';
+  canvas.width = W;
+  canvas.height = H;
+
+  const $ = id => document.getElementById(id);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  const targetDefs = [
+    { x: 645, y: 208, r: 60 },
+    { x: 905, y: 168, r: 52 },
+    { x: 1040, y: 428, r: 58 },
+    { x: 745, y: 548, r: 56 }
+  ];
+
+  const state = {
+    mode: 'start',          // start | playing | won
+    targets: [],
+    arrows: [],
+    particles: [],
+    aim: { active: false, angle: -0.15, power: 0, dragX: 0, dragY: 0, held: 0 },
+    timer: { elapsed: 0, running: false },
+    shots: 0,
+    hits: 0,
+    wind: 0,
+    name: localStorage.getItem(NAME_KEY) || '',
+    lastEntry: null
+  };
+
+  const nameInput = $('nameInput');
+  nameInput.value = state.name;
+
+  /* ---------- 数据 / 存储 ---------- */
+  function makeTargets() {
+    state.targets = targetDefs.map((d, i) => ({ x: d.x, y: d.y, r: d.r, hit: false, index: i }));
+  }
+  function loadScores() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function saveScores(list) {
+    try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function saveScore(entry) {
+    const list = loadScores();
+    list.push(entry);
+    list.sort((a, b) => a.time - b.time);
+    saveScores(list.slice(0, 50));
+    return list.indexOf(entry) + 1;
+  }
+
+  /* ---------- 音频 ---------- */
+  let AC = null;
+  function audio() {
+    if (!AC) {
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (C) AC = new C();
+    }
+    if (AC && AC.state === 'suspended') AC.resume();
+    return AC;
+  }
+  function tone(f0, f1, dur, type, vol) {
+    const c = audio();
+    if (!c) return;
+    const t = c.currentTime;
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(f0, t);
+    if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+    g.gain.setValueAtTime(vol || 0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  const playFire = () => { tone(260, 90, 0.12, 'triangle', 0.16); tone(520, 180, 0.05, 'sine', 0.05); };
+  const playHit = () => { tone(220, 70, 0.1, 'square', 0.16); tone(880, 1200, 0.06, 'sine', 0.07); };
+  const playWin = () => [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, null, 0.22, 'triangle', 0.13), i * 110));
+
+  /* ---------- 界面 ---------- */
+  function show(id, on) { $(id).style.display = on ? 'flex' : 'none'; }
+  function hideAll() { ['startScreen', 'resultScreen', 'boardScreen'].forEach(id => show(id, false)); }
+  function showHud(on) {
+    $('hud').style.display = on ? 'flex' : 'none';
+    $('hint').style.display = on ? 'block' : 'none';
+  }
+  function fmt(t) {
+    const cs = Math.floor(t * 100) % 100;
+    const s = Math.floor(t) % 60;
+    const m = Math.floor(t / 60);
+    const p = n => String(n).padStart(2, '0');
+    return p(m) + ':' + p(s) + '.' + p(cs);
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+  function updateHud() {
+    $('hudTimer').textContent = fmt(state.timer.elapsed);
+    $('hudTargets').textContent = '目标 ' + state.hits + '/4';
+    $('hudShots').textContent = '箭数 ' + state.shots;
+    const mag = Math.abs(state.wind);
+    $('hudWind').textContent = mag < 3 ? '风 无' : ('风 ' + (state.wind > 0 ? '→' : '←') + ' ' + (mag / 18).toFixed(1) + ' 级');
+  }
+  function renderBoard(me) {
+    const list = loadScores();
+    $('boardEmpty').style.display = list.length ? 'none' : 'block';
+    const tbody = $('boardList');
+    tbody.innerHTML = '';
+    const medals = ['🥇', '🥈', '🥉'];
+    list.slice(0, 10).forEach((e, i) => {
+      const tr = document.createElement('tr');
+      if (me && e.time === me.time && e.date === me.date) tr.className = 'me';
+      const d = new Date(e.date);
+      const date = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      tr.innerHTML =
+        '<td>' + (medals[i] || (i + 1)) + '</td>' +
+        '<td>' + esc(e.name) + '</td>' +
+        '<td class="time">' + fmt(e.time) + '</td>' +
+        '<td>' + e.shots + '</td>' +
+        '<td>' + date + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function startGame() {
+    makeTargets();
+    state.arrows = [];
+    state.particles = [];
+    state.shots = 0;
+    state.hits = 0;
+    state.timer.elapsed = 0;
+    state.timer.running = true;
+    state.wind = (Math.random() < 0.5 ? -1 : 1) * rand(8, 36);
+    state.aim.active = false;
+    state.aim.power = 0;
+    state.mode = 'playing';
+    hideAll();
+    showHud(true);
+  }
+
+  function showStart() {
+    state.mode = 'start';
+    state.timer.running = false;
+    makeTargets();
+    state.arrows = [];
+    state.particles = [];
+    state.hits = 0;
+    state.shots = 0;
+    state.timer.elapsed = 0;
+    hideAll();
+    show('startScreen', true);
+    showHud(false);
+  }
+
+  function winGame() {
+    state.mode = 'won';
+    state.timer.running = false;
+    state.aim.active = false;
+    const entry = {
+      name: (state.name || '').trim() || '玩家',
+      time: state.timer.elapsed,
+      shots: state.shots,
+      date: Date.now()
+    };
+    const rank = saveScore(entry);
+    state.lastEntry = entry;
+    confetti();
+    playWin();
+    $('resultTime').textContent = fmt(entry.time);
+    $('resultShots').textContent = entry.shots;
+    $('resultRank').textContent = '第 ' + rank + ' 名';
+    $('recordBadge').style.display = rank === 1 ? 'block' : 'none';
+    showHud(false);
+    hideAll();
+    show('resultScreen', true);
+  }
+
+  /* ---------- 按钮 ---------- */
+  $('startBtn').onclick = () => {
+    state.name = nameInput.value.trim();
+    try { localStorage.setItem(NAME_KEY, state.name); } catch (e) {}
+    audio();
+    startGame();
+  };
+  nameInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('startBtn').click();
+  });
+  $('boardBtn').onclick = () => { renderBoard(); hideAll(); show('boardScreen', true); };
+  $('againBtn').onclick = () => { audio(); startGame(); };
+  $('resultBoardBtn').onclick = () => { renderBoard(state.lastEntry); hideAll(); show('boardScreen', true); };
+  $('boardBackBtn').onclick = () => {
+    if (state.mode === 'won') { hideAll(); show('resultScreen', true); }
+    else showStart();
+  };
+  $('clearBtn').onclick = () => {
+    if (window.confirm('确定清空本机全部排行榜记录吗？此操作不可恢复。')) {
+      try { localStorage.removeItem(KEY); } catch (e) {}
+      renderBoard();
+    }
+  };
+  window.addEventListener('keydown', e => {
+    if ((e.key === 'r' || e.key === 'R') && document.activeElement && document.activeElement.tagName !== 'INPUT') {
+      if (state.mode === 'playing' || state.mode === 'won') startGame();
+    }
+  });
+
+  /* ---------- 输入 ---------- */
+  function toCanvas(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height };
+  }
+  function onDown(e) {
+    if (state.mode !== 'playing') return;
+    audio();
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    const p = toCanvas(e);
+    state.aim.active = true;
+    state.aim.dragX = p.x;
+    state.aim.dragY = p.y;
+    state.aim.held = 0;
+    state.aim.power = 0;
+    state.aim.angle = Math.atan2(p.y - BOW.y, p.x - BOW.x);
+  }
+  function onMove(e) {
+    if (!state.aim.active) return;
+    const p = toCanvas(e);
+    state.aim.angle = Math.atan2(p.y - BOW.y, p.x - BOW.x);
+    const dist = Math.hypot(p.x - state.aim.dragX, p.y - state.aim.dragY);
+    const holdPower = state.aim.held * 620;
+    state.aim.power = clamp(Math.max(90 + dist * 2.1, holdPower, 90), 90, MAX_POWER);
+  }
+  function onUp(e) {
+    if (!state.aim.active) return;
+    const p = toCanvas(e);
+    state.aim.angle = Math.atan2(p.y - BOW.y, p.x - BOW.x);
+    fire();
+    state.aim.active = false;
+    state.aim.power = 0;
+    try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+  }
+  canvas.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('blur', () => { state.aim.active = false; });
+
+  function fire() {
+    const power = clamp(state.aim.power, 90, MAX_POWER);
+    const a = state.aim.angle;
+    const vx = Math.cos(a) * power;
+    const vy = Math.sin(a) * power;
+    state.arrows.push({
+      x: BOW.x + Math.cos(a) * 42,
+      y: BOW.y + Math.sin(a) * 42,
+      vx, vy, angle: a, state: 'fly'
+    });
+    state.shots++;
+    if (state.arrows.length > 60) state.arrows = state.arrows.filter(ar => ar.state === 'stuck').slice(-40);
+    playFire();
+  }
+
+  /* ---------- 物理 ---------- */
+  function registerHit(a, t) {
+    t.hit = true;
+    a.state = 'stuck';
+    const tx = a.x + Math.cos(a.angle) * ARROW_L;
+    const ty = a.y + Math.sin(a.angle) * ARROW_L;
+    const dx = tx - t.x, dy = ty - t.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const ix = t.x + dx / d * t.r;
+    const iy = t.y + dy / d * t.r;
+    a.x = ix - Math.cos(a.angle) * ARROW_L;
+    a.y = iy - Math.sin(a.angle) * ARROW_L;
+    burst(t.x, t.y, '#ffd54a', 26);
+    playHit();
+    state.hits++;
+    if (state.hits >= 4) winGame();
+  }
+
+  function update(dt) {
+    if (state.timer.running) state.timer.elapsed += dt;
+    if (state.aim.active) state.aim.held += dt;
+
+    for (const a of state.arrows) {
+      if (a.state !== 'fly') continue;
+      a.vx += state.wind * dt;
+      a.vy += GRAVITY * dt;
+      a.x += a.vx * dt;
+      a.y += a.vy * dt;
+      a.angle = Math.atan2(a.vy, a.vx);
+      const tx = a.x + Math.cos(a.angle) * ARROW_L;
+      const ty = a.y + Math.sin(a.angle) * ARROW_L;
+
+      let hitTarget = null;
+      for (const t of state.targets) {
+        if (t.hit) continue;
+        if (Math.hypot(tx - t.x, ty - t.y) <= t.r) { hitTarget = t; break; }
+      }
+      if (hitTarget) { registerHit(a, hitTarget); continue; }
+
+      if (ty >= GROUND_Y) {
+        const over = ty - GROUND_Y;
+        a.y -= over;
+        if (Math.abs(Math.sin(a.angle)) > 0.02) a.x -= over * Math.cos(a.angle) / Math.sin(a.angle);
+        a.state = 'ground';
+        continue;
+      }
+      if (a.x > W + 80 || a.x < -80 || ty < -120) a.state = 'gone';
+    }
+    state.arrows = state.arrows.filter(a => a.state !== 'gone');
+
+    for (const p of state.particles) {
+      p.age += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (p.gravity) p.vy += 70 * dt;
+      if (p.wobble) p.x += Math.sin(p.age * 7) * 30 * dt;
+    }
+    state.particles = state.particles.filter(p => p.age < p.life);
+  }
+
+  function burst(x, y, color, n) {
+    for (let i = 0; i < n; i++) {
+      const ang = rand(0, Math.PI * 2);
+      const sp = rand(60, 280);
+      state.particles.push({
+        x, y,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        age: 0, life: rand(0.45, 0.9), size: rand(2, 4.5), color,
+        gravity: true, wobble: false
+      });
+    }
+  }
+  function confetti() {
+    const colors = ['#ffd54a', '#ff8a3d', '#66e08a', '#5ab3ff', '#f78ac5'];
+    for (let i = 0; i < 170; i++) {
+      state.particles.push({
+        x: rand(0, W), y: rand(-160, -10),
+        vx: rand(-25, 25), vy: rand(70, 170),
+        age: 0, life: rand(1.4, 2.6), size: rand(3, 6),
+        color: colors[i % colors.length],
+        gravity: true, wobble: true
+      });
+    }
+  }
+
+  /* ---------- 绘制 ---------- */
+  function drawCloud(x, y, s) {
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.beginPath();
+    ctx.arc(x, y, 24 * s, 0, 7);
+    ctx.arc(x + 26 * s, y - 8 * s, 20 * s, 0, 7);
+    ctx.arc(x + 52 * s, y, 24 * s, 0, 7);
+    ctx.arc(x + 26 * s, y + 8 * s, 20 * s, 0, 7);
+    ctx.fill();
+  }
+  function drawBackground(t) {
+    const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    sky.addColorStop(0, '#7cc7ef');
+    sky.addColorStop(0.65, '#c9ecfc');
+    sky.addColorStop(1, '#e9f7e2');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, GROUND_Y);
+
+    const sun = ctx.createRadialGradient(108, 92, 8, 108, 92, 88);
+    sun.addColorStop(0, 'rgba(255,246,205,1)');
+    sun.addColorStop(0.4, 'rgba(255,225,130,.9)');
+    sun.addColorStop(1, 'rgba(255,225,130,0)');
+    ctx.fillStyle = sun;
+    ctx.beginPath(); ctx.arc(108, 92, 88, 0, 7); ctx.fill();
+
+    drawCloud(((t * 9) % 200) + 180 - 100, 118, 1);
+    drawCloud(((t * 5) % 260) + 520 - 130, 76, 0.78);
+    drawCloud(((t * 7) % 220) + 880 - 110, 142, 1.12);
+
+    ctx.fillStyle = '#a9d78d';
+    ctx.beginPath(); ctx.ellipse(360, GROUND_Y + 28, 520, 150, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#94c87b';
+    ctx.beginPath(); ctx.ellipse(940, GROUND_Y + 20, 560, 170, 0, Math.PI, 0); ctx.fill();
+
+    const ground = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+    ground.addColorStop(0, '#83c066');
+    ground.addColorStop(1, '#4d8f4f');
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+    ctx.strokeStyle = 'rgba(255,255,255,.4)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 18; i++) {
+      const gx = 30 + i * 68 + (i % 3) * 12;
+      const gy = GROUND_Y + 8 + (i % 5) * 7;
+      ctx.beginPath();
+      ctx.moveTo(gx, gy + 9);
+      ctx.quadraticCurveTo(gx + 3, gy - 3, gx - 2, gy - 6);
+      ctx.quadraticCurveTo(gx - 7, gy + 2, gx - 9, gy + 8);
+      ctx.stroke();
+    }
+  }
+
+  function drawTarget(t) {
+    const { x, y, r } = t;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#6d4c33';
+    ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(x, y + r * 0.72); ctx.lineTo(x, y + r + 30); ctx.stroke();
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(x - 20, y + r + 24); ctx.lineTo(x + 20, y + r + 24);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y + r + 30); ctx.lineTo(x - 20, y + r + 24);
+    ctx.moveTo(x, y + r + 30); ctx.lineTo(x + 20, y + r + 24);
+    ctx.stroke();
+
+    const rings = [
+      { c: '#f7f7f2', s: 1 },
+      { c: '#22252b', s: 0.82 },
+      { c: '#3d7fd4', s: 0.64 },
+      { c: '#d94b4b', s: 0.46 },
+      { c: '#f5c542', s: 0.28 },
+      { c: '#d94b4b', s: 0.12 }
+    ];
+    for (const rg of rings) {
+      ctx.beginPath(); ctx.arc(x, y, r * rg.s, 0, 7);
+      ctx.fillStyle = rg.c;
+      ctx.fill();
+    }
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(0,0,0,.3)';
+    for (const rg of rings) {
+      ctx.beginPath(); ctx.arc(x, y, r * rg.s, 0, 7); ctx.stroke();
+    }
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#3a3d42';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+
+    ctx.fillStyle = 'rgba(240,240,235,.95)';
+    ctx.beginPath(); ctx.arc(x, y - r - 16, 13, 0, 7); ctx.fill();
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 15px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(t.index + 1), x, y - r - 16);
+
+    if (t.hit) {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
+      ctx.fillStyle = 'rgba(30,40,50,.5)';
+      ctx.fill();
+      ctx.strokeStyle = '#66e08a';
+      ctx.lineWidth = 8;
+      ctx.lineJoin = 'round';
+      const k = r * 0.52;
+      ctx.beginPath();
+      ctx.moveTo(x - k * 0.5, y);
+      ctx.lineTo(x - k * 0.12, y + k * 0.42);
+      ctx.lineTo(x + k * 0.55, y - k * 0.38);
+      ctx.stroke();
+    }
+  }
+
+  function drawArrow(a) {
+    ctx.save();
+    ctx.translate(a.x, a.y);
+    ctx.rotate(a.angle);
+    ctx.strokeStyle = '#8a5a33';
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(ARROW_L - 11, 0); ctx.stroke();
+    ctx.fillStyle = '#e8f2ff';
+    ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(-10, -7); ctx.lineTo(-2, 0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(-10, 7); ctx.lineTo(-2, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#d8d8d8';
+    ctx.beginPath(); ctx.moveTo(ARROW_L, 0); ctx.lineTo(ARROW_L - 13, -5); ctx.lineTo(ARROW_L - 13, 5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBow() {
+    const a = state.aim.active ? state.aim.angle : -0.08;
+    ctx.save();
+    ctx.translate(BOW.x, BOW.y);
+    ctx.rotate(a);
+    const p = state.aim.active ? clamp(state.aim.power / MAX_POWER, 0, 1) : 0;
+    const pull = p * 46;
+
+    ctx.strokeStyle = 'rgba(240,240,235,.92)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-pull, -92); ctx.lineTo(-pull, 92); ctx.stroke();
+
+    ctx.strokeStyle = '#6b4226';
+    ctx.lineWidth = 9;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, -92); ctx.quadraticCurveTo(44 + p * 8, -46, 28, -4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 92); ctx.quadraticCurveTo(44 + p * 8, 46, 28, 4); ctx.stroke();
+
+    ctx.fillStyle = '#3f2a1c';
+    ctx.fillRect(-6, -8, 18, 16);
+    ctx.strokeStyle = '#241608';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(0, -92); ctx.lineTo(-pull, -92); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 92); ctx.lineTo(-pull, 92); ctx.stroke();
+
+    if (state.aim.active) {
+      ctx.strokeStyle = '#8a5a33';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(-pull, 0); ctx.lineTo(ARROW_L - 2 - pull * 0.2, 0); ctx.stroke();
+      ctx.fillStyle = '#e8f2ff';
+      ctx.beginPath(); ctx.moveTo(-pull + 7, 0); ctx.lineTo(-pull - 4, -7); ctx.lineTo(-pull + 2, 0); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-pull + 7, 0); ctx.lineTo(-pull - 4, 7); ctx.lineTo(-pull + 2, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#d8d8d8';
+      ctx.beginPath(); ctx.moveTo(ARROW_L, 0); ctx.lineTo(ARROW_L - 13, -5); ctx.lineTo(ARROW_L - 13, 5); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawPreview() {
+    if (!state.aim.active) return;
+    const ang = state.aim.angle;
+    const power = clamp(state.aim.power, 90, MAX_POWER);
+    let x = BOW.x + Math.cos(ang) * ARROW_L;
+    let y = BOW.y + Math.sin(ang) * ARROW_L;
+    let vx = Math.cos(ang) * power;
+    let vy = Math.sin(ang) * power;
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 36; i++) {
+      const dt = 0.045;
+      vx += state.wind * dt;
+      vy += GRAVITY * dt;
+      x += vx * dt;
+      y += vy * dt;
+      if (y > GROUND_Y || x < 0 || x > W) break;
+      ctx.globalAlpha = Math.max(0, 1 - i / 36);
+      ctx.beginPath(); ctx.arc(x, y, i < 4 ? 3.5 : 2.3, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPower() {
+    if (!state.aim.active) return;
+    const x = BOW.x - 64, y = BOW.y - 128, w = 15, h = 145;
+    ctx.fillStyle = 'rgba(10,18,28,.55)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 8);
+    ctx.fill();
+    const f = clamp(state.aim.power / MAX_POWER, 0, 1);
+    const grad = ctx.createLinearGradient(0, y + h, 0, y);
+    grad.addColorStop(0, '#66e08a');
+    grad.addColorStop(0.55, '#ffd54a');
+    grad.addColorStop(1, '#ff5a4d');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y + h - h * f, w, h * f, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 8); ctx.stroke();
+  }
+
+  function drawParticles() {
+    for (const p of state.particles) {
+      ctx.globalAlpha = Math.max(0, 1 - p.age / p.life);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, 7);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function draw(t) {
+    drawBackground(t);
+    for (const tg of state.targets) drawTarget(tg);
+    for (const a of state.arrows) if (a.state === 'stuck') drawArrow(a);
+    drawBow();
+    drawPreview();
+    drawPower();
+    for (const a of state.arrows) if (a.state !== 'stuck') drawArrow(a);
+    drawParticles();
+  }
+
+  /* ---------- 主循环 ---------- */
+  let last = performance.now();
+  function frame(now) {
+    const dt = clamp((now - last) / 1000, 0.001, 0.035);
+    last = now;
+    update(dt);
+    draw(now / 1000);
+    if (state.mode === 'playing') updateHud();
+    requestAnimationFrame(frame);
+  }
+
+  // 调试钩子：仅当 URL 带 ?debug=1 时暴露，供自动化测试读取内部状态 / 直接射箭
+  if (new URLSearchParams(location.search).has('debug')) {
+    window.__archery = { state, fire };
+  }
+
+  makeTargets();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

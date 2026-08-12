@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>电梯模拟器</title>
+  <style>
+    :root {
+      --floor-height: 68px;
+      --shaft-width: 88px;
+      --elevator-width: 64px;
+      --elevator-height: 54px;
+      --building-width: 640px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(180deg, #eaf4fd 0%, #d9e7f2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: #1e3a5f;
+    }
+
+    .simulator {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
+      padding: 24px 28px;
+      max-width: 880px;
+      width: 100%;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 26px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .controls label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    select,
+    input[type='number'] {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #cbd8e3;
+      font-size: 14px;
+      background: #fff;
+      color: #1e3a5f;
+      outline: none;
+    }
+
+    select:focus,
+    input[type='number']:focus {
+      border-color: #2e7dbf;
+    }
+
+    button {
+      padding: 9px 14px;
+      border: none;
+      border-radius: 10px;
+      background: #2e7dbf;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    button:hover {
+      background: #1f5f94;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button.secondary {
+      background: #5b8cac;
+    }
+
+    button.secondary:hover {
+      background: #467694;
+    }
+
+    .status {
+      margin-bottom: 16px;
+      font-weight: 600;
+      font-size: 15px;
+      display: flex;
+      gap: 18px;
+      color: #1e3a5f;
+    }
+
+    .building-wrap {
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+      padding: 4px;
+    }
+
+    .building {
+      display: flex;
+      border: 2px solid #b7c6d2;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #f8fafc;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      flex-shrink: 0;
+    }
+
+    .floor-labels {
+      display: flex;
+      flex-direction: column;
+      width: 52px;
+      background: #f1f5f8;
+    }
+
+    .floor-label {
+      height: var(--floor-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid #dfe6ec;
+      font-size: 13px;
+      font-weight: 700;
+      color: #3d5a73;
+    }
+
+    .floor-label:last-child {
+      border-bottom: none;
+    }
+
+    .shafts {
+      display: flex;
+      flex-shrink: 0;
+    }
+
+    .shaft {
+      width: var(--shaft-width);
+      height: calc(var(--floor-height) * 10);
+      position: relative;
+      background-color: #e8edf2;
+      border-left: 2px solid #cbd7e0;
+      background-image: repeating-linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.05) 0px,
+        rgba(0, 0, 0, 0.05) 1px,
+        transparent 1px,
+        transparent var(--floor-height)
+      );
+    }
+
+    .shaft:first-child {
+      border-left: none;
+    }
+
+    .shaft:not(:last-child) {
+      border-right: 2px solid #cbd7e0;
+    }
+
+    .elevator {
+      position: absolute;
+      left: 12px;
+      width: var(--elevator-width);
+      height: var(--elevator-height);
+      background: linear-gradient(180deg, #f7fafc, #dce6ed);
+      border: 2px solid #425466;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.7);
+      z-index: 5;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .elevator.has-passenger {
+      background: linear-gradient(180deg, #fff9e6, #ffe9b3);
+      border-color: #8a6d3b;
+    }
+
+    .cabin-passenger {
+      display: none;
+      position: relative;
+      font-size: 19px;
+      line-height: 1;
+    }
+
+    .elevator.has-passenger .cabin-passenger {
+      display: block;
+    }
+
+    .cabin-passenger span {
+      display: block;
+    }
+
+    .cabin-floor {
+      font-size: 10px;
+      font-weight: 700;
+      color: #334e68;
+      user-select: none;
+    }
+
+    .waiting-column {
+      display: flex;
+      flex-direction: column;
+      width: 280px;
+      flex-shrink: 0;
+    }
+
+    .floor-wait {
+      height: var(--floor-height);
+      position: relative;
+      border-bottom: 1px solid #dfe6ec;
+      background: #fff;
+    }
+
+    .floor-wait:last-child {
+      border-bottom: none;
+    }
+
+    .add-person {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #b9d6eb;
+      color: #1e3a5f;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      z-index: 6;
+    }
+
+    .add-person:hover {
+      background: #9bc2dd;
+    }
+
+    .person {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 3;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+      cursor: default;
+      pointer-events: auto;
+    }
+
+    .person-icon {
+      font-size: 24px;
+      line-height: 1;
+      display: block;
+    }
+
+    .person.boarding {
+      transform: translateX(-90px) scale(0.6);
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .tooltip {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.82);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      display: none;
+      z-index: 30;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    }
+
+    .person:hover .tooltip,
+    .cabin-passenger:hover .tooltip {
+      display: block;
+    }
+
+    .drop-marker {
+      position: absolute;
+      right: 48px;
+      bottom: 14px;
+      color: #2e8b57;
+      font-size: 18px;
+      font-weight: 700;
+      animation: fadeout 0.9s forwards;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    @keyframes fadeout {
+      to {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .building {
+        transform-origin: top left;
+      }
+      .simulator {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="simulator">
+    <h1>🏢 电梯模拟器</h1>
+
+    <div class="controls">
+      <label>
+        楼层
+        <select id="floor-select"></select>
+      </label>
+      <label>
+        人数
+        <input id="count-input" type="number" min="1" max="5" value="1" />
+      </label>
+      <button id="generate-btn">生成乘客</button>
+      <button id="random-btn" class="secondary">随机生成 5 人</button>
+    </div>
+
+    <div class="status">
+      <span>等待人数：<span id="waiting-count">0</span></span>
+      <span>已送达：<span id="delivered-count">0</span></span>
+    </div>
+
+    <div class="building-wrap">
+      <div class="building" id="building">
+        <div class="floor-labels" id="floor-labels"></div>
+        <div class="shafts" id="shafts"></div>
+        <div class="waiting-column" id="waiting-column"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FLOORS = 10;
+    const FLOOR_HEIGHT = 68;
+    const SPEED_PER_FLOOR = 0.42;
+    const BOARDING_MS = 400;
+    const UNLOADING_MS = 450;
+
+    let deliveredCount = 0;
+    let nextPersonId = 1;
+    let waitingPeople = [];
+    let elevators = [];
+    let pendingPickups = new Array(FLOORS + 1).fill(0);
+
+    function randomTarget(startFloor) {
+      let target;
+      do {
+        target = 1 + Math.floor(Math.random() * FLOORS);
+      } while (target === startFloor);
+      return target;
+    }
+
+    function createPassenger(startFloor) {
+      return {
+        id: 'p' + (nextPersonId++),
+        startFloor,
+        targetFloor: randomTarget(startFloor),
+        state: 'waiting',
+        el: null,
+      };
+    }
+
+    function elevatorBottom(floor) {
+      return (floor - 1) * FLOOR_HEIGHT + 4;
+    }
+
+    function renderFloors() {
+      const labelsEl = document.getElementById('floor-labels');
+      const waitingColEl = document.getElementById('waiting-column');
+      labelsEl.innerHTML = '';
+      waitingColEl.innerHTML = '';
+
+      for (let f = FLOORS; f >= 1; f--) {
+        const label = document.createElement('div');
+        label.className = 'floor-label';
+        label.textContent = f + 'F';
+        labelsEl.appendChild(label);
+
+        const floorWait = document.createElement('div');
+        floorWait.className = 'floor-wait';
+        floorWait.dataset.floor = f;
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'add-person';
+        addBtn.dataset.floor = f;
+        addBtn.title = `在 ${f} 层添加 1 人`;
+        addBtn.textContent = '＋';
+        addBtn.addEventListener('click', () => spawnPerson(f));
+
+        floorWait.appendChild(addBtn);
+        waitingColEl.appendChild(floorWait);
+      }
+    }
+
+    function renderShafts() {
+      const shaftsContainer = document.getElementById('shafts');
+      shaftsContainer.innerHTML = '';
+      elevators = [];
+
+      const initialFloors = [1, 5, 10];
+
+      for (let i = 0; i < 3; i++) {
+        const shaft = document.createElement('div');
+        shaft.className = 'shaft';
+
+        const elevator = document.createElement('div');
+        elevator.className = 'elevator';
+        elevator.id = 'elevator-' + i;
+        elevator.innerHTML = `
+          <div class="cabin-passenger">
+            <span>🧍</span>
+            <div class="tooltip">去 ? 层</div>
+          </div>
+          <span class="cabin-floor">F${initialFloors[i]}</span>
+        `;
+
+        shaft.appendChild(elevator);
+        shaftsContainer.appendChild(shaft);
+
+        const el = {
+          id: i,
+          currentFloor: initialFloors[i],
+          targetFloor: initialFloors[i],
+          state: 'idle',
+          passenger: null,
+          timer: null,
+          element: elevator,
+        };
+
+        elevators.push(el);
+      }
+
+      elevators.forEach((el) => positionElevator(el, 0));
+    }
+
+    function positionElevator(el, duration = 0) {
+      el.element.style.transition = duration > 0
+        ? `bottom ${duration}s cubic-bezier(.4, .1, .2, 1)`
+        : 'none';
+      el.element.style.bottom = elevatorBottom(el.currentFloor) + 'px';
+    }
+
+    function updateCabinInfo(el) {
+      const floorEl = el.element.querySelector('.cabin-floor');
+      if (floorEl) floorEl.textContent = `F${el.currentFloor}`;
+
+      if (el.passenger) {
+        const tooltip = el.element.querySelector('.cabin-passenger .tooltip');
+        if (tooltip) tooltip.textContent = `去 ${el.passenger.targetFloor} 层`;
+      }
+    }
+
+    function animateElevatorTo(el, targetFloor, action) {
+      const distance = Math.abs(el.currentFloor - targetFloor);
+      const duration = distance * SPEED_PER_FLOOR;
+      el.state = action;
+      el.targetFloor = targetFloor;
+      clearTimeout(el.timer);
+
+      if (distance > 0) {
+        positionElevator(el, duration);
+        void el.element.offsetHeight;
+        el.element.style.bottom = elevatorBottom(targetFloor) + 'px';
+      } else {
+        positionElevator(el, 0);
+        el.element.style.bottom = elevatorBottom(targetFloor) + 'px';
+      }
+
+      el.timer = setTimeout(() => {
+        el.currentFloor = targetFloor;
+        updateCabinInfo(el);
+        positionElevator(el, 0);
+        onElevatorArrived(el);
+      }, duration * 1000 + 10);
+    }
+
+    function onElevatorArrived(el) {
+      updateCabinInfo(el);
+
+      if (el.state === 'moving-pickup') {
+        const floor = el.currentFloor;
+        pendingPickups[floor] = Math.max(0, pendingPickups[floor] - 1);
+
+        const person = waitingPeople.find((p) => p.startFloor === floor);
+        if (person) {
+          startBoarding(el, person);
+        } else {
+          el.state = 'idle';
+          dispatchElevator(el);
+        }
+      } else if (el.state === 'moving-dropoff') {
+        startUnloading(el);
+      }
+    }
+
+    function startBoarding(el, person) {
+      el.state = 'boarding';
+
+      // 立即从等待队列中移除，避免多台电梯误接同一人
+      const idx = waitingPeople.findIndex((p) => p.id === person.id);
+      if (idx !== -1) waitingPeople.splice(idx, 1);
+      updateStatus();
+
+      if (person.el) person.el.classList.add('boarding');
+
+      clearTimeout(el.timer);
+      el.timer = setTimeout(() => {
+        if (person.el && person.el.parentNode) {
+          const floor = person.startFloor;
+          person.el.parentNode.removeChild(person.el);
+          repositionFloor(floor);
+        }
+
+        el.passenger = person;
+        person.state = 'inElevator';
+        el.element.classList.add('has-passenger');
+
+        const tooltip = el.element.querySelector('.cabin-passenger .tooltip');
+        if (tooltip) tooltip.textContent = `去 ${person.targetFloor} 层`;
+        updateCabinInfo(el);
+
+        animateElevatorTo(el, person.targetFloor, 'moving-dropoff');
+      }, BOARDING_MS);
+    }
+
+    function startUnloading(el) {
+      el.state = 'unloading';
+      clearTimeout(el.timer);
+
+      el.timer = setTimeout(() => {
+        const passenger = el.passenger;
+        el.element.classList.remove('has-passenger');
+
+        const tooltip = el.element.querySelector('.cabin-passenger .tooltip');
+        if (tooltip) tooltip.textContent = '去 ? 层';
+
+        el.passenger = null;
+        if (passenger) passenger.state = 'delivered';
+
+        deliveredCount++;
+        updateStatus();
+        showDeliveredMarker(el.currentFloor);
+
+        el.state = 'idle';
+        updateCabinInfo(el);
+        dispatchElevator(el);
+      }, UNLOADING_MS);
+    }
+
+    function dispatchIdleElevators() {
+      elevators.forEach((el) => {
+        if (el.state === 'idle') dispatchElevator(el);
+      });
+    }
+
+    function dispatchElevator(el) {
+      if (el.state !== 'idle') return;
+      clearTimeout(el.timer);
+
+      const choices = [];
+
+      for (let f = 1; f <= FLOORS; f++) {
+        const waiting = countWaitingAtFloor(f);
+        const already = pendingPickups[f] || 0;
+        if (waiting > already) {
+          choices.push({
+            floor: f,
+            need: waiting - already,
+            distance: Math.abs(f - el.currentFloor),
+          });
+        }
+      }
+
+      if (choices.length === 0) {
+        el.state = 'idle';
+        el.targetFloor = el.currentFloor;
+        return;
+      }
+
+      choices.sort((a, b) => b.need - a.need || a.distance - b.distance);
+      const target = choices[0].floor;
+
+      pendingPickups[target]++;
+      animateElevatorTo(el, target, 'moving-pickup');
+    }
+
+    function countWaitingAtFloor(floor) {
+      return waitingPeople.filter((p) => p.startFloor === floor).length;
+    }
+
+    function spawnPerson(floor) {
+      if (floor < 1 || floor > FLOORS) return;
+
+      const person = createPassenger(floor);
+      waitingPeople.push(person);
+      createPersonElement(person);
+      repositionFloor(floor);
+      updateStatus();
+
+      // 尝试让空闲电梯立即响应
+      dispatchIdleElevators();
+    }
+
+    function createPersonElement(person) {
+      const container = document.querySelector(`.floor-wait[data-floor="${person.startFloor}"]`);
+      if (!container) return;
+
+      const el = document.createElement('div');
+      el.className = 'person';
+      el.innerHTML = `
+        <span class="person-icon">🧍</span>
+        <div class="tooltip">去 ${person.targetFloor} 层</div>
+      `;
+
+      container.appendChild(el);
+      person.el = el;
+    }
+
+    function repositionFloor(floor) {
+      const container = document.querySelector(`.floor-wait[data-floor="${floor}"]`);
+      if (!container) return;
+
+      const peopleEls = container.querySelectorAll('.person:not(.boarding)');
+      Array.from(peopleEls).forEach((p, index) => {
+        p.style.left = (10 + index * 28) + 'px';
+      });
+    }
+
+    function showDeliveredMarker(floor) {
+      const container = document.querySelector(`.floor-wait[data-floor="${floor}"]`);
+      if (!container) return;
+
+      const marker = document.createElement('div');
+      marker.className = 'drop-marker';
+      marker.textContent = '✔';
+      container.appendChild(marker);
+
+      setTimeout(() => marker.remove(), 900);
+    }
+
+    function updateStatus() {
+      document.getElementById('waiting-count').textContent = waitingPeople.length;
+      document.getElementById('delivered-count').textContent = deliveredCount;
+    }
+
+    function init() {
+      renderFloors();
+      renderShafts();
+
+      const floorSelect = document.getElementById('floor-select');
+      for (let f = 1; f <= FLOORS; f++) {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f + ' 层';
+        floorSelect.appendChild(opt);
+      }
+
+      document.getElementById('generate-btn').addEventListener('click', () => {
+        const floor = parseInt(floorSelect.value, 10);
+        let count = parseInt(document.getElementById('count-input').value, 10);
+        if (isNaN(count) || count < 1) count = 1;
+        if (count > 5) count = 5;
+
+        for (let i = 0; i < count; i++) {
+          spawnPerson(floor);
+        }
+      });
+
+      document.getElementById('random-btn').addEventListener('click', () => {
+        for (let i = 0; i < 5; i++) {
+          const floor = 1 + Math.floor(Math.random() * FLOORS);
+          spawnPerson(floor);
+        }
+      });
+
+      updateStatus();
+
+      // 初始演示：稍后自动生成几位乘客
+      setTimeout(() => {
+        spawnPerson(2);
+        spawnPerson(6);
+        spawnPerson(6);
+        spawnPerson(9);
+      }, 400);
+    }
+
+    init();
+  </script>
+</body>
+</html>

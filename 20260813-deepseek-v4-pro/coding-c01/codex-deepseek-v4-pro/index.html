@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>《极光》星舰 · 3D 还原（金·斯坦利·罗宾逊 Aurora）</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js",
+        "three/addons/": "./vendor/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="loading">
+    <div class="load-ring"></div>
+    <div class="load-title">《极光》星舰</div>
+    <div class="load-sub">正在预热量子核心 · 编译舱室生态……</div>
+  </div>
+
+  <div id="fade"></div>
+  <div id="vignette"></div>
+
+  <header id="topbar">
+    <div class="brand">
+      <div class="brand-title">极光号 · 星舰</div>
+      <div class="brand-sub">金·斯坦利·罗宾逊《极光》（Aurora, 2015）· 2545 年自土星出发，驶向天仓五</div>
+    </div>
+    <div class="top-actions">
+      <button id="btn-exterior" class="btn primary" data-mode="exterior">飞船外观</button>
+      <button id="btn-interior" class="btn" data-mode="interior">舱内探索</button>
+      <button id="btn-info" class="btn">设定依据</button>
+      <button id="btn-help" class="btn">操作帮助</button>
+    </div>
+  </header>
+
+  <aside id="parts-panel" class="panel glass">
+    <div class="panel-title">船体部件</div>
+    <div id="parts-list"></div>
+  </aside>
+
+  <aside id="biome-panel" class="panel glass hidden">
+    <div class="panel-title">生态舱（共 24 个）</div>
+    <div class="ring-group">
+      <div class="ring-label">环 A · 旧世界生态</div>
+      <div id="ring-a-list" class="biome-list"></div>
+    </div>
+    <div class="ring-group">
+      <div class="ring-label">环 B · 新世界生态</div>
+      <div id="ring-b-list" class="biome-list"></div>
+    </div>
+    <div class="biome-foot">
+      <button id="btn-spine" class="btn">主轴内部（零重力）</button>
+      <button id="btn-back-ext" class="btn">返回飞船外观</button>
+    </div>
+  </aside>
+
+  <aside id="info-panel" class="panel glass hidden">
+    <div class="panel-title">设定依据 · 还原说明</div>
+    <div id="info-content"></div>
+  </aside>
+
+  <aside id="help-panel" class="panel glass hidden">
+    <div class="panel-title">操作帮助</div>
+    <div class="help-body">
+      <p><b>外观视图</b>：左键拖拽 = 360° 环绕查看 · 右键拖拽 = 平移 · 滚轮 = 缩放；点击生态舱可进入其内部。</p>
+      <p><b>舱内探索</b>：点击画面锁定鼠标，<b>WASD</b> 移动（Shift 疾走），鼠标环顾；沿舱道走到两端<b>闸门</b>即穿越至相邻生态舱，也可从右侧列表跳舱。</p>
+      <p><b>主轴内部（零重力）</b>：鼠标环顾，WASD 漂浮移动，Shift 加速；可直达舰桥、AI 核心“波琳”与发动机舱。</p>
+      <p>ESC 释放鼠标 · 按 <b>1</b> 回到外观 · 按 <b>2</b> 进入舱内。</p>
+    </div>
+  </aside>
+
+  <div id="hud-top" class="hidden">
+    <div id="hud-title"></div>
+    <div id="hud-sub"></div>
+  </div>
+
+  <div id="hud-bottom" class="glass hidden">
+    <div id="hud-hint"></div>
+  </div>
+
+  <div id="controls-bar" class="glass">
+    <label class="ctl">减速磁帆
+      <input type="checkbox" id="toggle-decel" />
+    </label>
+    <label class="ctl">环转速
+      <select id="spin-mode">
+        <option value="demo" selected>演示转速（加快）</option>
+        <option value="real">真实转速（0.83g · ≈193s/圈）</option>
+        <option value="slow">慢速欣赏</option>
+      </select>
+    </label>
+    <label class="ctl">航行速度
+      <input type="range" id="speed-slider" min="0" max="100" value="35" />
+    </label>
+  </div>
+
+  <div id="tooltip" class="hidden"></div>
+  <div id="toast"></div>
+  <div id="lock-hint" class="hidden">点击屏幕，进入舱内视野</div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

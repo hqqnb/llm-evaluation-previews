@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D 隐形眼镜盒 - Three.js</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 50% 30%, #1d3349 0%, #0c151f 60%, #030608 100%);
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 50% 30%, #1d3349 0%, #0c151f 60%, #030608 100%);
+    }
+
+    canvas {
+      display: block;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #f8fafc;
+      text-align: center;
+      pointer-events: none;
+      user-select: none;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
+      width: 90%;
+    }
+
+    .overlay h1 {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 32px);
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .overlay .sub {
+      margin: 8px 0 0;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+
+    .hint {
+      position: fixed;
+      bottom: 84px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #94a3b8;
+      font-size: 12px;
+      pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .status {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #e2e8f0;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      pointer-events: none;
+      user-select: none;
+      transition: 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .status b {
+      color: #67e8f9;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div class="overlay">
+    <h1>3D 隐形眼镜盒</h1>
+    <p class="sub">L / R 标识 · 可开合盒盖</p>
+  </div>
+
+  <div class="hint">鼠标拖拽旋转视角 · 滚轮缩放 · 单击盒盖开合</div>
+  <div class="status" id="status">盒盖状态：<b>已关闭</b></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const container = document.getElementById('app');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.setClearColor(0x000000, 0);
+    renderer.domElement.style.touchAction = 'none';
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(
+      40,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
+    camera.position.set(5.2, 3.6, 6.4);
+    camera.lookAt(0, 0.7, 0);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.7, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 3.5;
+    controls.maxDistance = 12;
+    controls.maxPolarAngle = Math.PI * 0.72;
+    controls.update();
+
+    // 光照
+    scene.add(new THREE.HemisphereLight(0xf8fcff, 0xbeb5a4, 1.15));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+    keyLight.position.set(4, 8, 5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(2048, 2048);
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 25;
+    keyLight.shadow.camera.left = -6;
+    keyLight.shadow.camera.right = 6;
+    keyLight.shadow.camera.top = 6;
+    keyLight.shadow.camera.bottom = -6;
+    keyLight.shadow.bias = -0.0005;
+    keyLight.shadow.normalBias = 0.02;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xdbeafe, 0.9);
+    fillLight.position.set(-3, 2, -2);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    rimLight.position.set(-2, 1, 5);
+    scene.add(rimLight);
+
+    // 地面阴影接收板
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(22, 16),
+      new THREE.ShadowMaterial({ color: 0x020617, opacity: 0.32 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.02;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // 常量
+    const CASE_W = 5.0;
+    const CASE_D = 2.6;
+    const BASE_H = 0.9;
+    const WELL_TOP_H = 0.55;
+    const TOP_PLATE_H = 0.35;
+    const LID_H = 0.68;
+    const LID_D = 2.75;
+    const CORNER_R = 0.4;
+    const WELL_R = 0.88;
+    const WELL_X = 1.25;
+    const HINGE_Z = -CASE_D / 2;
+    const BASE_TOP_Y = BASE_H;
+    const LID_LABEL_Z = CASE_D / 2;
+
+    // 工具函数
+    function createRoundedRectShape(width, depth, radius) {
+      const shape = new THREE.Shape();
+      const hw = width / 2;
+      const hd = depth / 2;
+      const r = Math.min(radius, hw, hd);
+
+      shape.moveTo(-hw + r, -hd);
+      shape.lineTo(hw - r, -hd);
+      shape.quadraticCurveTo(hw, -hd, hw, -hd + r);
+      shape.lineTo(hw, hd - r);
+      shape.quadraticCurveTo(hw, hd, hw - r, hd);
+      shape.lineTo(-hw + r, hd);
+      shape.quadraticCurveTo(-hw, hd, -hw, hd - r);
+      shape.lineTo(-hw, -hd + r);
+      shape.quadraticCurveTo(-hw, -hd, -hw + r, -hd);
+
+      return shape;
+    }
+
+    function createCircleHolePath(cx, cy, radius) {
+      const path = new THREE.Path();
+      path.absarc(cx, cy, radius, 0, Math.PI * 2, true);
+      path.closePath();
+      return path;
+    }
+
+    function createExtrudedShape(shape, depth, yOffset = 0) {
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth,
+        bevelEnabled: false,
+        curveSegments: 24,
+      });
+
+      geometry.rotateX(-Math.PI / 2);
+      geometry.translate(0, yOffset, 0);
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+
+    function createLabelTexture(letter, bgColor, textColor) {
+      const size = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, size, size);
+
+      const cx = size / 2;
+      const cRadius = 220;
+
+      ctx.beginPath();
+      ctx.arc(cx, cx, cRadius, 0, Math.PI * 2);
+      ctx.fillStyle = bgColor;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 6;
+      ctx.fill();
+
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.lineWidth = 14;
+      ctx.stroke();
+
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 300px "Arial", "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(letter, cx, cx + 16);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 8;
+      return texture;
+    }
+
+    function createFlatLabel(texture, radius) {
+      const geometry = new THREE.CircleGeometry(radius, 64);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        alphaTest: 0.05,
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.renderOrder = 3;
+      return mesh;
+    }
+
+    // 材质
+    const baseMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x0f9f9b,
+      roughness: 0.38,
+      metalness: 0.05,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.2,
+    });
+
+    const topPlateMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x0c8c88,
+      roughness: 0.4,
+      metalness: 0.05,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.24,
+    });
+    topPlateMaterial.side = THREE.DoubleSide;
+
+    const lidMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x14b8a6,
+      roughness: 0.3,
+      metalness: 0.06,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.12,
+    });
+
+    const wellFloorMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0b3b3a,
+      roughness: 0.45,
+      metalness: 0.05,
+    });
+
+    const hingeMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0f766e,
+      roughness: 0.25,
+      metalness: 0.45,
+    });
+
+    // 标签纹理
+    const labelTexL = createLabelTexture('L', '#0ea5e9', '#ffffff');
+    const labelTexR = createLabelTexture('R', '#f43f5e', '#ffffff');
+
+    // 眼镜盒底座：下层实心底板
+    const bottomPlateGeo = createExtrudedShape(
+      createRoundedRectShape(CASE_W, CASE_D, CORNER_R),
+      WELL_TOP_H
+    );
+    const bottomPlate = new THREE.Mesh(bottomPlateGeo, baseMaterial);
+    bottomPlate.castShadow = true;
+    bottomPlate.receiveShadow = true;
+    scene.add(bottomPlate);
+
+    // 眼镜盒底座：上层带左右圆形隐藏镜片仓孔
+    const topShape = createRoundedRectShape(CASE_W, CASE_D, CORNER_R);
+    topShape.holes.push(createCircleHolePath(-WELL_X, 0, WELL_R));
+    topShape.holes.push(createCircleHolePath(WELL_X, 0, WELL_R));
+
+    const topPlateGeo = createExtrudedShape(topShape, TOP_PLATE_H, WELL_TOP_H);
+    const topPlate = new THREE.Mesh(topPlateGeo, topPlateMaterial);
+    topPlate.castShadow = true;
+    topPlate.receiveShadow = true;
+    scene.add(topPlate);
+
+    // 左右镜片仓底板与 L/R 标识
+    [-WELL_X, WELL_X].forEach((x, index) => {
+      const floorDisc = new THREE.Mesh(
+        new THREE.CircleGeometry(WELL_R - 0.04, 64),
+        wellFloorMaterial
+      );
+      floorDisc.rotation.x = -Math.PI / 2;
+      floorDisc.position.set(x, WELL_TOP_H + 0.005, 0);
+      floorDisc.receiveShadow = true;
+      scene.add(floorDisc);
+
+      const label = createFlatLabel(index === 0 ? labelTexL : labelTexR, 0.62);
+      label.position.set(x, WELL_TOP_H + 0.02, 0);
+      scene.add(label);
+    });
+
+    // 盒盖铰链组
+    const lidGroup = new THREE.Group();
+    lidGroup.position.set(0, BASE_TOP_Y, HINGE_Z);
+    scene.add(lidGroup);
+
+    const lidGeo = createExtrudedShape(
+      createRoundedRectShape(CASE_W + 0.16, LID_D, CORNER_R + 0.04),
+      LID_H
+    );
+
+    const lidMesh = new THREE.Mesh(lidGeo, lidMaterial);
+    lidMesh.castShadow = true;
+    lidMesh.receiveShadow = true;
+    lidMesh.position.set(0, 0.004, LID_D / 2);
+    lidGroup.add(lidMesh);
+
+    // 盒盖顶部 L / R 大标签
+    const lidLabelL = createFlatLabel(labelTexL, 0.72);
+    lidLabelL.position.set(-WELL_X, LID_H + 0.015, LID_LABEL_Z);
+    lidGroup.add(lidLabelL);
+
+    const lidLabelR = createFlatLabel(labelTexR, 0.72);
+    lidLabelR.position.set(WELL_X, LID_H + 0.015, LID_LABEL_Z);
+    lidGroup.add(lidLabelR);
+
+    // 前侧小卡扣
+    const latch = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.14, 0.12),
+      hingeMaterial
+    );
+    latch.castShadow = true;
+    latch.position.set(0, LID_H * 0.55, LID_D - 0.06);
+    lidGroup.add(latch);
+
+    // 后侧铰链装饰轴
+    const hingePinGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.72, 20);
+    [-1.75, 1.75].forEach((x) => {
+      const pin = new THREE.Mesh(hingePinGeo, hingeMaterial);
+      pin.rotation.z = Math.PI / 2;
+      pin.position.set(x, 0.14, 0.16);
+      pin.castShadow = true;
+      lidGroup.add(pin);
+    });
+
+    // 开盖状态与动画
+    let lidOpen = false;
+    let targetLidRotation = 0;
+    let currentLidRotation = 0;
+    const statusEl = document.getElementById('status');
+    const clock = new THREE.Clock();
+
+    function updateStatus() {
+      statusEl.innerHTML = `盒盖状态：<b>${lidOpen ? '已打开' : '已关闭'}</b>`;
+    }
+
+    function toggleLid() {
+      lidOpen = !lidOpen;
+      targetLidRotation = lidOpen ? -2.1 : 0;
+      updateStatus();
+    }
+
+    // 射线点击检测：只点击盒盖区域才切换
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    let downX = 0;
+    let downY = 0;
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      downX = e.clientX;
+      downY = e.clientY;
+    });
+
+    renderer.domElement.addEventListener('pointerup', (e) => {
+      const dx = e.clientX - downX;
+      const dy = e.clientY - downY;
+      if (dx * dx + dy * dy > 16) return;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObject(lidGroup, true);
+
+      if (hits.length > 0) {
+        toggleLid();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 渲染循环
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const smoothing = 1 - Math.pow(0.001, dt);
+
+      if (Math.abs(targetLidRotation - currentLidRotation) < 0.0005) {
+        currentLidRotation = targetLidRotation;
+      } else {
+        currentLidRotation = THREE.MathUtils.lerp(
+          currentLidRotation,
+          targetLidRotation,
+          smoothing
+        );
+      }
+
+      lidGroup.rotation.x = currentLidRotation;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    updateStatus();
+    animate();
+  </script>
+</body>
+</html>

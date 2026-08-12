@@ -1,0 +1,400 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <title>长颈鹿驾驶小汽车动画</title>
+  <desc>一只可爱的长颈鹿挤在一辆红色小汽车里，戴着墨镜和派对帽，在风景中快乐驾驶的动画。</desc>
+  
+  <defs>
+    <style>
+      /* ========== 动画关键帧 ========== */
+      
+      /* 车轮旋转（逆时针，模拟向左行驶） */
+      @keyframes wheel-spin {
+        100% { transform: rotate(-360deg); }
+      }
+      
+      /* 车身与长颈鹿的上下颠簸 */
+      @keyframes car-bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+      
+      /* 长颈鹿脖子轻柔摇摆 */
+      @keyframes neck-sway {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(4deg); }
+      }
+      
+      /* 长颈鹿头部点头 */
+      @keyframes head-bob {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-10px) rotate(-3deg); }
+      }
+      
+      /* 云层缓慢飘过（背景视差慢速层） */
+      @keyframes cloud-scroll {
+        100% { transform: translateX(-800px); }
+      }
+      
+      /* 背景视差快速层（树木、小山、红绿灯） */
+      @keyframes bg-scroll {
+        100% { transform: translateX(-800px); }
+      }
+      
+      /* 路面标线向后移动 */
+      @keyframes road-dash {
+        100% { stroke-dashoffset: -60; }
+      }
+
+      /* ========== 动画样式类 ========== */
+      
+      .wheel {
+        animation: wheel-spin 0.4s linear infinite;
+        transform-origin: center;
+        transform-box: fill-box;
+      }
+      
+      .car-giraffe-group {
+        animation: car-bounce 0.6s ease-in-out infinite;
+      }
+      
+      .giraffe-neck-group {
+        animation: neck-sway 2.5s ease-in-out infinite;
+        transform-origin: 400px 330px;
+        transform-box: view-box;
+      }
+      
+      .giraffe-head-group {
+        animation: head-bob 2.5s ease-in-out infinite;
+        transform-origin: 180px 100px;
+        transform-box: view-box;
+      }
+      
+      .clouds-container {
+        animation: cloud-scroll 25s linear infinite;
+      }
+      
+      .bg-container {
+        animation: bg-scroll 8s linear infinite;
+      }
+      
+      .road-marking {
+        animation: road-dash 0.3s linear infinite;
+      }
+    </style>
+
+    <!-- 天空渐变色 -->
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4A90E2" />
+      <stop offset="100%" stop-color="#A8D8FF" />
+    </linearGradient>
+    
+    <!-- 车身渐变色 -->
+    <linearGradient id="carGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF5A5F" />
+      <stop offset="100%" stop-color="#D93636" />
+    </linearGradient>
+  </defs>
+
+  <!-- ========== 背景：天空与太阳 ========== -->
+  <rect width="800" height="600" fill="url(#skyGrad)" />
+  
+  <circle cx="700" cy="80" r="45" fill="#FFD700" />
+  <circle cx="700" cy="80" r="65" fill="#FFD700" opacity="0.2" />
+
+  <!-- ========== 背景视差层（小山与树木） ========== -->
+  <g class="bg-container" opacity="0.7">
+    <!-- 第一组背景（重复单元） -->
+    <g>
+      <path d="M 0 480 Q 150 380 300 480 Z" fill="#90BE6D" />
+      <path d="M 200 480 Q 400 360 600 480 Z" fill="#90BE6D" />
+      <path d="M 500 480 Q 650 410 800 480 Z" fill="#90BE6D" />
+      
+      <g transform="translate(100, 420)">
+        <rect x="-5" y="0" width="10" height="40" fill="#7F5539" />
+        <circle cx="0" cy="-10" r="25" fill="#2D6A4F" />
+      </g>
+      <g transform="translate(300, 410)">
+        <rect x="-5" y="0" width="10" height="50" fill="#7F5539" />
+        <circle cx="0" cy="-15" r="30" fill="#2D6A4F" />
+      </g>
+      <g transform="translate(700, 430)">
+        <rect x="-5" y="0" width="10" height="35" fill="#7F5539" />
+        <circle cx="0" cy="-5" r="20" fill="#2D6A4F" />
+      </g>
+    </g>
+    <!-- 第二组背景（无缝循环补位） -->
+    <g transform="translate(800, 0)">
+      <path d="M 0 480 Q 150 380 300 480 Z" fill="#90BE6D" />
+      <path d="M 200 480 Q 400 360 600 480 Z" fill="#90BE6D" />
+      <path d="M 500 480 Q 650 410 800 480 Z" fill="#90BE6D" />
+      
+      <g transform="translate(100, 420)">
+        <rect x="-5" y="0" width="10" height="40" fill="#7F5539" />
+        <circle cx="0" cy="-10" r="25" fill="#2D6A4F" />
+      </g>
+      <g transform="translate(300, 410)">
+        <rect x="-5" y="0" width="10" height="50" fill="#7F5539" />
+        <circle cx="0" cy="-15" r="30" fill="#2D6A4F" />
+      </g>
+      <g transform="translate(700, 430)">
+        <rect x="-5" y="0" width="10" height="35" fill="#7F5539" />
+        <circle cx="0" cy="-5" r="20" fill="#2D6A4F" />
+      </g>
+    </g>
+  </g>
+
+  <!-- ========== 背景视差层（红绿灯） ========== -->
+  <g class="bg-container" style="animation-duration: 12s;">
+    <!-- 第一组红绿灯 -->
+    <g transform="translate(150, 0)">
+      <rect x="142" y="280" width="16" height="200" fill="#4A4A4A" rx="4" />
+      <rect x="125" y="260" width="50" height="110" rx="10" fill="#333" />
+      <circle cx="150" cy="285" r="14" fill="#FF0000">
+        <animate attributeName="fill" values="#FF0000;#FF0000;#550000;#FF0000" dur="4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="150" cy="315" r="14" fill="#FFFF00">
+        <animate attributeName="fill" values="#FFFF00;#550000;#550000;#FFFF00" dur="4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="150" cy="345" r="14" fill="#00FF00">
+        <animate attributeName="fill" values="#550000;#550000;#00FF00;#550000" dur="4s" repeatCount="indefinite" />
+      </circle>
+    </g>
+    <!-- 第二组红绿灯（无缝循环补位） -->
+    <g transform="translate(950, 0)">
+      <rect x="142" y="280" width="16" height="200" fill="#4A4A4A" rx="4" />
+      <rect x="125" y="260" width="50" height="110" rx="10" fill="#333" />
+      <circle cx="150" cy="285" r="14" fill="#FF0000">
+        <animate attributeName="fill" values="#FF0000;#FF0000;#550000;#FF0000" dur="4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="150" cy="315" r="14" fill="#FFFF00">
+        <animate attributeName="fill" values="#FFFF00;#550000;#550000;#FFFF00" dur="4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="150" cy="345" r="14" fill="#00FF00">
+        <animate attributeName="fill" values="#550000;#550000;#00FF00;#550000" dur="4s" repeatCount="indefinite" />
+      </circle>
+    </g>
+  </g>
+
+  <!-- ========== 云层（慢速视差背景） ========== -->
+  <g class="clouds-container" fill="#FFFFFF">
+    <!-- 第一组云朵 -->
+    <g class="cloud">
+      <rect x="100" y="80" width="100" height="30" rx="15" />
+      <circle cx="120" cy="80" r="25" />
+      <circle cx="160" cy="70" r="35" />
+      <circle cx="190" cy="80" r="25" />
+    </g>
+    <g class="cloud" transform="translate(400, 60)">
+      <rect x="0" y="0" width="80" height="25" rx="12" />
+      <circle cx="15" cy="0" r="20" />
+      <circle cx="50" cy="-10" r="30" />
+      <circle cx="75" cy="0" r="20" />
+    </g>
+    <!-- 第二组云朵（无缝循环补位） -->
+    <g class="cloud" transform="translate(800, 0)">
+      <rect x="100" y="80" width="100" height="30" rx="15" />
+      <circle cx="120" cy="80" r="25" />
+      <circle cx="160" cy="70" r="35" />
+      <circle cx="190" cy="80" r="25" />
+    </g>
+    <g class="cloud" transform="translate(1200, 60)">
+      <rect x="0" y="0" width="80" height="25" rx="12" />
+      <circle cx="15" cy="0" r="20" />
+      <circle cx="50" cy="-10" r="30" />
+      <circle cx="75" cy="0" r="20" />
+    </g>
+  </g>
+
+  <!-- ========== 公路 ========== -->
+  <rect x="0" y="480" width="800" height="120" fill="#3A3A3A" />
+  <line x1="0" y1="540" x2="800" y2="540" stroke="#FFFFFF" stroke-width="6" stroke-dasharray="40 20" class="road-marking" />
+
+  <!-- ========== 主体动画组（汽车 + 长颈鹿） ========== -->
+  <g class="car-giraffe-group">
+    
+    <!-- 路面投影（增强立体感） -->
+    <ellipse cx="400" cy="485" rx="160" ry="20" fill="#222222" opacity="0.4" />
+
+    <!-- ===== 第一层：长颈鹿身体（被压在车内） ===== -->
+    <g>
+      <!-- 身体躯干 -->
+      <rect x="330" y="310" width="140" height="130" rx="45" fill="#F4A261" />
+      <!-- 躯干上的斑点 -->
+      <circle cx="365" cy="335" r="14" fill="#2A9D8F" />
+      <circle cx="425" cy="355" r="18" fill="#2A9D8F" />
+      <circle cx="395" cy="410" r="12" fill="#2A9D8F" />
+      <circle cx="445" cy="325" r="16" fill="#2A9D8F" />
+      
+      <!-- 左手臂（伸向方向盘） -->
+      <path d="M 350 350 Q 320 420 375 425" fill="none" stroke="#F4A261" stroke-width="24" stroke-linecap="round" />
+      <!-- 右手臂 -->
+      <path d="M 450 350 Q 480 420 425 425" fill="none" stroke="#F4A261" stroke-width="24" stroke-linecap="round" />
+      
+      <!-- 从车后伸出的尾巴 -->
+      <path d="M 520 440 Q 560 450 540 490" fill="none" stroke="#F4A261" stroke-width="14" stroke-linecap="round" />
+      <circle cx="540" cy="490" r="8" fill="#2A9D8F" />
+    </g>
+
+    <!-- ===== 第二层：方向盘 ===== -->
+    <g>
+      <line x1="400" y1="445" x2="400" y2="415" stroke="#333333" stroke-width="8" />
+      <circle cx="400" cy="430" r="20" fill="none" stroke="#333333" stroke-width="8" />
+      <circle cx="400" cy="430" r="6" fill="#555555" />
+    </g>
+
+    <!-- ===== 第三层：小汽车车身 ===== -->
+    <g>
+      <!-- 车身底部（底盘） -->
+      <rect x="250" y="420" width="300" height="65" rx="15" fill="url(#carGrad)" />
+      <!-- 驾驶室（车顶） -->
+      <path d="M 280 420 L 305 365 C 305 355, 315 345, 335 345 L 455 345 C 475 345, 485 355, 485 365 L 510 420 Z" fill="url(#carGrad)" />
+      
+      <!-- 车窗 -->
+      <path d="M 290 420 L 310 370 C 310 360, 320 355, 335 355 L 385 355 L 385 420 Z" fill="#A8DADC" />
+      <path d="M 405 355 L 455 355 C 475 355, 485 360, 485 370 L 500 420 L 405 420 Z" fill="#A8DADC" />
+      <!-- 车窗分隔柱 -->
+      <line x1="385" y1="355" x2="385" y2="420" stroke="#1D3557" stroke-width="8" />
+      
+      <!-- 门把手 -->
+      <rect x="370" y="380" width="22" height="6" rx="3" fill="#FFFFFF" opacity="0.8" />
+      <rect x="415" y="380" width="22" height="6" rx="3" fill="#FFFFFF" opacity="0.8" />
+      
+      <!-- 车头灯 -->
+      <circle cx="260" cy="440" r="12" fill="#FFFF00" />
+      <circle cx="260" cy="440" r="7" fill="#FFFFFF" />
+      <!-- 尾灯 -->
+      <circle cx="540" cy="440" r="12" fill="#FF0000" />
+      <circle cx="540" cy="440" r="7" fill="#FFFFFF" />
+      
+      <!-- 保险杠 -->
+      <rect x="240" y="462" width="18" height="22" rx="5" fill="#CCCCCC" />
+      <rect x="542" y="462" width="18" height="22" rx="5" fill="#CCCCCC" />
+      
+      <!-- 排气管 -->
+      <rect x="545" y="465" width="20" height="12" rx="3" fill="#CCCCCC" />
+      
+      <!-- 排气管冒出的烟雾 -->
+      <g>
+        <circle cx="565" cy="470" r="10" fill="#FFFFFF" opacity="0.7">
+          <animate attributeName="cx" values="565; 590" dur="1.2s" repeatCount="indefinite" />
+          <animate attributeName="cy" values="470; 455" dur="1.2s" repeatCount="indefinite" />
+          <animate attributeName="r" values="10; 22" dur="1.2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.7; 0" dur="1.2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="565" cy="470" r="10" fill="#FFFFFF" opacity="0.7">
+          <animate attributeName="cx" values="565; 590" dur="1.2s" begin="0.6s" repeatCount="indefinite" />
+          <animate attributeName="cy" values="470; 455" dur="1.2s" begin="0.6s" repeatCount="indefinite" />
+          <animate attributeName="r" values="10; 22" dur="1.2s" begin="0.6s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.7; 0" dur="1.2s" begin="0.6s" repeatCount="indefinite" />
+        </circle>
+      </g>
+
+      <!-- 前挡风玻璃雨刷器 -->
+      <g>
+        <line x1="385" y1="355" x2="345" y2="370" stroke="#333333" stroke-width="5" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" values="-25 385 355; 25 385 355; -25 385 355" dur="0.8s" repeatCount="indefinite" />
+        </line>
+      </g>
+    </g>
+
+    <!-- ===== 第四层：车轮 ===== -->
+    <!-- 前轮 -->
+    <g class="wheel">
+      <circle cx="330" cy="485" r="38" fill="#2B2B2B" />
+      <circle cx="330" cy="485" r="22" fill="#CCCCCC" />
+      <circle cx="330" cy="485" r="8" fill="#2B2B2B" />
+      <!-- 轮辋细节 -->
+      <path d="M 330 447 L 330 523 M 292 485 L 368 485 M 303 458 L 357 512 M 303 512 L 357 458" stroke="#2B2B2B" stroke-width="6" />
+    </g>
+    <!-- 后轮 -->
+    <g class="wheel">
+      <circle cx="470" cy="485" r="38" fill="#2B2B2B" />
+      <circle cx="470" cy="485" r="22" fill="#CCCCCC" />
+      <circle cx="470" cy="485" r="8" fill="#2B2B2B" />
+      <!-- 轮辋细节 -->
+      <path d="M 470 447 L 470 523 M 432 485 L 508 485 M 443 458 L 497 512 M 443 512 L 497 458" stroke="#2B2B2B" stroke-width="6" />
+    </g>
+
+    <!-- ===== 第五层：长颈鹿的双手（握住方向盘） ===== -->
+    <g>
+      <circle cx="380" cy="430" r="12" fill="#E9C46A" />
+      <circle cx="420" cy="430" r="12" fill="#E9C46A" />
+    </g>
+
+    <!-- ===== 第六层：长颈鹿的脖子和头部（探出车顶） ===== -->
+    <g class="giraffe-neck-group">
+      <!-- 长颈鹿脖子（使用粗线条绘制，圆头连接） -->
+      <path d="M 400 330 C 400 200, 340 180, 280 120 C 220 60, 200 50, 180 100" fill="none" stroke="#F4A261" stroke-width="52" stroke-linecap="round" />
+      
+      <!-- 脖子上的斑点 -->
+      <circle cx="390" cy="280" r="13" fill="#2A9D8F" />
+      <circle cx="380" cy="235" r="16" fill="#2A9D8F" />
+      <circle cx="350" cy="185" r="12" fill="#2A9D8F" />
+      <circle cx="320" cy="145" r="18" fill="#2A9D8F" />
+      <circle cx="275" cy="105" r="14" fill="#2A9D8F" />
+      <circle cx="235" cy="75" r="15" fill="#2A9D8F" />
+      <circle cx="205" cy="55" r="12" fill="#2A9D8F" />
+
+      <!-- 头部组（用于点头动画） -->
+      <g class="giraffe-head-group">
+        <!-- 头部主体（口鼻部） -->
+        <ellipse cx="140" cy="110" rx="48" ry="32" fill="#E9C46A" />
+        <!-- 头顶部分 -->
+        <path d="M 180 100 C 200 55, 160 55, 140 90 Z" fill="#F4A261" />
+        
+        <!-- 长颈鹿的角（骨质角） -->
+        <line x1="190" y1="80" x2="208" y2="45" stroke="#F4A261" stroke-width="12" stroke-linecap="round" />
+        <circle cx="208" cy="45" r="9" fill="#2A9D8F" />
+        <line x1="165" y1="75" x2="158" y2="40" stroke="#F4A261" stroke-width="12" stroke-linecap="round" />
+        <circle cx="158" cy="40" r="9" fill="#2A9D8F" />
+        
+        <!-- 耳朵 -->
+        <ellipse cx="215" cy="80" rx="28" ry="14" transform="rotate(30 215 80)" fill="#F4A261" />
+        <ellipse cx="145" cy="70" rx="28" ry="14" transform="rotate(-30 145 70)" fill="#F4A261" />
+        
+        <!-- 帅气的黑色太阳镜 -->
+        <g>
+          <path d="M 145 85 L 185 85" stroke="#000000" stroke-width="4" />
+          <rect x="145" y="80" width="22" height="16" rx="6" fill="#000000" />
+          <rect x="168" y="80" width="22" height="16" rx="6" fill="#000000" />
+          <!-- 镜片反光 -->
+          <line x1="150" y1="85" x2="160" y2="92" stroke="#FFFFFF" stroke-width="2" opacity="0.6" />
+          <line x1="173" y1="85" x2="183" y2="92" stroke="#FFFFFF" stroke-width="2" opacity="0.6" />
+        </g>
+        
+        <!-- 鼻孔 -->
+        <circle cx="115" cy="110" r="5" fill="#000000" />
+        <!-- 微笑 -->
+        <path d="M 115 125 Q 140 142 160 120" fill="none" stroke="#000000" stroke-width="4" stroke-linecap="round" />
+        <!-- 红扑扑的脸颊（腮红） -->
+        <ellipse cx="145" cy="105" rx="16" ry="9" fill="#FFB6C1" opacity="0.7" />
+        
+        <!-- 欢乐的派对帽（增加幽默感） -->
+        <g transform="translate(155, 35) rotate(-10)">
+          <path d="M -18 0 L 0 -45 L 18 0 Z" fill="#FF00FF" />
+          <circle cx="0" cy="-45" r="6" fill="#FFFF00" />
+          <line x1="-15" y1="-35" x2="15" y2="-35" stroke="#00FFFF" stroke-width="5" stroke-linecap="round" />
+          <line x1="-10" y1="-20" x2="10" y2="-20" stroke="#00FFFF" stroke-width="5" stroke-linecap="round" />
+        </g>
+      </g>
+    </g>
+
+    <!-- ===== 第七层：音乐音符（营造欢快氛围） ===== -->
+    <g>
+      <!-- 音符1 -->
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="0 0; 15 -20; 0 0" dur="1.6s" repeatCount="indefinite" />
+        <text x="220" y="180" font-family="Arial, sans-serif" font-size="34" fill="#333333" font-weight="bold">♪</text>
+      </g>
+      <!-- 音符2 -->
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="0 0; 20 -25; 0 0" dur="2s" begin="0.3s" repeatCount="indefinite" />
+        <text x="260" y="140" font-family="Arial, sans-serif" font-size="24" fill="#333333" font-weight="bold">♫</text>
+      </g>
+      <!-- 音符3 -->
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="0 0; 10 -15; 0 0" dur="1.4s" begin="0.6s" repeatCount="indefinite" />
+        <text x="190" y="150" font-family="Arial, sans-serif" font-size="28" fill="#333333" font-weight="bold">♩</text>
+      </g>
+    </g>
+  </g>
+</svg>

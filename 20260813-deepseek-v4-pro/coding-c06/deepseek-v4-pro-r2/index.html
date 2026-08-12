@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>弓箭射击模拟游戏</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 20% 10%, #3b6e3b, #1e3b1e);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            padding: 16px;
+        }
+
+        .game-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            padding: 24px;
+            background: #f7f3e8;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        .left-panel {
+            flex: 1 1 620px;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: 26px;
+            color: #2c3e50;
+            letter-spacing: 1px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-width: 900px;
+            border-radius: 16px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+            cursor: crosshair;
+            background: #a7dff7;
+        }
+
+        .right-panel {
+            width: 300px;
+            background: #fff8e1;
+            border-radius: 16px;
+            padding: 18px;
+            color: #333;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .hud {
+            background: #263238;
+            color: #ffffff;
+            padding: 14px;
+            border-radius: 12px;
+        }
+
+        .hud .label {
+            font-size: 13px;
+            color: #b0bec5;
+            margin-bottom: 6px;
+        }
+
+        .hud .time {
+            font-size: 32px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: #ffd54f;
+        }
+
+        .hud .target-status {
+            font-size: 20px;
+            letter-spacing: 4px;
+            margin-top: 6px;
+        }
+
+        .panel-section {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .panel-section h3 {
+            margin: 0 0 10px;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .instructions ul {
+            margin: 0;
+            padding-left: 18px;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .leaderboard ol {
+            margin: 0;
+            padding-left: 4px;
+            list-style: none;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .leaderboard li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .leaderboard li:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            width: 22px;
+            height: 22px;
+            background: #455a64;
+            color: white;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .leaderboard li:nth-child(1) .rank {
+            background: #f9a825;
+        }
+
+        .leaderboard li:nth-child(2) .rank {
+            background: #9e9e9e;
+        }
+
+        .leaderboard li:nth-child(3) .rank {
+            background: #a1887f;
+        }
+
+        .name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        .time {
+            font-variant-numeric: tabular-nums;
+            color: #00796b;
+            font-weight: 700;
+        }
+
+        button {
+            border: none;
+            background: #00897b;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.15s;
+        }
+
+        button:hover {
+            background: #00796b;
+        }
+
+        button.secondary {
+            background: #78909c;
+        }
+
+        button.secondary:hover {
+            background: #607d8b;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 28px;
+            border-radius: 18px;
+            width: 320px;
+            text-align: center;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h3 {
+            margin: 0 0 10px;
+            font-size: 22px;
+        }
+
+        .modal-content p {
+            font-size: 16px;
+            margin: 8px 0;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #cfd8dc;
+            border-radius: 8px;
+            font-size: 15px;
+            margin: 12px 0;
+            outline: none;
+        }
+
+        .modal-content input:focus {
+            border-color: #00897b;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="left-panel">
+            <h1>🏹 弓箭射击模拟</h1>
+            <canvas id="gameCanvas" width="900" height="500"></canvas>
+        </div>
+
+        <aside class="right-panel">
+            <div class="hud">
+                <div class="label">当前用时</div>
+                <div class="time" id="timeDisplay">0.00</div>
+                <div class="target-status" id="targetStatus">⚪ ⚪ ⚪ ⚪</div>
+            </div>
+
+            <div class="panel-section instructions">
+                <h3>操作说明</h3>
+                <ul>
+                    <li>移动鼠标瞄准。</li>
+                    <li><strong>按住左键</strong>蓄力，松开射箭。</li>
+                    <li>首次射箭开始计时。</li>
+                    <li>命中全部 4 个靶子停止计时。</li>
+                    <li>按 <kbd>R</kbd> 重新开始。</li>
+                </ul>
+            </div>
+
+            <div class="panel-section leaderboard">
+                <h3>🏆 排行榜</h3>
+                <ol id="leaderboardList"></ol>
+                <div style="margin-top: 10px; display: flex; gap: 8px;">
+                    <button id="resetBtn">重新开始</button>
+                    <button id="clearLeaderboardBtn" class="secondary">清空排行榜</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="saveModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>🎯 全部命中！</h3>
+            <p>完成时间：<strong id="finalTime">0.00</strong> 秒</p>
+            <input id="playerName" type="text" maxlength="20" placeholder="输入昵称" value="玩家">
+            <div class="modal-actions">
+                <button id="saveScoreBtn">保存成绩</button>
+                <button id="skipScoreBtn" class="secondary">跳过</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const W = canvas.width;
+            const H = canvas.height;
+            const GROUND_Y = 420;
+            const BOW = { x: 80, y: 380 };
+            const GRAVITY = 900;          // 像素/秒²
+            const SPEED_MIN = 550;        // 最小初速度
+            const SPEED_MAX = 1450;       // 最大初速度
+            const MAX_CHARGE_TIME = 1.0;  // 最大蓄力时间（秒）
+
+            let targets = [];
+            let arrows = [];
+            let startTime = null;
+            let endTime = null;
+            let gameActive = true;
+            let gameFinished = false;
+            let aimingAngle = 0;
+            let isCharging = false;
+            let chargeStart = 0;
+            let chargePower = 0;
+            let mouse = { x: 300, y: 300 };
+
+            function initTargets() {
+                targets = [
+                    { x: 300, y: 330, r: 32, hit: false, impactAngle: 0 },
+                    { x: 500, y: 370, r: 32, hit: false, impactAngle: 0 },
+                    { x: 670, y: 250, r: 30, hit: false, impactAngle: 0 },
+                    { x: 800, y: 385, r: 28, hit: false, impactAngle: 0 }
+                ];
+            }
+            initTargets();
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function getElapsedSeconds() {
+                if (startTime === null) return 0;
+                if (endTime !== null) return (endTime - startTime) / 1000;
+                return (performance.now() - startTime) / 1000;
+            }
+
+            function updateHUD() {
+                document.getElementById('timeDisplay').textContent = getElapsedSeconds().toFixed(2);
+                document.getElementById('targetStatus').textContent = targets.map(t => t.hit ? '🟢' : '⚪').join(' ');
+            }
+
+            function loadLeaderboard() {
+                try {
+                    const data = JSON.parse(localStorage.getItem('archery_leaderboard') || '[]');
+                    return Array.isArray(data) ? data : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function renderLeaderboard() {
+                const list = document.getElementById('leaderboardList');
+                const entries = loadLeaderboard();
+                list.innerHTML = '';
+
+                if (entries.length === 0) {
+                    const li = document.createElement('li');
+                    li.textContent = '暂无成绩';
+                    li.style.justifyContent = 'center';
+                    li.style.color = '#78909c';
+                    list.appendChild(li);
+                    return;
+                }
+
+                entries.forEach((entry, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span class="rank">${index + 1}</span>
+                        <span class="name">${escapeHTML(entry.name)}</span>
+                        <span class="time">${Number(entry.time).toFixed(2)}s</span>
+                    `;
+                    list.appendChild(li);
+                });
+            }
+
+            function showModal() {
+                document.getElementById('saveModal').classList.remove('hidden');
+            }
+
+            function closeModal() {
+                document.getElementById('saveModal').classList.add('hidden');
+            }
+
+            function finishGame() {
+                if (gameFinished) return;
+                gameFinished = true;
+                gameActive = false;
+                endTime = startTime === null ? performance.now() : performance.now();
+
+                const seconds = getElapsedSeconds();
+                document.getElementById('finalTime').textContent = seconds.toFixed(2);
+                document.getElementById('playerName').value = localStorage.getItem('archery_last_name') || '玩家';
+                updateHUD();
+                showModal();
+            }
+
+            function resetGame() {
+                initTargets();
+                arrows = [];
+                startTime = null;
+                endTime = null;
+                gameActive = true;
+                gameFinished = false;
+                isCharging = false;
+                chargePower = 0;
+                closeModal();
+                updateHUD();
+            }
+
+            function checkCollision(arrow) {
+                for (let i = 0; i < targets.length; i++) {
+                    const t = targets[i];
+                    if (t.hit) continue;
+
+                    const dx = arrow.x - t.x;
+                    const dy = arrow.y - t.y;
+                    if (dx * dx + dy * dy <= t.r * t.r) {
+                        t.hit = true;
+                        t.impactAngle = Math.atan2(arrow.vy, arrow.vx);
+                        arrow.stuck = true;
+                        arrow.hitTarget = true;
+                        arrow.stuckTargetIndex = i;
+                        arrow.x = t.x + Math.cos(t.impactAngle) * (-t.r * 0.35);
+                        arrow.y = t.y + Math.sin(t.impactAngle) * (-t.r * 0.35);
+
+                        updateHUD();
+
+                        if (targets.every(tg => tg.hit)) {
+                            finishGame();
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function releaseArrow() {
+                if (!isCharging) return;
+                isCharging = false;
+
+                if (!gameActive) {
+                    chargePower = 0;
+                    return;
+                }
+
+                const speed = SPEED_MIN + chargePower * (SPEED_MAX - SPEED_MIN);
+                const vx = Math.cos(aimingAngle) * speed;
+                const vy = Math.sin(aimingAngle) * speed;
+                const startX = BOW.x + Math.cos(aimingAngle) * 35;
+                const startY = BOW.y + Math.sin(aimingAngle) * 35;
+
+                arrows.push({
+                    x: startX,
+                    y: startY,
+                    vx: vx,
+                    vy: vy,
+                    angle: aimingAngle,
+                    stuck: false,
+                    hitTarget: false,
+                    offScreen: false,
+                    stuckTargetIndex: -1
+                });
+
+                chargePower = 0;
+
+                if (startTime === null) {
+                    startTime = performance.now();
+                }
+            }
+
+            function updateMouseFromClient(clientX, clientY) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                mouse.x = (clientX - rect.left) * scaleX;
+                mouse.y = (clientY - rect.top) * scaleY;
+
+                if (gameActive) {
+                    let dx = mouse.x - BOW.x;
+                    let dy = mouse.y - BOW.y;
+                    if (dx < 20) dx = 20; // 防止向左瞄准
+                    aimingAngle = Math.atan2(dy, dx);
+                }
+            }
+
+            canvas.addEventListener('mousemove', (e) => {
+                updateMouseFromClient(e.clientX, e.clientY);
+            });
+
+            canvas.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                if (!gameActive) return;
+                updateMouseFromClient(e.clientX, e.clientY);
+                isCharging = true;
+                chargeStart = performance.now();
+                chargePower = 0;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isCharging) releaseArrow();
+            });
+
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (!gameActive || e.touches.length === 0) return;
+                updateMouseFromClient(e.touches[0].clientX, e.touches[0].clientY);
+                isCharging = true;
+                chargeStart = performance.now();
+                chargePower = 0;
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 0) return;
+                updateMouseFromClient(e.touches[0].clientX, e.touches[0].clientY);
+            });
+
+            window.addEventListener('touchend', () => {
+                if (isCharging) releaseArrow();
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.target && e.target.tagName === 'INPUT') return;
+                if (e.key.toLowerCase() === 'r') {
+                    resetGame();
+                }
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', resetGame);
+
+            document.getElementById('clearLeaderboardBtn').addEventListener('click', () => {
+                if (confirm('确定清空排行榜吗？')) {
+                    localStorage.removeItem('archery_leaderboard');
+                    renderLeaderboard();
+                }
+            });
+
+            document.getElementById('saveScoreBtn').addEventListener('click', () => {
+                let name = document.getElementById('playerName').value.trim();
+                if (!name) name = '玩家';
+
+                const seconds = getElapsedSeconds();
+                const entries = loadLeaderboard();
+                entries.push({ name, time: seconds });
+                entries.sort((a, b) => Number(a.time) - Number(b.time));
+                const topTen = entries.slice(0, 10);
+
+                localStorage.setItem('archery_leaderboard', JSON.stringify(topTen));
+                localStorage.setItem('archery_last_name', name);
+
+                renderLeaderboard();
+                closeModal();
+                resetGame();
+            });
+
+            document.getElementById('skipScoreBtn').addEventListener('click', () => {
+                closeModal();
+                resetGame();
+            });
+
+            function update(dt) {
+                if (isCharging && gameActive) {
+                    chargePower = Math.min(1, (performance.now() - chargeStart) / 1000 / MAX_CHARGE_TIME);
+                }
+
+                for (const arrow of arrows) {
+                    if (arrow.stuck) continue;
+
+                    const speed = Math.hypot(arrow.vx, arrow.vy);
+                    const steps = Math.max(1, Math.ceil(speed * dt / 12));
+                    const stepDt = dt / steps;
+
+                    for (let s = 0; s < steps; s++) {
+                        arrow.vy += GRAVITY * stepDt;
+                        arrow.x += arrow.vx * stepDt;
+                        arrow.y += arrow.vy * stepDt;
+                        arrow.angle = Math.atan2(arrow.vy, arrow.vx);
+
+                        if (checkCollision(arrow)) {
+                            break;
+                        }
+
+                        if (arrow.y >= GROUND_Y) {
+                            arrow.y = GROUND_Y;
+                            arrow.vx = 0;
+                            arrow.vy = 0;
+                            arrow.stuck = true;
+                            break;
+                        }
+
+                        if (arrow.x > W + 80 || arrow.x < -100 || arrow.y < -100) {
+                            arrow.stuck = true;
+                            arrow.offScreen = true;
+                            break;
+                        }
+                    }
+                }
+
+                arrows = arrows.filter(a => !a.offScreen);
+                updateHUD();
+            }
+
+            function drawCloud(x, y, s) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.beginPath();
+                ctx.arc(x, y, 20 * s, 0, Math.PI * 2);
+                ctx.arc(x + 25 * s, y - 10 * s, 24 * s, 0, Math.PI * 2);
+                ctx.arc(x + 50 * s, y, 20 * s, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function drawSkyAndGround() {
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+                skyGrad.addColorStop(0, '#8fd3f4');
+                skyGrad.addColorStop(1, '#e2f4ff');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, W, GROUND_Y);
+
+                drawCloud(140, 70, 0.9);
+                drawCloud(520, 110, 1.1);
+                drawCloud(740, 55, 0.8);
+
+                ctx.fillStyle = '#5a9e3e';
+                ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+                ctx.fillStyle = '#4b8a33';
+                ctx.fillRect(0, GROUND_Y, W, 8);
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 50; i++) {
+                    const gx = Math.random() * W;
+                    const gy = GROUND_Y + 20 + Math.random() * 65;
+                    ctx.beginPath();
+                    ctx.moveTo(gx, gy);
+                    ctx.lineTo(gx + 4, gy - 6);
+                    ctx.stroke();
+                }
+            }
+
+            function drawTarget(t) {
+                // 支架
+                ctx.strokeStyle = '#8B5A2B';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.moveTo(t.x, t.y + t.r);
+                ctx.lineTo(t.x, GROUND_Y + 4);
+                ctx.stroke();
+
+                // 靶环
+                const colors = ['#f5f5f5', '#111111', '#1e90ff', '#ff3b3b', '#ffd700'];
+                for (let i = colors.length - 1; i >= 0; i--) {
+                    const radius = t.r * (i + 1) / colors.length;
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = colors[i];
+                    ctx.fill();
+                }
+
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                if (t.hit) {
+                    // 绿色命中标记
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0, 200, 60, 0.3)';
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 5;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(t.x - 12, t.y);
+                    ctx.lineTo(t.x - 3, t.y + 9);
+                    ctx.lineTo(t.x + 13, t.y - 9);
+                    ctx.stroke();
+
+                    // 画出插在靶上的箭
+                    const angle = t.impactAngle || 0;
+                    ctx.save();
+                    ctx.translate(t.x, t.y);
+                    ctx.rotate(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(-t.r * 0.6, 0);
+                    ctx.lineTo(t.r * 0.35, 0);
+                    ctx.strokeStyle = '#7a4a1d';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                    ctx.fillStyle = '#4a4a4a';
+                    ctx.beginPath();
+                    ctx.moveTo(t.r * 0.5, 0);
+                    ctx.lineTo(t.r * 0.18, -5);
+                    ctx.lineTo(t.r * 0.18, 5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            function drawArrow(arrow) {
+                const angle = arrow.angle || 0;
+                ctx.save();
+                ctx.translate(arrow.x, arrow.y);
+                ctx.rotate(angle);
+
+                ctx.beginPath();
+                ctx.moveTo(-22, 0);
+                ctx.lineTo(14, 0);
+                ctx.strokeStyle = '#7a4a1d';
+                ctx.lineWidth = 3.5;
+                ctx.stroke();
+
+                ctx.fillStyle = '#4a4a4a';
+                ctx.beginPath();
+                ctx.moveTo(20, 0);
+                ctx.lineTo(10, -4);
+                ctx.lineTo(10, 4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#f0e7d5';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-22, 0);
+                ctx.lineTo(-27, -5);
+                ctx.moveTo(-22, 0);
+                ctx.lineTo(-27, 5);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            function drawBow() {
+                ctx.save();
+                ctx.translate(BOW.x, BOW.y);
+                ctx.rotate(aimingAngle);
+
+                // 弓臂
+                ctx.beginPath();
+                ctx.moveTo(-8, -45);
+                ctx.quadraticCurveTo(-28, 0, -8, 45);
+                ctx.strokeStyle = '#6b4226';
+                ctx.lineWidth = 8;
+                ctx.stroke();
+
+                // 弓弦
+                ctx.beginPath();
+                ctx.moveTo(-8, -45);
+                ctx.lineTo(-8, 45);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // 搭在弓上的箭
+                const stringX = -8 - chargePower * 22;
+                ctx.beginPath();
+                ctx.moveTo(stringX, 0);
+                ctx.lineTo(26, 0);
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                ctx.fillStyle = '#555';
+                ctx.beginPath();
+                ctx.moveTo(30, 0);
+                ctx.lineTo(20, -4);
+                ctx.lineTo(20, 4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(stringX, 0);
+                ctx.lineTo(stringX + 6, -5);
+                ctx.moveTo(stringX, 0);
+                ctx.lineTo(stringX + 6, 5);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            function drawPowerBar() {
+                const bw = 150;
+                const bh = 14;
+                const bx = W - 190;
+                const by = 30;
+
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fillRect(bx - 4, by - 4, bw + 8, bh + 8);
+
+                ctx.fillStyle = 'rgba(0,0,0,0.55)';
+                ctx.fillRect(bx, by, bw, bh);
+
+                const powerColor = chargePower < 0.5 ? '#ffd700' : chargePower < 0.9 ? '#ff9f00' : '#ff2d00';
+                ctx.fillStyle = powerColor;
+                ctx.fillRect(bx, by, bw * chargePower, bh);
+
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(bx, by, bw, bh);
+
+                ctx.font = '13px "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+                ctx.fillStyle = '#fff';
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.shadowBlur = 3;
+                ctx.textAlign = 'right';
+                ctx.fillText('力量', bx - 10, by + 12);
+                ctx.shadowBlur = 0;
+                ctx.textAlign = 'left';
+            }
+
+            function drawAimLine() {
+                if (!gameActive || gameFinished) return;
+
+                ctx.save();
+                ctx.translate(BOW.x, BOW.y);
+                ctx.rotate(aimingAngle);
+
+                ctx.setLineDash([8, 6]);
+                ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(35, 0);
+                ctx.lineTo(100 + chargePower * 60, 0);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                const tipX = 100 + chargePower * 60;
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.beginPath();
+                ctx.moveTo(tipX + 9, 0);
+                ctx.lineTo(tipX, 5);
+                ctx.lineTo(tipX, -5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
+                if (isCharging || chargePower > 0) {
+                    drawPowerBar();
+                }
+            }
+
+            function draw() {
+                drawSkyAndGround();
+
+                for (const t of targets) {
+                    drawTarget(t);
+                }
+
+                for (const arrow of arrows) {
+                    if (!arrow.hitTarget) {
+                        drawArrow(arrow);
+                    }
+                }
+
+                drawBow();
+                drawAimLine();
+            }
+
+            let lastTimestamp = performance.now();
+
+            function gameLoop(now) {
+                const dt = Math.min((now - lastTimestamp) / 1000, 0.05);
+                lastTimestamp = now;
+                update(dt);
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+
+            renderLeaderboard();
+            updateHUD();
+            requestAnimationFrame(gameLoop);
+        })();
+    </script>
+</body>
+</html>

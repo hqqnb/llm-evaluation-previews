@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电梯模拟器</title>
+<style>
+  :root{
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --blue:#2563eb; --blue-soft:#dbeafe;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(900px 500px at 15% -10%, #dbeafe 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 110%, #fde9d9 0%, transparent 55%),
+      linear-gradient(180deg,#f4f7fb,#eef1f6);
+    display:flex; align-items:flex-start; justify-content:center; padding:26px 16px 44px;
+  }
+  #app{width:min(1080px,100%)}
+  .topbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;background:rgba(255,255,255,.82);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:16px;padding:14px 18px;box-shadow:0 10px 30px rgba(15,23,42,.06);margin-bottom:16px}
+  .topbar h1{margin:0;font-size:19px;letter-spacing:.2px}
+  .legend{font-size:12.5px;color:var(--muted);flex:1;min-width:220px;line-height:1.6}
+  .stats{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .stat{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);color:#334155;white-space:nowrap}
+  .stat b{color:var(--blue);margin-left:2px}
+  .icon-btn{border:1px solid var(--line);background:#fff;border-radius:999px;width:34px;height:34px;cursor:pointer;font-size:15px}
+  .layout{display:flex;gap:18px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+  .building-wrap{max-width:100%;overflow-x:auto}
+  #building{border-radius:16px;overflow:hidden;border:1px solid #d9e2ec;box-shadow:0 24px 60px rgba(30,41,59,.16);background:#fff}
+  .roof{height:46px;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(180deg,#3b4a5e,#263445);color:#dbe6f5;font-size:13px;font-weight:600;letter-spacing:2px}
+  .roof::before{content:"";width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 12px 2px rgba(245,158,11,.8)}
+  #core{position:relative;background:#f8fafc}
+  .layer{position:absolute;inset:0}
+  #floorLayer{z-index:1}
+  #shaftLayer{z-index:2;pointer-events:none}
+  #peopleLayer{z-index:30}
+  #doorLayer{z-index:40;pointer-events:none}
+  .floor{display:flex;align-items:stretch;border-top:1px solid #e8eef5}
+  .floor:first-child{border-top:0}
+  .floor-num{width:44px;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#94a3b8;border-right:1px solid #e8eef5;background:#f4f7fa}
+  .corridor{flex:1;position:relative;cursor:pointer;background:linear-gradient(90deg,#f0f5fa,#edf3f9);transition:background .18s;user-select:none}
+  .corridor:hover{background:#e1edf9}
+  .corridor:active{background:#d5e6f8}
+  .plus{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:17px;font-weight:700;color:#6fa3d9;opacity:0;transition:opacity .18s;pointer-events:none}
+  .corridor:hover .plus{opacity:1}
+  .wait-badge{position:absolute;right:32px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:#1d4ed8;background:#dbeafe;border-radius:999px;padding:2px 8px;display:none;pointer-events:none}
+  .floor.has-wait .wait-badge{display:inline-block}
+  .ripple{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:rgba(37,99,235,.35);transform:scale(0);animation:ripple .55s ease-out forwards;pointer-events:none}
+  @keyframes ripple{to{transform:scale(5);opacity:0}}
+  .shaft{position:absolute;top:0;height:100%;background:#dde5ee;box-shadow:inset 0 0 0 1px #c7d3e0}
+  .shaft::before,.shaft::after{content:"";position:absolute;top:0;bottom:0;width:1px;background:#c1cedd}
+  .shaft::before{left:7px}
+  .shaft::after{right:7px}
+  .car{position:absolute;left:5px;right:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:linear-gradient(180deg,#4a5d74,#2f4055);border:1px solid #202f3f;border-radius:6px 6px 3px 3px;box-shadow:inset 0 2px 0 rgba(255,255,255,.08)}
+  .car-ind{font-size:11px;font-weight:800;color:#cfe0ff;letter-spacing:1px}
+  .car-light{width:8px;height:8px;border-radius:50%;background:#f87171;box-shadow:0 0 6px rgba(248,113,113,.7);transition:background .2s,box-shadow .2s}
+  .car.open .car-light{background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,.8)}
+  .doors{position:absolute;overflow:hidden}
+  .door{position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,#e5ebf2,#c7d2df);border-top:1px solid #aab9cb;border-bottom:1px solid #aab9cb;transition:transform .32s cubic-bezier(.65,0,.25,1)}
+  .door.left{left:0;border-right:1px solid #9dafc2}
+  .door.right{right:0;border-left:1px solid #9dafc2}
+  .doors.open .door.left{transform:translateX(-102%)}
+  .doors.open .door.right{transform:translateX(102%)}
+  .person{position:absolute;width:32px;height:42px;display:flex;align-items:flex-end;justify-content:center;cursor:help}
+  .person .avatar{font-size:27px;line-height:1;transform-origin:bottom center;animation:bob 2.4s ease-in-out infinite alternate;filter:drop-shadow(0 2px 2px rgba(15,23,42,.25))}
+  .person.riding .avatar{animation:none}
+  @keyframes bob{from{transform:translateY(0)}to{transform:translateY(-2px)}}
+  .tooltip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,5px);background:#111827;color:#fff;padding:5px 9px;border-radius:8px;font-size:12px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease;box-shadow:0 8px 20px rgba(15,23,42,.25)}
+  .tooltip b{color:#93c5fd}
+  .tooltip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#111827}
+  .person:hover .tooltip{opacity:1;transform:translate(-50%,0)}
+  .person.leaving{opacity:0;transform:scale(.5)}
+  .panel{width:320px;flex:none;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(15,23,42,.06)}
+  .panel h2{margin:0 0 12px;font-size:15px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .row{display:flex;gap:8px}
+  select,input[type=number]{height:38px;border:1px solid #cbd5e1;border-radius:9px;padding:0 10px;font-size:14px;background:#fff;color:var(--ink)}
+  select{flex:1;min-width:0}
+  input[type=number]{width:76px;flex:none}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;padding:9px 12px;transition:transform .08s,box-shadow .15s,background .15s;height:38px;width:100%}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--blue);color:#fff;box-shadow:0 6px 14px rgba(37,99,235,.28)}
+  .btn-primary:hover{background:#1d4ed8}
+  .btn-ghost{background:#fff;border-color:#cbd5e1;color:#334155}
+  .btn-ghost:hover{background:#f1f5f9}
+  .btn-danger{background:#fff;border-color:#fecaca;color:#dc2626}
+  .btn-danger:hover{background:#fef2f2}
+  .seg{display:flex;background:#eef2f7;border-radius:9px;padding:3px;gap:3px}
+  .seg button{flex:1;border:0;background:transparent;border-radius:7px;height:32px;font-size:12.5px;font-weight:700;color:#64748b;cursor:pointer}
+  .seg button.active{background:#fff;color:var(--blue);box-shadow:0 2px 6px rgba(15,23,42,.12)}
+  .tip{margin-top:14px;border-top:1px dashed #dbe3ec;padding-top:12px}
+  .tip p{margin:4px 0;font-size:12.5px;color:#64748b;line-height:1.6}
+  .tip b{color:#334155}
+  @media (max-width:720px){.panel{width:100%}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <h1>🛗 电梯模拟器</h1>
+    <div class="legend">每部电梯限载 1 人 · 悬停乘客查看目标楼层 · 点击楼层可生成乘客</div>
+    <div class="stats">
+      <span class="stat">⏳ 等待 <b id="statWait">0</b></span>
+      <span class="stat">🛗 运送中 <b id="statRide">0</b></span>
+      <span class="stat">✅ 已送达 <b id="statDone">0</b></span>
+      <button class="icon-btn" id="btnSound" title="开关提示音">🔊</button>
+    </div>
+  </header>
+  <main class="layout">
+    <div class="building-wrap">
+      <div id="building">
+        <div class="roof"></div>
+        <div id="core">
+          <div id="floorLayer" class="layer"></div>
+          <div id="shaftLayer" class="layer"></div>
+          <div id="peopleLayer" class="layer"></div>
+          <div id="doorLayer" class="layer"></div>
+        </div>
+      </div>
+    </div>
+    <aside class="panel">
+      <h2>🎛️ 生成乘客</h2>
+      <div class="field">
+        <label>楼层与人数</label>
+        <div class="row">
+          <select id="selFloor"></select>
+          <input id="numPeople" type="number" min="1" max="20" value="3" title="人数">
+        </div>
+      </div>
+      <div class="field"><button class="btn btn-primary" id="btnAdd">＋ 生成乘客</button></div>
+      <div class="field"><button class="btn btn-ghost" id="btnRandom">🎲 随机楼层生成 1 人</button></div>
+      <div class="field">
+        <label>运行速度</label>
+        <div class="seg" id="segSpeed">
+          <button data-speed="0.5">0.5×</button>
+          <button data-speed="1" class="active">1×</button>
+          <button data-speed="2">2×</button>
+          <button data-speed="4">4×</button>
+        </div>
+      </div>
+      <div class="field"><button class="btn btn-danger" id="btnReset">♻️ 重置模拟</button></div>
+      <div class="tip">
+        <p><b>规则</b>：一部电梯一次仅搭载 1 名乘客；电梯空闲后会自动去接最近的候梯乘客，其余乘客原地排队、依次上梯。</p>
+        <p><b>操作</b>：鼠标悬停在乘客身上查看其随机目标楼层；直接点击任意楼层也可生成乘客。</p>
+      </div>
+    </aside>
+  </main>
+</div>
+<script>
+"use strict";
+/* ============ 常量 ============ */
+const FLOORS = 10;          // 楼层数
+const FH = 66;              // 每层高度 px
+const PAD = 8;              // 底层地面留白
+const CORRIDOR_W = 300;     // 走廊宽度
+const SHAFT_W = 92;         // 电梯井宽度
+const ELEVATORS_N = 3;      // 电梯数量
+const PERSON_W = 32;
+const PERSON_H = 42;
+const FLIGHT_MS = 520;      // 1× 速度下每层楼耗时 ms
+const CORE_W = CORRIDOR_W + ELEVATORS_N * SHAFT_W;
+const CORE_H = FLOORS * FH + PAD;
+
+/* ============ 状态 ============ */
+let sf = 1;                 // 速度倍率
+let pid = 0;                // 乘客编号
+let delivered = 0;          // 已送达人数
+let soundOn = true;
+let audioCtx = null;
+const allPeople = [];
+const elevators = [];
+const timers = new Set();
+
+/* ============ DOM ============ */
+const core = document.getElementById('core');
+const floorLayer = document.getElementById('floorLayer');
+const shaftLayer = document.getElementById('shaftLayer');
+const peopleLayer = document.getElementById('peopleLayer');
+const doorLayer = document.getElementById('doorLayer');
+const statWait = document.getElementById('statWait');
+const statRide = document.getElementById('statRide');
+const statDone = document.getElementById('statDone');
+
+core.style.width = CORE_W + 'px';
+core.style.height = CORE_H + 'px';
+document.querySelector('.roof').textContent = `🏢 ${FLOORS} 层大楼 · ${ELEVATORS_N} 部电梯`;
+
+const px = v => v + 'px';
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const later = (fn, ms) => {
+  const id = setTimeout(() => { timers.delete(id); fn(); }, ms);
+  timers.add(id);
+  return id;
+};
+
+/* ============ 楼层 ============ */
+function buildFloors() {
+  for (let f = FLOORS; f >= 1; f--) {
+    const row = document.createElement('div');
+    row.className = 'floor';
+    row.style.height = FH + 'px';
+    const num = document.createElement('div');
+    num.className = 'floor-num';
+    num.textContent = f + 'F';
+    const corridor = document.createElement('div');
+    corridor.className = 'corridor';
+    corridor.dataset.floor = f;
+    corridor.title = '点击生成 1 名乘客';
+    const badge = document.createElement('span');
+    badge.className = 'wait-badge';
+    const plus = document.createElement('span');
+    plus.className = 'plus';
+    plus.textContent = '＋';
+    corridor.append(badge, plus);
+    corridor.addEventListener('click', ev => {
+      const fl = +corridor.dataset.floor;
+      addPerson(fl);
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      const rect = corridor.getBoundingClientRect();
+      r.style.left = (ev.clientX - rect.left) + 'px';
+      r.style.top = (ev.clientY - rect.top) + 'px';
+      corridor.appendChild(r);
+      later(() => r.remove(), 600);
+    });
+    row.append(num, corridor);
+    floorLayer.appendChild(row);
+  }
+}
+
+/* ============ 电梯 ============ */
+function buildElevators() {
+  for (let j = 0; j < ELEVATORS_N; j++) {
+    const shaft = document.createElement('div');
+    shaft.className = 'shaft';
+    shaft.style.left = (CORRIDOR_W + j * SHAFT_W) + 'px';
+    shaft.style.width = SHAFT_W + 'px';
+    const car = document.createElement('div');
+    car.className = 'car';
+    car.style.height = (FH - 6) + 'px';
+    const ind = document.createElement('div');
+    ind.className = 'car-ind';
+    const light = document.createElement('div');
+    light.className = 'car-light';
+    car.append(ind, light);
+    const doors = document.createElement('div');
+    doors.className = 'doors';
+    doors.style.height = (FH - 6) + 'px';
+    doors.style.left = (CORRIDOR_W + j * SHAFT_W) + 'px';
+    doors.style.width = SHAFT_W + 'px';
+    const dl = document.createElement('div');
+    dl.className = 'door left';
+    const dr = document.createElement('div');
+    dr.className = 'door right';
+    doors.append(dl, dr);
+    shaft.appendChild(car);
+    shaftLayer.appendChild(shaft);
+    doorLayer.appendChild(doors);
+    elevators.push({ j, pos: 1, state: 'idle', passenger: null, anim: null, el: car, indEl: ind, doorsEl: doors });
+    renderElevator(elevators[j]);
+  }
+}
+
+const carBottom = pos => PAD + (pos - 1) * FH + 2;
+const personBottom = pos => PAD + (pos - 1) * FH + 11;
+const doorX = j => CORRIDOR_W + j * SHAFT_W + SHAFT_W / 2 - PERSON_W / 2;
+
+function renderElevator(e) {
+  const b = carBottom(e.pos);
+  e.el.style.bottom = px(b);
+  e.doorsEl.style.bottom = px(b);
+  e.indEl.textContent = Math.round(e.pos) + 'F';
+  if (e.passenger) ridingPersonTop(e.passenger);
+}
+
+function animateElevator(e, to, onDone) {
+  const from = e.pos;
+  const dur = Math.abs(to - from) * FLIGHT_MS / sf;
+  if (dur <= 0.01) { e.pos = to; renderElevator(e); onDone(); return; }
+  e.anim = { from, to, t0: performance.now(), dur, onDone };
+}
+
+function frame(now) {
+  for (const e of elevators) {
+    const a = e.anim;
+    if (!a) continue;
+    const t = Math.min(1, (now - a.t0) / a.dur);
+    const k = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    e.pos = a.from + (a.to - a.from) * k;
+    renderElevator(e);
+    if (t >= 1) {
+      e.anim = null;
+      e.pos = a.to;
+      renderElevator(e);
+      a.onDone();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function setDoorSpeed(e) {
+  const d = (320 / sf) + 'ms';
+  for (const p of e.doorsEl.children) p.style.transitionDuration = d;
+}
+function openDoors(e, cb) {
+  setDoorSpeed(e);
+  e.doorsEl.classList.add('open');
+  e.el.classList.add('open');
+  later(cb, 340 / sf);
+}
+function closeDoors(e, cb) {
+  setDoorSpeed(e);
+  e.doorsEl.classList.remove('open');
+  e.el.classList.remove('open');
+  later(cb, 340 / sf);
+}
+
+/* ============ 乘客 ============ */
+const AVATARS = ['🧑','👨','👩','🧔','👱','👨‍🦱','👩‍🦰','🧓','👵','👦','👧'];
+
+function makePerson(floor) {
+  let target;
+  do { target = 1 + Math.floor(Math.random() * FLOORS); } while (target === floor);
+  const p = {
+    id: ++pid,
+    floor,
+    target,
+    state: 'waiting',
+    assigned: null,
+    avatarBase: AVATARS[Math.floor(Math.random() * AVATARS.length)]
+  };
+  const el = document.createElement('div');
+  el.className = 'person waiting';
+  const av = document.createElement('div');
+  av.className = 'avatar';
+  av.textContent = p.avatarBase;
+  const tip = document.createElement('div');
+  tip.className = 'tooltip';
+  tip.innerHTML = '目标楼层 <b>' + target + 'F</b>';
+  el.append(av, tip);
+  peopleLayer.appendChild(el);
+  p.el = el;
+  p.avatar = av;
+  allPeople.push(p);
+  placePerson(p, false);
+  reflowFloor(floor);
+  refreshStats();
+  dispatch();
+  return p;
+}
+
+function setLeft(p, x, animMs) {
+  p.el.style.transition = animMs ? `left ${animMs}ms cubic-bezier(.55,0,.25,1)` : 'none';
+  p.el.style.left = px(x);
+}
+function personTop(p, pos) {
+  p.el.style.top = px(CORE_H - personBottom(pos) - PERSON_H);
+}
+function ridingPersonTop(p) {
+  p.el.style.top = px(CORE_H - personBottom(p.assigned.pos) - PERSON_H);
+}
+function slotX(p) {
+  const waiters = allPeople
+    .filter(q => q.floor === p.floor && (q.state === 'waiting' || q.state === 'assigned'))
+    .sort((a, b) => a.id - b.id);
+  const idx = waiters.findIndex(q => q.id === p.id);
+  return Math.max(4, CORRIDOR_W - 58 - (idx < 0 ? 0 : idx) * 38);
+}
+function placePerson(p, animLeft) {
+  if (p.state === 'riding') {
+    setLeft(p, doorX(p.assigned.j), animLeft);
+    personTop(p, p.assigned.pos);
+  } else if (p.state === 'boarding' || p.state === 'exiting') {
+    setLeft(p, doorX(p.assigned.j), animLeft);
+    personTop(p, p.state === 'exiting' ? p.target : p.floor);
+  } else {
+    setLeft(p, slotX(p), animLeft);
+    personTop(p, p.floor);
+  }
+}
+function reflowFloor(floor) {
+  const waiters = allPeople
+    .filter(q => q.floor === floor && (q.state === 'waiting' || q.state === 'assigned'))
+    .sort((a, b) => a.id - b.id);
+  waiters.forEach((q, i) => setLeft(q, Math.max(4, CORRIDOR_W - 58 - i * 38), 240));
+}
+function setState(p, state) {
+  p.state = state;
+  p.el.className = 'person ' + state;
+  reflowFloor(p.floor);
+  refreshStats();
+}
+
+/* ============ 调度与运行流程 ============ */
+function dispatch() {
+  for (const e of elevators) {
+    if (e.state !== 'idle') continue;
+    let best = null;
+    for (const p of allPeople) {
+      if (p.state !== 'waiting') continue;
+      const d = Math.abs(e.pos - p.floor);
+      if (!best || d < best.d || (d === best.d && p.id < best.p.id)) best = { p, d };
+    }
+    if (best) serve(e, best.p);
+  }
+}
+
+function serve(e, p) {
+  e.state = 'busy';
+  p.assigned = e;
+  setState(p, 'assigned');
+  animateElevator(e, p.floor, () => {
+    ding();
+    openDoors(e, () => boardIn(e, p));
+  });
+}
+
+function boardIn(e, p) {
+  setState(p, 'boarding');
+  p.avatar.textContent = '🚶';
+  const walk = 480 / sf;
+  setLeft(p, doorX(e.j), walk);
+  personTop(p, p.floor);
+  later(() => {
+    setState(p, 'riding');
+    p.avatar.textContent = p.avatarBase;
+    p.el.style.transition = 'none';
+    e.passenger = p;
+    placePerson(p, false);
+    closeDoors(e, () => rideTo(e, p));
+  }, walk + 40);
+}
+
+function rideTo(e, p) {
+  animateElevator(e, p.target, () => {
+    ding();
+    openDoors(e, () => exitOut(e, p));
+  });
+}
+
+function exitOut(e, p) {
+  e.passenger = null;
+  setState(p, 'exiting');
+  p.avatar.textContent = '🚶';
+  const walk = 520 / sf;
+  p.el.style.transition = `left ${walk}ms cubic-bezier(.5,0,.25,1), opacity 300ms ease ${walk}ms, transform 300ms ease ${walk}ms`;
+  p.el.style.left = px(CORRIDOR_W - 46);
+  personTop(p, p.target);
+  later(() => p.el.classList.add('leaving'), walk + 20);
+  later(() => {
+    removePerson(p);
+    closeDoors(e, () => { e.state = 'idle'; dispatch(); });
+  }, walk + 360);
+}
+
+function removePerson(p) {
+  const i = allPeople.indexOf(p);
+  if (i >= 0) allPeople.splice(i, 1);
+  if (p.el.parentNode) p.el.remove();
+  delivered++;
+  reflowFloor(p.floor);
+  refreshStats();
+}
+
+function addPerson(floor) { makePerson(floor); }
+
+/* ============ 统计 ============ */
+function refreshStats() {
+  let wait = 0, ride = 0;
+  for (const p of allPeople) {
+    if (p.state === 'waiting' || p.state === 'assigned') wait++;
+    else if (p.state === 'boarding' || p.state === 'riding' || p.state === 'exiting') ride++;
+  }
+  statWait.textContent = wait;
+  statRide.textContent = ride;
+  statDone.textContent = delivered;
+  floorCounts();
+}
+function floorCounts() {
+  const counts = new Array(FLOORS + 1).fill(0);
+  for (const p of allPeople) if (p.state === 'waiting' || p.state === 'assigned') counts[p.floor]++;
+  for (const row of floorLayer.children) {
+    const f = +row.querySelector('.corridor').dataset.floor;
+    row.querySelector('.wait-badge').textContent = '×' + counts[f];
+    row.classList.toggle('has-wait', counts[f] > 0);
+  }
+}
+
+/* ============ 提示音 ============ */
+function ding() {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime;
+    [880, 1174].forEach((f, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + i * 0.12);
+      g.gain.exponentialRampToValueAtTime(0.07, t + i * 0.12 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.12 + 0.45);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t + i * 0.12);
+      o.stop(t + i * 0.12 + 0.5);
+    });
+  } catch (err) {}
+}
+document.addEventListener('pointerdown', function unlock() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (err) {}
+}, { once: true });
+
+/* ============ 控件 ============ */
+const selFloor = document.getElementById('selFloor');
+for (let f = 1; f <= FLOORS; f++) {
+  const o = document.createElement('option');
+  o.value = f;
+  o.textContent = f + 'F';
+  selFloor.appendChild(o);
+}
+document.getElementById('btnAdd').addEventListener('click', () => {
+  const fl = +selFloor.value;
+  const n = clamp(Math.floor(+document.getElementById('numPeople').value || 1), 1, 20);
+  for (let i = 0; i < n; i++) later(() => addPerson(fl), i * 90);
+});
+document.getElementById('btnRandom').addEventListener('click', () => {
+  addPerson(1 + Math.floor(Math.random() * FLOORS));
+});
+document.getElementById('segSpeed').addEventListener('click', ev => {
+  const b = ev.target.closest('button');
+  if (!b) return;
+  sf = +b.dataset.speed;
+  for (const x of ev.currentTarget.children) x.classList.toggle('active', x === b);
+});
+document.getElementById('btnReset').addEventListener('click', resetAll);
+document.getElementById('btnSound').addEventListener('click', function () {
+  soundOn = !soundOn;
+  this.textContent = soundOn ? '🔊' : '🔇';
+});
+
+function resetAll() {
+  for (const id of timers) clearTimeout(id);
+  timers.clear();
+  for (const p of allPeople) if (p.el.parentNode) p.el.remove();
+  allPeople.length = 0;
+  for (const e of elevators) {
+    e.anim = null;
+    e.state = 'idle';
+    e.passenger = null;
+    e.pos = 1;
+    e.doorsEl.classList.remove('open');
+    e.el.classList.remove('open');
+    renderElevator(e);
+  }
+  delivered = 0;
+  refreshStats();
+}
+
+/* ============ 启动 ============ */
+buildFloors();
+buildElevators();
+refreshStats();
+</script>
+</body>
+</html>

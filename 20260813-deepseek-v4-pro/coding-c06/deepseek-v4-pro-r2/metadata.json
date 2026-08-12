@@ -1,0 +1,9 @@
+{
+  "campaign_id": "20260813-deepseek-v4-pro",
+  "item_id": "coding-c06",
+  "model_alias": "deepseek-v4-pro-r2",
+  "artifact_type": "html",
+  "entry": "index.html",
+  "index_sha256": "f7e97bdf8c7f200d004ce6bca6340b2c9041f8ac5471b22c30984be120854aa3",
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

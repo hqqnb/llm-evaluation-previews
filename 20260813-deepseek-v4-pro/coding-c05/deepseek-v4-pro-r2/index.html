@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 双时区腕表 - GMT Chronos</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a12;
+            --panel-bg: rgba(18, 18, 32, 0.88);
+            --panel-border: rgba(180, 160, 100, 0.35);
+            --text-gold: #d4af37;
+            --text-light: #e8e8ec;
+            --text-muted: #9898a8;
+            --accent: #c9a84c;
+            --danger: #e63946;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-dark);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            cursor: grab;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .overlay {
+            position: fixed;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .overlay>* {
+            pointer-events: auto;
+        }
+
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .top-bar>* {
+            pointer-events: auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-gold);
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: 0.3em;
+            text-shadow: 0 0 24px rgba(212, 175, 55, 0.4);
+        }
+        .brand .icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #e8d5a0, #8a6d2f 70%, #4a3a18);
+            border: 2px solid rgba(212, 175, 55, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #1a1a2a;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.4);
+        }
+
+        .timezone-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 14px 20px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            flex-wrap: wrap;
+        }
+
+        .tz-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .tz-label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .tz-value {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-gold);
+            min-width: 90px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+        .tz-divider {
+            width: 1px;
+            height: 30px;
+            background: var(--panel-border);
+        }
+        .tz-select {
+            background: rgba(30, 30, 50, 0.9);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            color: var(--text-light);
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23d4af37' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 32px;
+        }
+        .tz-select:hover {
+            border-color: var(--text-gold);
+            box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+        }
+        .tz-select option {
+            background: #1a1a2e;
+            color: var(--text-light);
+            padding: 8px;
+        }
+
+        .date-display {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+        }
+        .date-item {
+            text-align: center;
+        }
+        .date-item .label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .date-item .value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-light);
+            font-variant-numeric: tabular-nums;
+        }
+        .weekday-badge {
+            display: inline-block;
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 6px;
+            padding: 2px 10px;
+            font-size: 0.8rem;
+            color: var(--text-gold);
+            letter-spacing: 0.1em;
+            font-weight: 600;
+        }
+
+        .bottom-hint {
+            position: fixed;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            pointer-events: none;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-align: center;
+            background: var(--panel-bg);
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .glow-bg {
+            position: fixed;
+            z-index: 0;
+            width: 700px;
+            height: 700px;
+            border-radius: 50%;
+            pointer-events: none;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.06) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse-glow 6s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.7;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.15);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .top-bar {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px 14px;
+                align-items: stretch;
+            }
+            .brand {
+                font-size: 1rem;
+                justify-content: center;
+            }
+            .timezone-panel {
+                justify-content: center;
+                padding: 10px 14px;
+                gap: 10px;
+                border-radius: 12px;
+            }
+            .tz-value {
+                min-width: 60px;
+                font-size: 0.8rem;
+            }
+            .bottom-hint {
+                bottom: 10px;
+                font-size: 0.65rem;
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="glow-bg"></div>
+
+    <div id="canvas-container"></div>
+
+    <div class="top-bar">
+        <div class="brand">
+            <div class="icon">⌚</div>
+            <span>CHRONOS</span>
+        </div>
+        <div class="timezone-panel">
+            <div class="date-display">
+                <div class="date-item">
+                    <div class="label">日期</div>
+                    <div class="value" id="local-date">--</div>
+                </div>
+                <div class="date-item">
+                    <div class="label">星期</div>
+                    <div class="weekday-badge" id="local-weekday">---</div>
+                </div>
+            </div>
+            <div class="tz-divider"></div>
+            <div class="tz-item">
+                <span class="tz-label">本地时区</span>
+                <span class="tz-value" id="local-time">--:--:--</span>
+            </div>
+            <div class="tz-divider"></div>
+            <div class="tz-item">
+                <label class="tz-label" for="timezone-select">第二时区</label>
+                <select id="timezone-select" class="tz-select">
+                    <option value="Asia/Shanghai">UTC+8 北京/上海</option>
+                    <option value="Asia/Tokyo">UTC+9 东京</option>
+                    <option value="Europe/London" selected>UTC+0 伦敦</option>
+                    <option value="Europe/Paris">UTC+1 巴黎</option>
+                    <option value="America/New_York">UTC-5 纽约</option>
+                    <option value="America/Los_Angeles">UTC-7 洛杉矶</option>
+                    <option value="Asia/Kolkata">UTC+5:30 新德里</option>
+                    <option value="Australia/Sydney">UTC+10 悉尼</option>
+                    <option value="America/Sao_Paulo">UTC-3 圣保罗</option>
+                    <option value="Asia/Dubai">UTC+4 迪拜</option>
+                </select>
+                <span class="tz-value" id="second-time">--:--:--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-hint">🖱️ 拖拽旋转 &nbsp;|&nbsp; ⚡ 滚轮缩放 &nbsp;|&nbsp; 双时区实时追踪</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ============================================================
+        //  全局配置
+        // ============================================================
+        const CONFIG = {
+            dialRadius: 2.0,
+            caseOuterRadius: 2.35,
+            caseHeight: 0.28,
+            crownPos: [2.5, 0, 0],
+            strapWidth: 1.45,
+            strapThickness: 0.22,
+            strapLength: 2.3,
+            // 指针Z高度
+            zSubHour: 0.18,
+            zSubMinute: 0.22,
+            zHour: 0.55,
+            zMinute: 0.68,
+            zSecond: 0.82,
+            zGlass: 1.05,
+            // 副表盘在3D中的位置
+            subDialPosition: [0, -1.52, 0],
+            subDialRadius3D: 0.72,
+            // 颜色
+            caseColor: 0xd4af37,
+            caseColorDark: 0x8a6d2f,
+            dialBg: '#101828',
+            dialOuterRing: '#1a2438',
+            handHourColor: 0xe8e8ec,
+            handMinuteColor: 0xd0d0dc,
+            handSecondColor: 0xe63946,
+            subHandColor: 0xf0f0f5,
+            strapColor: 0x1a1a1e,
+            glassColor: 0xffffff,
+        };
+
+        // ============================================================
+        //  场景初始化
+        // ============================================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a12);
+        scene.fog = new THREE.Fog(0x0a0a12, 8, 25);
+
+        const camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.1, 60);
+        camera.position.set(0, 0.8, 7.8);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 0, 0);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.minDistance = 3.5;
+        controls.maxDistance = 14;
+        controls.maxPolarAngle = Math.PI * 0.7;
+        controls.minPolarAngle = Math.PI * 0.15;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.8;
+        controls.update();
+
+        // ============================================================
+        //  灯光
+        // ============================================================
+        const ambientLight = new THREE.AmbientLight(0x404060, 1.5);
+        scene.add(ambientLight);
+
+        const hemisphereLight = new THREE.HemisphereLight(0xd0d0ff, 0x303040, 1.0);
+        scene.add(hemisphereLight);
+
+        const keyLight = new THREE.DirectionalLight(0xfff8ee, 3.2);
+        keyLight.position.set(5, 8, 6);
+        keyLight.castShadow = true;
+        keyLight.shadow.mapSize.width = 2048;
+        keyLight.shadow.mapSize.height = 2048;
+        keyLight.shadow.camera.near = 0.5;
+        keyLight.shadow.camera.far = 30;
+        keyLight.shadow.camera.left = -6;
+        keyLight.shadow.camera.right = 6;
+        keyLight.shadow.camera.top = 6;
+        keyLight.shadow.camera.bottom = -6;
+        keyLight.shadow.bias = -0.0001;
+        keyLight.shadow.normalBias = 0.02;
+        scene.add(keyLight);
+
+        const rimLight = new THREE.DirectionalLight(0xc0c8ff, 1.8);
+        rimLight.position.set(-4, -2, 4);
+        scene.add(rimLight);
+
+        const topLight = new THREE.PointLight(0xfff0d0, 1.5, 20);
+        topLight.position.set(0, 6, 2);
+        scene.add(topLight);
+
+        const crownLight = new THREE.PointLight(0xd4af37, 0.8, 6);
+        crownLight.position.set(3.5, 0.5, 1);
+        scene.add(crownLight);
+
+        // ============================================================
+        //  时间相关函数
+        // ============================================================
+        const WEEKDAYS_CN = ['日', '一', '二', '三', '四', '五', '六'];
+        const WEEKDAYS_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+        function getTimeParts(date) {
+            return {
+                hours: date.getHours(),
+                minutes: date.getMinutes(),
+                seconds: date.getSeconds(),
+                milliseconds: date.getMilliseconds(),
+                day: date.getDate(),
+                month: date.getMonth() + 1,
+                year: date.getFullYear(),
+                weekdayCN: WEEKDAYS_CN[date.getDay()],
+                weekdayEN: WEEKDAYS_EN[date.getDay()],
+            };
+        }
+
+        function getTimeInTimeZone(timeZone, date = new Date()) {
+            try {
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: timeZone,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    weekday: 'short',
+                });
+                const parts = formatter.formatToParts(date);
+                const map = {};
+                parts.forEach(p => { map[p.type] = p.value; });
+                const hours = parseInt(map.hour, 10) % 24;
+                const minutes = parseInt(map.minute, 10);
+                const seconds = parseInt(map.second, 10);
+                const day = parseInt(map.day, 10);
+                const month = parseInt(map.month, 10);
+                const year = parseInt(map.year, 10);
+                const weekdayMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+                const weekday = weekdayMap[map.weekday] || 0;
+                return {
+                    hours,
+                    minutes,
+                    seconds,
+                    milliseconds: date.getMilliseconds(),
+                    day,
+                    month,
+                    year,
+                    weekdayCN: WEEKDAYS_CN[weekday],
+                    weekdayEN: WEEKDAYS_EN[weekday],
+                };
+            } catch (e) {
+                // 回退：使用UTC偏移估算
+                const utcHours = date.getUTCHours();
+                const utcMinutes = date.getUTCMinutes();
+                const utcSeconds = date.getUTCSeconds();
+                let offset = 0;
+                const simpleZones = {
+                    'Asia/Shanghai': 8,
+                    'Asia/Tokyo': 9,
+                    'Europe/London': 0,
+                    'Europe/Paris': 1,
+                    'America/New_York': -5,
+                    'America/Los_Angeles': -7,
+                    'Asia/Kolkata': 5.5,
+                    'Australia/Sydney': 10,
+                    'America/Sao_Paulo': -3,
+                    'Asia/Dubai': 4,
+                };
+                offset = simpleZones[timeZone] || 0;
+                const totalMinutes = (utcHours + offset) * 60 + utcMinutes;
+                const adjTotal = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+                return {
+                    hours: Math.floor(adjTotal / 60),
+                    minutes: Math.floor(adjTotal % 60),
+                    seconds: utcSeconds,
+                    milliseconds: date.getMilliseconds(),
+                    day: date.getUTCDate(),
+                    month: date.getUTCMonth() + 1,
+                    year: date.getUTCFullYear(),
+                    weekdayCN: WEEKDAYS_CN[date.getUTCDay()],
+                    weekdayEN: WEEKDAYS_EN[date.getUTCDay()],
+                };
+            }
+        }
+
+        function getPointerAngles(timeParts) {
+            const h = timeParts.hours % 12;
+            const m = timeParts.minutes;
+            const s = timeParts.seconds;
+            const ms = timeParts.milliseconds;
+            const secondAngle = -2 * Math.PI * (s + ms / 1000) / 60;
+            const minuteAngle = -2 * Math.PI * (m + s / 60 + ms / 60000) / 60;
+            const hourAngle = -2 * Math.PI * (h + m / 60 + s / 3600 + ms / 3600000) / 12;
+            return { secondAngle, minuteAngle, hourAngle };
+        }
+
+        // ============================================================
+        //  表盘Canvas纹理生成
+        // ============================================================
+        function createDialTexture(dateStr, weekdayStr, subDialLabel) {
+            const size = 1024;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const cx = size / 2;
+            const cy = size / 2;
+            const dialR = 480;
+            const innerR = dialR * 0.82;
+
+            // --- 背景渐变（日辉纹效果） ---
+            const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, dialR);
+            bgGrad.addColorStop(0, '#1c2844');
+            bgGrad.addColorStop(0.45, '#162036');
+            bgGrad.addColorStop(0.82, '#0e1628');
+            bgGrad.addColorStop(1, '#0a101e');
+            ctx.fillStyle = bgGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, dialR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // --- 日辉纹（太阳放射纹） ---
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, dialR * 0.98, 0, Math.PI * 2);
+            ctx.clip();
+            for (let i = 0; i < 180; i++) {
+                const angle = (i / 180) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                const x2 = cx + Math.cos(angle) * dialR;
+                const y2 = cy + Math.sin(angle) * dialR;
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.04)';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // --- 外圈装饰环 ---
+            ctx.beginPath();
+            ctx.arc(cx, cy, dialR * 0.99, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, dialR * 0.96, 0, Math.PI * 2);
+            ctx.fillStyle = '#0c1220';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(212,175,55,0.5)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // --- 分钟刻度环 ---
+            for (let i = 0; i < 60; i++) {
+                const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
+                const isHourMark = i % 5 === 0;
+                const outerR = dialR * 0.93;
+                const innerR = isHourMark ? dialR * 0.87 : dialR * 0.90;
+                const x1 = cx + Math.cos(angle) * innerR;
+                const y1 = cy + Math.sin(angle) * innerR;
+                const x2 = cx + Math.cos(angle) * outerR;
+                const y2 = cy + Math.sin(angle) * outerR;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = isHourMark ? 'rgba(212,175,55,0.9)' : 'rgba(200,200,220,0.5)';
+                ctx.lineWidth = isHourMark ? 3.5 : 1.5;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+
+            // --- 小时数字 ---
+            const numR = dialR * 0.72;
+            ctx.font = 'bold 44px "Segoe UI", "Helvetica Neue", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let i = 1; i <= 12; i++) {
+                const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+                const nx = cx + Math.cos(angle) * numR;
+                const ny = cy + Math.sin(angle) * numR;
+                const numGrad = ctx.createLinearGradient(nx - 15, ny - 15, nx + 15, ny + 15);
+                numGrad.addColorStop(0, '#f5f0e0');
+                numGrad.addColorStop(1, '#c0b8a0');
+                ctx.fillStyle = numGrad;
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.shadowBlur = 6;
+                ctx.fillText(String(i), nx, ny);
+                ctx.shadowBlur = 0;
+            }
+
+            // --- 品牌文字 ---
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '700 52px "Georgia", "Times New Roman", serif';
+            ctx.fillStyle = '#d4af37';
+            ctx.shadowColor = 'rgba(212,175,55,0.5)';
+            ctx.shadowBlur = 12;
+            ctx.fillText('CHRONOS', cx, cy - dialR * 0.42);
+            ctx.shadowBlur = 0;
+
+            ctx.font = '400 22px "Segoe UI", "Helvetica Neue", sans-serif';
+            ctx.fillStyle = 'rgba(180,180,200,0.7)';
+            ctx.fillText('GMT · AUTOMATIC', cx, cy - dialR * 0.30);
+
+            ctx.font = '300 18px "Segoe UI", "Helvetica Neue", sans-serif';
+            ctx.fillStyle = 'rgba(150,150,170,0.5)';
+            ctx.fillText('DUAL TIME ZONE', cx, cy - dialR * 0.21);
+
+            // --- 日期窗口 (3点钟位置) ---
+            const dateR = dialR * 0.58;
+            const dateAngle = 0; // 3点钟
+            const dateX = cx + Math.cos(dateAngle) * dateR;
+            const dateY = cy + Math.sin(dateAngle) * dateR;
+            const dateW = 88;
+            const dateH = 56;
+            // 窗口边框
+            ctx.fillStyle = '#0a0e18';
+            ctx.fillRect(dateX - dateW / 2 - 4, dateY - dateH / 2 - 4, dateW + 8, dateH + 8);
+            ctx.strokeStyle = 'rgba(212,175,55,0.7)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(dateX - dateW / 2 - 4, dateY - dateH / 2 - 4, dateW + 8, dateH + 8);
+            // 窗口背景
+            const dateGrad = ctx.createLinearGradient(dateX, dateY - dateH / 2, dateX, dateY + dateH / 2);
+            dateGrad.addColorStop(0, '#f8f5ee');
+            dateGrad.addColorStop(0.5, '#e8e4d8');
+            dateGrad.addColorStop(1, '#d0ccc0');
+            ctx.fillStyle = dateGrad;
+            ctx.fillRect(dateX - dateW / 2, dateY - dateH / 2, dateW, dateH);
+            // 日期数字
+            ctx.font = '700 36px "Segoe UI", "Helvetica Neue", sans-serif';
+            ctx.fillStyle = '#1a1a2a';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(dateStr).padStart(2, '0'), dateX, dateY + 1);
+
+            // --- 星期窗口 (9点钟位置) ---
+            const weekR = dialR * 0.58;
+            const weekAngle = Math.PI; // 9点钟
+            const weekX = cx + Math.cos(weekAngle) * weekR;
+            const weekY = cy + Math.sin(weekAngle) * weekR;
+            const weekW = 96;
+            const weekH = 56;
+            ctx.fillStyle = '#0a0e18';
+            ctx.fillRect(weekX - weekW / 2 - 4, weekY - weekH / 2 - 4, weekW + 8, weekH + 8);
+            ctx.strokeStyle = 'rgba(212,175,55,0.7)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(weekX - weekW / 2 - 4, weekY - weekH / 2 - 4, weekW + 8, weekH + 8);
+            const weekGrad = ctx.createLinearGradient(weekX, weekY - weekH / 2, weekX, weekY + weekH / 2);
+            weekGrad.addColorStop(0, '#f8f5ee');
+            weekGrad.addColorStop(0.5, '#e8e4d8');
+            weekGrad.addColorStop(1, '#d0ccc0');
+            ctx.fillStyle = weekGrad;
+            ctx.fillRect(weekX - weekW / 2, weekY - weekH / 2, weekW, weekH);
+            ctx.font = '700 32px "Segoe UI", "Helvetica Neue", sans-serif';
+            ctx.fillStyle = '#1a1a2a';
+            ctx.fillText(weekdayStr, weekX, weekY + 1);
+
+            // --- 副表盘 (6点钟位置) ---
+            const subR = dialR * 0.28;
+            const subX = cx;
+            const subY = cy + dialR * 0.42;
+            // 副表盘背景
+            ctx.beginPath();
+            ctx.arc(subX, subY, subR, 0, Math.PI * 2);
+            const subBgGrad = ctx.createRadialGradient(subX, subY, 0, subX, subY, subR);
+            subBgGrad.addColorStop(0, '#1e2c4a');
+            subBgGrad.addColorStop(0.7, '#14203a');
+            subBgGrad.addColorStop(1, '#0c1424');
+            ctx.fillStyle = subBgGrad;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(212,175,55,0.6)';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+            // 副表盘外圈刻度
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+                const outerSR = subR * 0.92;
+                const innerSR = i % 3 === 0 ? subR * 0.72 : subR * 0.80;
+                const sx1 = subX + Math.cos(angle) * innerSR;
+                const sy1 = subY + Math.sin(angle) * innerSR;
+                const sx2 = subX + Math.cos(angle) * outerSR;
+                const sy2 = subY + Math.sin(angle) * outerSR;
+                ctx.beginPath();
+                ctx.moveTo(sx1, sy1);
+                ctx.lineTo(sx2, sy2);
+                ctx.strokeStyle = i % 3 === 0 ? 'rgba(220,210,180,0.8)' : 'rgba(180,180,200,0.4)';
+                ctx.lineWidth = i % 3 === 0 ? 2.5 : 1.2;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+            // 副表盘数字
+            ctx.font = '400 20px "Segoe UI", "Helvetica Neue", sans-serif';
+            ctx.fillStyle = 'rgba(200,200,220,0.7)';
+            const subNumR = subR * 0.55;
+            for (let i = 0; i < 4; i++) {
+                const numVal = [12, 3, 6, 9][i];
+                const angle = (numVal / 12) * Math.PI * 2 - Math.PI / 2;
+                const snx = subX + Math.cos(angle) * subNumR;
+                const sny = subY + Math.sin(angle) * subNumR;
+                ctx.fillText(String(numVal), snx, sny);
+            }
+            // 副表盘标签
+            ctx.font = '300 16px "Segoe UI", "Helvetica Neue", sans-serif';
+            ctx.fillStyle = 'rgba(212,175,55,0.8)';
+            ctx.fillText(subDialLabel, subX, subY + subR * 0.85);
+
+            // --- 内圈装饰线 ---
+            ctx.beginPath();
+            ctx.arc(cx, cy, dialR * 0.52, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(212,175,55,0.15)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // --- 中心装饰 ---
+            ctx.beginPath();
+            ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+            ctx.fillStyle = '#d4af37';
+            ctx.fill();
+            ctx.strokeStyle = '#8a6d2f';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.generateMipmaps = true;
+            return texture;
+        }
+
+        // ============================================================
+        //  3D腕表模型构建
+        // ============================================================
+        const watchGroup = new THREE.Group();
+        scene.add(watchGroup);
+
+        // --- 材质定义 ---
+        const caseMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.caseColor,
+            metalness: 0.92,
+            roughness: 0.22,
+            envMapIntensity: 1.2,
+        });
+        const caseMaterialDark = new THREE.MeshStandardMaterial({
+            color: CONFIG.caseColorDark,
+            metalness: 0.85,
+            roughness: 0.3,
+            envMapIntensity: 0.8,
+        });
+        const strapMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.strapColor,
+            metalness: 0.05,
+            roughness: 0.82,
+        });
+        const strapInnerMaterial = new THREE.MeshStandardMaterial({
+            color: 0x222228,
+            metalness: 0.03,
+            roughness: 0.9,
+        });
+        const glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: CONFIG.glassColor,
+            metalness: 0.0,
+            roughness: 0.04,
+            transmission: 0.92,
+            thickness: 0.2,
+            ior: 1.52,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.03,
+            envMapIntensity: 1.5,
+            transparent: true,
+            opacity: 0.85,
+        });
+        const hourHandMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.handHourColor,
+            metalness: 0.75,
+            roughness: 0.2,
+            emissive: 0x222233,
+            emissiveIntensity: 0.25,
+        });
+        const minuteHandMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.handMinuteColor,
+            metalness: 0.7,
+            roughness: 0.25,
+            emissive: 0x222233,
+            emissiveIntensity: 0.2,
+        });
+        const secondHandMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.handSecondColor,
+            metalness: 0.6,
+            roughness: 0.3,
+            emissive: 0x441111,
+            emissiveIntensity: 0.5,
+        });
+        const subHandMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.subHandColor,
+            metalness: 0.7,
+            roughness: 0.2,
+            emissive: 0x222233,
+            emissiveIntensity: 0.2,
+        });
+        const lugMaterial = new THREE.MeshStandardMaterial({
+            color: 0xc0a050,
+            metalness: 0.88,
+            roughness: 0.25,
+        });
+        const crownMaterial = new THREE.MeshStandardMaterial({
+            color: 0xc0a050,
+            metalness: 0.9,
+            roughness: 0.18,
+        });
+
+        // --- 表壳 ---
+        // 主表壳环
+        const caseOuter = new THREE.Mesh(
+            new THREE.TorusGeometry(CONFIG.caseOuterRadius, CONFIG.caseHeight / 2, 64, 96),
+            caseMaterial
+        );
+        caseOuter.position.z = 0;
+        caseOuter.castShadow = true;
+        caseOuter.receiveShadow = true;
+        watchGroup.add(caseOuter);
+
+        // 表壳后盖
+        const caseBack = new THREE.Mesh(
+            new THREE.CylinderGeometry(CONFIG.caseOuterRadius - 0.08, CONFIG.caseOuterRadius - 0.05, CONFIG.caseHeight - 0.06,
+                64),
+            caseMaterialDark
+        );
+        caseBack.position.z = -CONFIG.caseHeight / 2 + 0.03;
+        caseBack.castShadow = true;
+        watchGroup.add(caseBack);
+
+        // 表壳前圈
+        const caseFrontRing = new THREE.Mesh(
+            new THREE.TorusGeometry(CONFIG.caseOuterRadius - 0.06, 0.08, 32, 96),
+            caseMaterial
+        );
+        caseFrontRing.position.z = CONFIG.caseHeight / 2 - 0.04;
+        caseFrontRing.castShadow = true;
+        watchGroup.add(caseFrontRing);
+
+        // 表壳侧面装饰环
+        const caseSideRing = new THREE.Mesh(
+            new THREE.TorusGeometry(CONFIG.caseOuterRadius + 0.01, 0.04, 24, 96),
+            caseMaterialDark
+        );
+        caseSideRing.position.z = 0;
+        watchGroup.add(caseSideRing);
+
+        // --- 表盘平面 ---
+        const dialMesh = new THREE.Mesh(
+            new THREE.CircleGeometry(CONFIG.dialRadius, 96),
+            new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.55,
+                metalness: 0.02,
+                side: THREE.DoubleSide,
+            })
+        );
+        dialMesh.position.z = 0.005;
+        dialMesh.material.map = createDialTexture('--', '---', 'GMT');
+        dialMesh.material.needsUpdate = true;
+        watchGroup.add(dialMesh);
+
+        // 表盘下方衬底
+        const dialBacking = new THREE.Mesh(
+            new THREE.CircleGeometry(CONFIG.dialRadius - 0.03, 96),
+            new THREE.MeshStandardMaterial({
+                color: 0x0c1220,
+                roughness: 0.8,
+                metalness: 0.1,
+                side: THREE.DoubleSide,
+            })
+        );
+        dialBacking.position.z = -0.01;
+        watchGroup.add(dialBacking);
+
+        // --- 表镜 ---
+        const glassDisc = new THREE.Mesh(
+            new THREE.CircleGeometry(CONFIG.dialRadius + 0.06, 96),
+            glassMaterial
+        );
+        glassDisc.position.z = CONFIG.zGlass;
+        glassDisc.castShadow = false;
+        watchGroup.add(glassDisc);
+
+        // 表镜边缘
+        const glassRing = new THREE.Mesh(
+            new THREE.TorusGeometry(CONFIG.dialRadius + 0.06, 0.03, 24, 96),
+            new THREE.MeshStandardMaterial({
+                color: 0xddd8cc,
+                metalness: 0.7,
+                roughness: 0.15,
+                emissive: 0x111115,
+                emissiveIntensity: 0.1,
+            })
+        );
+        glassRing.position.z = CONFIG.zGlass;
+        watchGroup.add(glassRing);
+
+        // --- 表耳（连接表带） ---
+        function createLug(x, y, rotationZ) {
+            const lugGroup = new THREE.Group();
+            const lugMain = new THREE.Mesh(
+                new THREE.BoxGeometry(0.45, 0.6, 0.22),
+                lugMaterial
+            );
+            lugMain.position.set(x, y, 0);
+            lugMain.castShadow = true;
+            lugGroup.add(lugMain);
+            const lugTip = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 0.25, 0.24),
+                lugMaterial
+            );
+            lugTip.position.set(x, y + 0.3, 0);
+            lugTip.castShadow = true;
+            lugGroup.add(lugTip);
+            lugGroup.rotation.z = rotationZ || 0;
+            return lugGroup;
+        }
+
+        // 上方表耳
+        const lugTopLeft = createLug(-0.62, CONFIG.caseOuterRadius - 0.15, 0.06);
+        watchGroup.add(lugTopLeft);
+        const lugTopRight = createLug(0.62, CONFIG.caseOuterRadius - 0.15, -0.06);
+        watchGroup.add(lugTopRight);
+        // 下方表耳
+        const lugBottomLeft = createLug(-0.62, -(CONFIG.caseOuterRadius - 0.15), -0.06);
+        watchGroup.add(lugBottomLeft);
+        const lugBottomRight = createLug(0.62, -(CONFIG.caseOuterRadius - 0.15), 0.06);
+        watchGroup.add(lugBottomRight);
+
+        // --- 表带 ---
+        function createStrap(yOffset, zOffset) {
+            const strapGroup = new THREE.Group();
+            const numSegments = 7;
+            const segLength = CONFIG.strapLength / numSegments;
+            for (let i = 0; i < numSegments; i++) {
+                const seg = new THREE.Mesh(
+                    new THREE.BoxGeometry(CONFIG.strapWidth, segLength + 0.02, CONFIG.strapThickness),
+                    strapMaterial
+                );
+                const segY = yOffset + (i * segLength) + segLength / 2;
+                const curveFactor = Math.max(0, i - 1) * 0.035;
+                seg.position.set(0, segY, zOffset - curveFactor);
+                seg.castShadow = true;
+                seg.receiveShadow = true;
+                strapGroup.add(seg);
+
+                // 缝线装饰
+                const stitch = new THREE.Mesh(
+                    new THREE.BoxGeometry(CONFIG.strapWidth * 0.85, segLength + 0.04, CONFIG.strapThickness + 0.015),
+                    strapInnerMaterial
+                );
+                stitch.position.set(0, segY, zOffset - curveFactor - 0.002);
+                strapGroup.add(stitch);
+            }
+            return strapGroup;
+        }
+
+        const topStrap = createStrap(CONFIG.caseOuterRadius + 0.2, 0.03);
+        watchGroup.add(topStrap);
+        const bottomStrap = createStrap(-(CONFIG.caseOuterRadius + 0.2 + CONFIG.strapLength), 0.03);
+        watchGroup.add(bottomStrap);
+
+        // 表带扣
+        const buckle = new THREE.Mesh(
+            new THREE.BoxGeometry(CONFIG.strapWidth + 0.15, 0.35, CONFIG.strapThickness + 0.08),
+            caseMaterial
+        );
+        buckle.position.set(0, -(CONFIG.caseOuterRadius + 0.2 + CONFIG.strapLength) - 0.05, 0.06);
+        buckle.castShadow = true;
+        watchGroup.add(buckle);
+
+        // --- 表冠 ---
+        const crownGroup = new THREE.Group();
+        const crownMain = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.13, 0.13, 0.38, 32),
+            crownMaterial
+        );
+        crownMain.rotation.z = Math.PI / 2;
+        crownMain.position.x = 0.19;
+        crownMain.castShadow = true;
+        crownGroup.add(crownMain);
+        // 表冠纹路
+        for (let i = 0; i < 12; i++) {
+            const groove = new THREE.Mesh(
+                new THREE.BoxGeometry(0.22, 0.025, 0.13),
+                caseMaterialDark
+            );
+            const angle = (i / 12) * Math.PI * 2;
+            groove.position.set(0.19, Math.cos(angle) * 0.11, Math.sin(angle) * 0.11);
+            groove.rotation.x = angle;
+            crownGroup.add(groove);
+        }
+        // 表冠端帽
+        const crownCap = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.16, 0.16, 0.04, 32),
+            crownMaterial
+        );
+        crownCap.rotation.z = Math.PI / 2;
+        crownCap.position.x = 0.39;
+        crownGroup.add(crownCap);
+        crownGroup.position.set(CONFIG.crownPos[0], CONFIG.crownPos[1], CONFIG.crownPos[2]);
+        watchGroup.add(crownGroup);
+
+        // --- 主指针组 ---
+        const mainHandsGroup = new THREE.Group();
+        mainHandsGroup.position.set(0, 0, 0.08);
+        watchGroup.add(mainHandsGroup);
+
+        // 时针
+        const hourHandGroup = new THREE.Group();
+        const hourHandBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, CONFIG.dialRadius * 0.58, 0.045),
+            hourHandMaterial
+        );
+        hourHandBody.position.y = CONFIG.dialRadius * 0.29;
+        hourHandBody.castShadow = true;
+        hourHandGroup.add(hourHandBody);
+        // 时针尾部
+        const hourHandTail = new THREE.Mesh(
+            new THREE.BoxGeometry(0.09, 0.25, 0.04),
+            hourHandMaterial
+        );
+        hourHandTail.position.y = -0.12;
+        hourHandGroup.add(hourHandTail);
+        hourHandGroup.position.z = CONFIG.zHour;
+        mainHandsGroup.add(hourHandGroup);
+
+        // 分针
+        const minuteHandGroup = new THREE.Group();
+        const minuteHandBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.07, CONFIG.dialRadius * 0.82, 0.04),
+            minuteHandMaterial
+        );
+        minuteHandBody.position.y = CONFIG.dialRadius * 0.41;
+        minuteHandBody.castShadow = true;
+        minuteHandGroup.add(minuteHandBody);
+        const minuteHandTail = new THREE.Mesh(
+            new THREE.BoxGeometry(0.065, 0.28, 0.035),
+            minuteHandMaterial
+        );
+        minuteHandTail.position.y = -0.14;
+        minuteHandGroup.add(minuteHandTail);
+        minuteHandGroup.position.z = CONFIG.zMinute;
+        mainHandsGroup.add(minuteHandGroup);
+
+        // 秒针
+        const secondHandGroup = new THREE.Group();
+        const secondHandBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.025, CONFIG.dialRadius * 0.9, 0.03),
+            secondHandMaterial
+        );
+        secondHandBody.position.y = CONFIG.dialRadius * 0.45;
+        secondHandBody.castShadow = true;
+        secondHandGroup.add(secondHandBody);
+        // 秒针尾端
+        const secondHandTail = new THREE.Mesh(
+            new THREE.BoxGeometry(0.03, 0.35, 0.028),
+            secondHandMaterial
+        );
+        secondHandTail.position.y = -0.17;
+        secondHandGroup.add(secondHandTail);
+        // 秒针尖端圆点
+        const secondHandTip = new THREE.Mesh(
+            new THREE.SphereGeometry(0.04, 16, 16),
+            secondHandMaterial
+        );
+        secondHandTip.position.y = CONFIG.dialRadius * 0.9;
+        secondHandGroup.add(secondHandTip);
+        // 秒针配重
+        const secondHandCounterweight = new THREE.Mesh(
+            new THREE.SphereGeometry(0.05, 16, 16),
+            secondHandMaterial
+        );
+        secondHandCounterweight.position.y = -0.3;
+        secondHandGroup.add(secondHandCounterweight);
+        secondHandGroup.position.z = CONFIG.zSecond;
+        mainHandsGroup.add(secondHandGroup);
+
+        // --- 副表盘指针组 (第二时区) ---
+        const subHandsGroup = new THREE.Group();
+        subHandsGroup.position.set(CONFIG.subDialPosition[0], CONFIG.subDialPosition[1], 0.1);
+        watchGroup.add(subHandsGroup);
+
+        // 副表盘时针
+        const subHourHandGroup = new THREE.Group();
+        const subHourBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.07, 0.42, 0.035),
+            subHandMaterial
+        );
+        subHourBody.position.y = 0.21;
+        subHourBody.castShadow = true;
+        subHourHandGroup.add(subHourBody);
+        const subHourTail = new THREE.Mesh(
+            new THREE.BoxGeometry(0.06, 0.16, 0.03),
+            subHandMaterial
+        );
+        subHourTail.position.y = -0.08;
+        subHourHandGroup.add(subHourTail);
+        subHourHandGroup.position.z = CONFIG.zSubHour;
+        subHandsGroup.add(subHourHandGroup);
+
+        // 副表盘分针
+        const subMinuteHandGroup = new THREE.Group();
+        const subMinuteBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.05, 0.62, 0.03),
+            subHandMaterial
+        );
+        subMinuteBody.position.y = 0.31;
+        subMinuteBody.castShadow = true;
+        subMinuteHandGroup.add(subMinuteBody);
+        const subMinuteTail = new THREE.Mesh(
+            new THREE.BoxGeometry(0.045, 0.18, 0.028),
+            subHandMaterial
+        );
+        subMinuteTail.position.y = -0.09;
+        subMinuteHandGroup.add(subMinuteTail);
+        subMinuteHandGroup.position.z = CONFIG.zSubMinute;
+        subHandsGroup.add(subMinuteHandGroup);
+
+        // --- 展示底座 ---
+        const pedestalGroup = new THREE.Group();
+        const pedestalBase = new THREE.Mesh(
+            new THREE.BoxGeometry(7.5, 0.35, 4.5),
+            new THREE.MeshStandardMaterial({
+                color: 0x2a1f0f,
+                metalness: 0.1,
+                roughness: 0.7,
+            })
+        );
+        pedestalBase.position.y = -5.2;
+        pedestalBase.castShadow = true;
+        pedestalBase.receiveShadow = true;
+        pedestalGroup.add(pedestalBase);
+        const pedestalTop = new THREE.Mesh(
+            new THREE.BoxGeometry(7.0, 0.18, 4.0),
+            new THREE.MeshStandardMaterial({
+                color: 0x3a2a14,
+                metalness: 0.15,
+                roughness: 0.55,
+            })
+        );
+        pedestalTop.position.y = -4.93;
+        pedestalTop.castShadow = true;
+        pedestalTop.receiveShadow = true;
+        pedestalGroup.add(pedestalTop);
+        // 底座装饰边框
+        const pedestalBorder = new THREE.Mesh(
+            new THREE.BoxGeometry(7.3, 0.08, 4.3),
+            new THREE.MeshStandardMaterial({
+                color: 0xd4af37,
+                metalness: 0.7,
+                roughness: 0.3,
+            })
+        );
+        pedestalBorder.position.y = -4.75;
+        pedestalGroup.add(pedestalBorder);
+        pedestalGroup.position.y = 0.25;
+        watchGroup.add(pedestalGroup);
+
+        // 腕表整体微调位置
+        watchGroup.position.y = 0.2;
+        watchGroup.position.z = 0;
+
+        // ============================================================
+        //  状态变量
+        // ============================================================
+        let selectedTimeZone = 'Europe/London';
+        let lastDateStr = '';
+        let lastWeekdayStr = '';
+        let dialTextureNeedsUpdate = true;
+        const dialMaterial = dialMesh.material;
+        let previousDayKey = '';
+
+        // ============================================================
+        //  UI 更新
+        // ============================================================
+        const localTimeEl = document.getElementById('local-time');
+        const localDateEl = document.getElementById('local-date');
+        const localWeekdayEl = document.getElementById('local-weekday');
+        const secondTimeEl = document.getElementById('second-time');
+        const timezoneSelect = document.getElementById('timezone-select');
+
+        timezoneSelect.addEventListener('change', () => {
+            selectedTimeZone = timezoneSelect.value;
+            dialTextureNeedsUpdate = true;
+        });
+
+        function getSubDialLabel(timeZone) {
+            const labels = {
+                'Asia/Shanghai': 'BEIJING',
+                'Asia/Tokyo': 'TOKYO',
+                'Europe/London': 'LONDON',
+                'Europe/Paris': 'PARIS',
+                'America/New_York': 'NEW YORK',
+                'America/Los_Angeles': 'LOS ANGELES',
+                'Asia/Kolkata': 'DELHI',
+                'Australia/Sydney': 'SYDNEY',
+                'America/Sao_Paulo': 'SAO PAULO',
+                'Asia/Dubai': 'DUBAI',
+            };
+            return labels[timeZone] || 'GMT';
+        }
+
+        function updateDialTextureIfNeeded(dateStr, weekdayStr, subLabel) {
+            if (dateStr !== lastDateStr || weekdayStr !== lastWeekdayStr || dialTextureNeedsUpdate) {
+                lastDateStr = dateStr;
+                lastWeekdayStr = weekdayStr;
+                dialTextureNeedsUpdate = false;
+                const newTexture = createDialTexture(dateStr, weekdayStr, subLabel);
+                if (dialMesh.material.map) {
+                    dialMesh.material.map.dispose();
+                }
+                dialMesh.material.map = newTexture;
+                dialMesh.material.needsUpdate = true;
+            }
+        }
+
+        function formatTime(h, m, s) {
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${pad(h)}:${pad(m)}:${pad(s)}`;
+        }
+
+        // ============================================================
+        //  动画循环
+        // ============================================================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const now = new Date();
+            const localTime = getTimeParts(now);
+            const secondTZTime = getTimeInTimeZone(selectedTimeZone, now);
+
+            // 获取指针角度
+            const localAngles = getPointerAngles(localTime);
+            const subAngles = getPointerAngles(secondTZTime);
+
+            // 更新主指针旋转
+            hourHandGroup.rotation.z = localAngles.hourAngle;
+            minuteHandGroup.rotation.z = localAngles.minuteAngle;
+            secondHandGroup.rotation.z = localAngles.secondAngle;
+
+            // 更新副表盘指针旋转
+            subHourHandGroup.rotation.z = subAngles.hourAngle;
+            subMinuteHandGroup.rotation.z = subAngles.minuteAngle;
+
+            // 更新UI
+            localTimeEl.textContent = formatTime(localTime.hours, localTime.minutes, localTime.seconds);
+            localDateEl.textContent = `${localTime.year}-${String(localTime.month).padStart(2, '0')}-${String(localTime.day).padStart(2, '0')}`;
+            localWeekdayEl.textContent = `周${localTime.weekdayCN} ${localTime.weekdayEN}`;
+
+            secondTimeEl.textContent = formatTime(secondTZTime.hours, secondTZTime.minutes, secondTZTime.seconds);
+
+            // 更新表盘纹理（日期/星期变化时）
+            const dateStr = String(localTime.day);
+            const weekdayStr = localTime.weekdayEN.slice(0, 3);
+            const subLabel = getSubDialLabel(selectedTimeZone);
+            updateDialTextureIfNeeded(dateStr, weekdayStr, subLabel);
+
+            // 更新OrbitControls
+            controls.update();
+
+            renderer.render(scene, camera);
+        }
+
+        // ============================================================
+        //  响应式处理
+        // ============================================================
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // 键盘快捷键
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                controls.autoRotate = !controls.autoRotate;
+            }
+            if (e.key === '0') {
+                camera.position.set(0, 0.8, 7.8);
+                camera.lookAt(0, 0, 0);
+                controls.target.set(0, 0, 0);
+                controls.update();
+            }
+        });
+
+        // 初始表盘纹理更新
+        const initialNow = new Date();
+        const initialLocal = getTimeParts(initialNow);
+        const initialDateStr = String(initialLocal.day);
+        const initialWeekdayStr = initialLocal.weekdayEN.slice(0, 3);
+        const initialSubLabel = getSubDialLabel(selectedTimeZone);
+        updateDialTextureIfNeeded(initialDateStr, initialWeekdayStr, initialSubLabel);
+
+        // 启动动画
+        animate();
+
+        console.log('✅ 3D 双时区腕表已启动');
+        console.log('🕐 主表盘显示本地时间');
+        console.log(`🌍 第二时区: ${selectedTimeZone}`);
+        console.log('🖱️ 拖拽旋转 | 滚轮缩放 | 按R切换自动旋转 | 按0重置视角');
+    </script>
+</body>
+</html>

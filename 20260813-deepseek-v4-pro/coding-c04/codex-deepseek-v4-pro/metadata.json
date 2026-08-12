@@ -1,0 +1,9 @@
+{
+  "campaign_id": "20260813-deepseek-v4-pro",
+  "item_id": "coding-c04",
+  "model_alias": "codex-deepseek-v4-pro",
+  "source": "codex-agent-built-project",
+  "entry": "index.html",
+  "original_entry": "giraffe-driving-car.svg",
+  "index_sha256": "d27e7c9098779d59ad6efbf836540d574de7aff02458f45e23699e3cedacf170"
+}

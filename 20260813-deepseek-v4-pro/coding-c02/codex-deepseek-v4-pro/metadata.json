@@ -1,0 +1,9 @@
+{
+  "campaign_id": "20260813-deepseek-v4-pro",
+  "item_id": "coding-c02",
+  "model_alias": "codex-deepseek-v4-pro",
+  "source": "codex-agent-built-project",
+  "entry": "index.html",
+  "original_entry": "elevator-simulator.html",
+  "index_sha256": "e454c0d2be0237cb34c32c4a655d9262241466c9945a5f564df2c4e0c9f03c25"
+}

@@ -1,0 +1,9 @@
+{
+  "campaign_id": "20260813-deepseek-v4-pro",
+  "item_id": "coding-c03",
+  "model_alias": "codex-deepseek-v4-pro",
+  "source": "codex-agent-built-project",
+  "entry": "index.html",
+  "original_entry": "index.html",
+  "index_sha256": "dcf6ad51a18017d2cd79b4de11d1b2b7b744bfac691dcc119ba8c1acb69956e4"
+}

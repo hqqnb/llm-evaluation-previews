@@ -1,0 +1,16 @@
+{
+  "name": "strike-zone",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Browser tactical FPS — CS-style bomb defusal game",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.mjs && node test/gameplay.mjs && node test/bomb.mjs && node test/defuse.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.0.0"
+  },
+  "dependencies": {
+    "pngjs": "^7.0.0"
+  }
+}

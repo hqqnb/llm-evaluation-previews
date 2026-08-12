@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《极光》世代飞船 - 3D交互模型</title>
+    <style>
+        :root {
+            --bg: #000005;
+            --panel-bg: rgba(8, 12, 28, 0.85);
+            --accent: #4fc3f7;
+            --accent-glow: #81d4fa;
+            --text: #e0e8f0;
+            --text-dim: #8aa0b8;
+            --border: rgba(79, 195, 247, 0.3);
+            --danger: #ef5350;
+            --success: #66bb6a;
+            --gold: #ffd54f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            overflow: hidden;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            cursor: default;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* HUD 顶部信息栏 */
+        #hud-top {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            pointer-events: none;
+        }
+        #hud-title {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 10px 28px;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            backdrop-filter: blur(12px);
+            text-align: center;
+            box-shadow: 0 0 30px rgba(79, 195, 247, 0.15), inset 0 0 30px rgba(79, 195, 247, 0.03);
+        }
+        #hud-title .sub {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--text-dim);
+            letter-spacing: 1.5px;
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* 底部提示栏 */
+        #hud-bottom {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        .hud-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 8px 20px;
+            color: var(--text);
+            font-size: 13px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }
+        .hud-btn:hover {
+            background: rgba(20, 40, 70, 0.9);
+            border-color: var(--accent);
+            box-shadow: 0 0 24px rgba(79, 195, 247, 0.4);
+            transform: translateY(-2px);
+        }
+        .hud-btn.active {
+            background: rgba(79, 195, 247, 0.25);
+            border-color: var(--accent);
+            box-shadow: 0 0 30px rgba(79, 195, 247, 0.5);
+            color: #fff;
+        }
+        .hud-btn .icon {
+            margin-right: 4px;
+            font-size: 14px;
+        }
+
+        /* 右侧信息面板 */
+        #info-panel {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 50;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px 18px;
+            color: var(--text);
+            font-size: 12px;
+            backdrop-filter: blur(12px);
+            max-width: 220px;
+            line-height: 1.7;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            transition: all 0.5s ease;
+            pointer-events: auto;
+        }
+        #info-panel h4 {
+            color: var(--accent);
+            font-size: 13px;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+        }
+        #info-panel .stat {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        #info-panel .stat .label {
+            color: var(--text-dim);
+        }
+        #info-panel .stat .value {
+            color: var(--accent-glow);
+            font-weight: 500;
+        }
+        #biome-list {
+            margin-top: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        #biome-list::-webkit-scrollbar {
+            width: 3px;
+        }
+        #biome-list::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 2px;
+        }
+        .biome-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-dim);
+            padding: 2px 0;
+        }
+        .biome-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px currentColor;
+        }
+
+        /* 内部导航提示 */
+        #nav-hint {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 12px;
+            padding: 8px 18px;
+            color: var(--text-dim);
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        #nav-hint.visible {
+            opacity: 1;
+        }
+
+        /* 生物群落标注（3D标签） */
+        .biome-label {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+            font-size: 10px;
+            color: #cce;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 2px 8px;
+            border-radius: 8px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: opacity 0.3s;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            #hud-title {
+                font-size: 13px;
+                padding: 6px 16px;
+                letter-spacing: 1.5px;
+            }
+            #hud-title .sub {
+                font-size: 9px;
+            }
+            .hud-btn {
+                font-size: 11px;
+                padding: 6px 12px;
+                border-radius: 14px;
+            }
+            #info-panel {
+                right: 8px;
+                max-width: 160px;
+                padding: 12px 10px;
+                font-size: 10px;
+            }
+            #info-panel h4 {
+                font-size: 11px;
+            }
+            #nav-hint {
+                font-size: 10px;
+                bottom: 65px;
+                padding: 6px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HUD -->
+    <div id="hud-top">
+        <div id="hud-title">
+            《极光》世代飞船
+            <span class="sub">AURORA · Generation Ship "Ship"</span>
+        </div>
+    </div>
+
+    <div id="hud-bottom">
+        <button class="hud-btn active" id="btn-exterior" title="从外部观察飞船">
+            <span class="icon">🛸</span> 外部视图
+        </button>
+        <button class="hud-btn" id="btn-interior" title="进入飞船内部探索">
+            <span class="icon">🚪</span> 进入内部
+        </button>
+        <button class="hud-btn" id="btn-reset" title="重置视角">
+            <span class="icon">🔄</span> 重置视角
+        </button>
+        <button class="hud-btn" id="btn-auto" title="自动旋转">
+            <span class="icon">🎯</span> 自动旋转
+        </button>
+    </div>
+
+    <div id="info-panel">
+        <h4>📋 飞船数据</h4>
+        <div class="stat"><span class="label">类型</span><span class="value">世代飞船</span></div>
+        <div class="stat"><span class="label">目的地</span><span class="value">天仓五 (Tau Ceti)</span></div>
+        <div class="stat"><span class="label">航程</span><span class="value">约12光年</span></div>
+        <div class="stat"><span class="label">生物群落</span><span class="value">12个生态环</span></div>
+        <div class="stat"><span class="label">AI系统</span><span class="value">Devi</span></div>
+        <div class="stat"><span class="label">人工重力</span><span class="value">0.8g (旋转)</span></div>
+        <div class="stat"><span class="label">推进</span><span class="value">核聚变+磁帆</span></div>
+        <div class="stat"><span class="label">乘员</span><span class="value">约2000人</span></div>
+        <div id="biome-list"></div>
+    </div>
+
+    <div id="nav-hint">🎮 WASD移动 · 鼠标拖拽环顾 · 滚轮调整高度 · 点击「外部视图」返回</div>
+
+    <!-- Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ==================== 全局状态 ====================
+        const STATE = {
+            view: 'exterior', // 'exterior' | 'interior'
+            autoRotate: true,
+            transitioning: false,
+            transitionProgress: 0,
+            transitionStart: null,
+            transitionDuration: 1800, // ms
+            camStartPos: null,
+            camStartQuat: null,
+            camEndPos: null,
+            camEndQuat: null,
+            // 内部第一人称状态
+            fpPos: new THREE.Vector3(0, 0.5, 32),
+            fpYaw: 0,
+            fpPitch: 0,
+            fpVelocity: new THREE.Vector3(),
+            keys: {},
+            mouseDown: false,
+            lastMouseX: 0,
+            lastMouseY: 0,
+            wheelDelta: 0,
+            fpHeight: 1.2,
+            // 内部碰撞体
+            interiorColliders: [],
+            interiorBounds: {
+                xMin: -5.0, xMax: 5.0,
+                yMin: -2.5, yMax: 4.0,
+                zMin: -38, zMax: 38,
+            },
+            currentZone: '中央走廊',
+        };
+
+        // ==================== 场景初始化 ====================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000005);
+        scene.fog = new THREE.FogExp2(0x000010, 0.0008);
+
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 5000);
+        camera.position.set(35, 18, 55);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        // ==================== 外部控制器 ====================
+        const orbitControls = new OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.08;
+        orbitControls.minDistance = 12;
+        orbitControls.maxDistance = 200;
+        orbitControls.target.set(0, 0, 0);
+        orbitControls.autoRotate = true;
+        orbitControls.autoRotateSpeed = 0.35;
+        orbitControls.maxPolarAngle = Math.PI * 0.85;
+        orbitControls.minPolarAngle = Math.PI * 0.05;
+        orbitControls.enabled = true;
+
+        // ==================== 光照 ====================
+        const ambientLight = new THREE.AmbientLight(0x1a2a3a, 0.35);
+        scene.add(ambientLight);
+
+        const starLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+        starLight.position.set(80, 40, 120);
+        starLight.castShadow = true;
+        starLight.shadow.mapSize.width = 1024;
+        starLight.shadow.mapSize.height = 1024;
+        starLight.shadow.camera.near = 1;
+        starLight.shadow.camera.far = 400;
+        starLight.shadow.camera.left = -60;
+        starLight.shadow.camera.right = 60;
+        starLight.shadow.camera.top = 60;
+        starLight.shadow.camera.bottom = -60;
+        scene.add(starLight);
+
+        const rimLight = new THREE.DirectionalLight(0x4466aa, 0.4);
+        rimLight.position.set(-30, 10, -50);
+        scene.add(rimLight);
+
+        // ==================== 星空粒子背景 ====================
+        function createStarField() {
+            const starCount = 6000;
+            const positions = new Float32Array(starCount * 3);
+            const colors = new Float32Array(starCount * 3);
+            const sizes = new Float32Array(starCount);
+
+            for (let i = 0; i < starCount; i++) {
+                const r = 300 + Math.random() * 1200;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = r * Math.cos(phi);
+
+                const temp = Math.random();
+                if (temp < 0.15) { // 蓝色恒星
+                    colors[i * 3] = 0.6;
+                    colors[i * 3 + 1] = 0.75;
+                    colors[i * 3 + 2] = 1.0;
+                } else if (temp < 0.3) { // 橙红
+                    colors[i * 3] = 1.0;
+                    colors[i * 3 + 1] = 0.6;
+                    colors[i * 3 + 2] = 0.35;
+                } else if (temp < 0.5) { // 黄白
+                    colors[i * 3] = 1.0;
+                    colors[i * 3 + 1] = 0.9;
+                    colors[i * 3 + 2] = 0.7;
+                } else { // 白
+                    colors[i * 3] = 0.9;
+                    colors[i * 3 + 1] = 0.9;
+                    colors[i * 3 + 2] = 1.0;
+                }
+                sizes[i] = 0.5 + Math.random() * 2.5;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+            const mat = new THREE.PointsMaterial({
+                size: 1.8,
+                sizeAttenuation: true,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+            });
+
+            const stars = new THREE.Points(geo, mat);
+            stars.name = 'starField';
+            scene.add(stars);
+            return stars;
+        }
+        const starField = createStarField();
+
+        // 远处星系（银河）
+        function createGalaxyBand() {
+            const count = 2000;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const spread = (Math.random() - 0.5) * 30;
+                const r = 400 + Math.random() * 200;
+                positions[i * 3] = r * Math.cos(angle);
+                positions[i * 3 + 1] = spread * 5;
+                positions[i * 3 + 2] = r * Math.sin(angle) * 0.3;
+                const brightness = 0.2 + Math.random() * 0.5;
+                colors[i * 3] = brightness * 0.8;
+                colors[i * 3 + 1] = brightness * 0.85;
+                colors[i * 3 + 2] = brightness;
+            }
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const mat = new THREE.PointsMaterial({
+                size: 0.8,
+                sizeAttenuation: true,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.5,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+            });
+            const galaxy = new THREE.Points(geo, mat);
+            galaxy.name = 'galaxy';
+            scene.add(galaxy);
+            return galaxy;
+        }
+        const galaxy = createGalaxyBand();
+
+        // ==================== 生物群落定义 ====================
+        const BIOMES = [
+            { name: 'Nova Scotia', nameZh: '新斯科舍', color: 0x2d7a3a, emissive: 0x0a1a0a, ring: 0x3a8a4a,
+                desc: '温带森林' },
+            { name: 'Mongolia', nameZh: '蒙古草原', color: 0xc4a35a, emissive: 0x1a150a, ring: 0xd4b46a,
+            desc: '干草原' },
+            { name: 'Amazonia', nameZh: '亚马逊', color: 0x1a8a2a, emissive: 0x0a1a08, ring: 0x2aaa3a,
+            desc: '热带雨林' },
+            { name: 'Siberia', nameZh: '西伯利亚', color: 0xc8c8d8, emissive: 0x1a1a22, ring: 0xd8d8e8,
+            desc: '苔原' },
+            { name: 'Pacific', nameZh: '太平洋', color: 0x1a5a9a, emissive: 0x081020, ring: 0x2a6aaa, desc: '海洋' },
+            { name: 'Mediterranean', nameZh: '地中海', color: 0xc47a3a, emissive: 0x1a1008, ring: 0xd48a4a,
+                desc: '地中海气候' },
+            { name: 'Arena', nameZh: '竞技场', color: 0x8a8a8a, emissive: 0x151515, ring: 0x9a9a9a,
+            desc: '大型空间' },
+            { name: 'Farms', nameZh: '农场', color: 0xc4b43a, emissive: 0x1a1508, ring: 0xd4c44a, desc: '农田' },
+            { name: 'Steppe', nameZh: '干草原', color: 0xa8905a, emissive: 0x150f08, ring: 0xb8a06a,
+            desc: '温带草原' },
+            { name: 'Temperate', nameZh: '温带', color: 0x4a8a3a, emissive: 0x0a1508, ring: 0x5a9a4a,
+                desc: '温带气候' },
+            { name: 'Alpine', nameZh: '高山', color: 0x5a5a5a, emissive: 0x101010, ring: 0x6a6a6a, desc: '高山' },
+            { name: 'Wetland', nameZh: '湿地', color: 0x2a6a5a, emissive: 0x081210, ring: 0x3a7a6a, desc: '湿地' },
+        ];
+
+        // 填充生物群落列表
+        const biomeListEl = document.getElementById('biome-list');
+        BIOMES.forEach(b => {
+            const item = document.createElement('div');
+            item.className = 'biome-item';
+            item.innerHTML =
+                `<span class="biome-dot" style="background:#${b.color.toString(16).padStart(6,'0')};color:#${b.color.toString(16).padStart(6,'0')}"></span> ${b.nameZh} (${b.desc})`;
+            biomeListEl.appendChild(item);
+        });
+
+        // ==================== 飞船模型构建 ====================
+        const shipGroup = new THREE.Group();
+        shipGroup.name = 'ship';
+        scene.add(shipGroup);
+
+        // 材质定义
+        const hullMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8a9ab0,
+            metalness: 0.85,
+            roughness: 0.3,
+            emissive: 0x050810,
+            emissiveIntensity: 0.15,
+        });
+        const hullDarkMaterial = new THREE.MeshStandardMaterial({
+            color: 0x5a6a80,
+            metalness: 0.9,
+            roughness: 0.25,
+            emissive: 0x040608,
+            emissiveIntensity: 0.1,
+        });
+        const hullLightMaterial = new THREE.MeshStandardMaterial({
+            color: 0xaabbcc,
+            metalness: 0.8,
+            roughness: 0.35,
+            emissive: 0x0a1218,
+            emissiveIntensity: 0.1,
+        });
+        const shieldMaterial = new THREE.MeshStandardMaterial({
+            color: 0x88ccff,
+            metalness: 0.1,
+            roughness: 0.7,
+            transparent: true,
+            opacity: 0.25,
+            emissive: 0x224466,
+            emissiveIntensity: 0.2,
+            side: THREE.DoubleSide,
+        });
+        const engineMaterial = new THREE.MeshStandardMaterial({
+            color: 0x445566,
+            metalness: 0.95,
+            roughness: 0.15,
+            emissive: 0x112233,
+            emissiveIntensity: 0.3,
+        });
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x66ccff,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+        const sailMaterial = new THREE.MeshStandardMaterial({
+            color: 0xccddee,
+            metalness: 0.6,
+            roughness: 0.5,
+            transparent: true,
+            opacity: 0.4,
+            side: THREE.DoubleSide,
+            emissive: 0x223344,
+            emissiveIntensity: 0.15,
+        });
+
+        // ---- 中央脊柱 ----
+        const spineGeo = new THREE.CylinderGeometry(1.8, 1.8, 70, 24, 1, true);
+        const spine = new THREE.Mesh(spineGeo, hullMaterial);
+        spine.rotation.x = Math.PI / 2;
+        spine.castShadow = true;
+        spine.receiveShadow = true;
+        shipGroup.add(spine);
+
+        // 脊柱内部支撑结构
+        const spineInnerGeo = new THREE.CylinderGeometry(1.4, 1.4, 70, 16, 1, true);
+        const spineInner = new THREE.Mesh(spineInnerGeo, hullDarkMaterial);
+        spineInner.rotation.x = Math.PI / 2;
+        spineInner.castShadow = true;
+        shipGroup.add(spineInner);
+
+        // 脊柱加强环
+        for (let i = -5; i <= 5; i++) {
+            const ringGeo = new THREE.TorusGeometry(1.8, 0.2, 8, 24);
+            const ring = new THREE.Mesh(ringGeo, hullLightMaterial);
+            ring.position.z = i * 6;
+            ring.castShadow = true;
+            shipGroup.add(ring);
+        }
+
+        // ---- 生物群落环 ----
+        const biomeRingGroup = new THREE.Group();
+        biomeRingGroup.name = 'biomeRings';
+        shipGroup.add(biomeRingGroup);
+
+        const ringConfigs = [];
+        BIOMES.forEach((biome, index) => {
+            const zPos = -30 + index * 5.2;
+            const ringRadius = 7.5 + Math.random() * 1.2;
+            const tubeRadius = 2.8 + Math.random() * 0.4;
+            const rotationSpeed = 0.12 - (index * 0.008) + Math.random() * 0.03; // 弧度/秒
+
+            // 主环体
+            const ringGeo = new THREE.TorusGeometry(ringRadius, tubeRadius, 32, 64);
+            const biomeMaterial = new THREE.MeshStandardMaterial({
+                color: biome.color,
+                metalness: 0.3,
+                roughness: 0.6,
+                emissive: biome.emissive,
+                emissiveIntensity: 0.25,
+            });
+            const ringMesh = new THREE.Mesh(ringGeo, biomeMaterial);
+            ringMesh.position.z = zPos;
+            ringMesh.castShadow = true;
+            ringMesh.receiveShadow = true;
+            ringMesh.userData = { biomeIndex: index, originalMaterial: biomeMaterial };
+            biomeRingGroup.add(ringMesh);
+
+            // 环外缘金属壳
+            const rimGeo = new THREE.TorusGeometry(ringRadius + tubeRadius * 0.8, 0.25, 8, 48);
+            const rimMesh = new THREE.Mesh(rimGeo, hullLightMaterial);
+            rimMesh.position.z = zPos;
+            rimMesh.castShadow = true;
+            biomeRingGroup.add(rimMesh);
+
+            // 环内缘金属壳
+            const rimInnerGeo = new THREE.TorusGeometry(ringRadius - tubeRadius * 0.8, 0.2, 8, 48);
+            const rimInnerMesh = new THREE.Mesh(rimInnerGeo, hullDarkMaterial);
+            rimInnerMesh.position.z = zPos;
+            rimInnerMesh.castShadow = true;
+            biomeRingGroup.add(rimInnerMesh);
+
+            // 环上的地形特征（小的凸起表示山脉/建筑）
+            const featureCount = 8 + Math.floor(Math.random() * 6);
+            for (let f = 0; f < featureCount; f++) {
+                const featureAngle = (f / featureCount) * Math.PI * 2 + Math.random() * 0.3;
+                const featureRadius = ringRadius + tubeRadius * 0.4 * (Math.random() - 0.3);
+                const fx = featureRadius * Math.cos(featureAngle);
+                const fy = featureRadius * Math.sin(featureAngle);
+                const featureGeo = new THREE.SphereGeometry(0.3 + Math.random() * 0.5, 6, 6);
+                const featureMat = new THREE.MeshStandardMaterial({
+                    color: biome.color,
+                    metalness: 0.2,
+                    roughness: 0.7,
+                    emissive: biome.emissive,
+                    emissiveIntensity: 0.3,
+                });
+                const feature = new THREE.Mesh(featureGeo, featureMat);
+                feature.position.set(fx, fy, zPos + (Math.random() - 0.5) * tubeRadius * 0.8);
+                feature.castShadow = true;
+                feature.userData = { parentRing: index, baseAngle: featureAngle, radius: featureRadius, zOffset: zPos };
+                biomeRingGroup.add(feature);
+            }
+
+            // 环上的灯光（小发光点）
+            const lightCount = 5;
+            for (let l = 0; l < lightCount; l++) {
+                const lightAngle = (l / lightCount) * Math.PI * 2 + 0.4;
+                const lr = ringRadius + tubeRadius * 0.9;
+                const lx = lr * Math.cos(lightAngle);
+                const ly = lr * Math.sin(lightAngle);
+                const lightGeo = new THREE.SphereGeometry(0.12, 4, 4);
+                const lightMat = new THREE.MeshBasicMaterial({
+                    color: 0xffeeaa,
+                    transparent: true,
+                    opacity: 0.9,
+                    blending: THREE.AdditiveBlending,
+                });
+                const lightSphere = new THREE.Mesh(lightGeo, lightMat);
+                lightSphere.position.set(lx, ly, zPos + (Math.random() - 0.5) * tubeRadius * 0.6);
+                lightSphere.userData = { parentRing: index, baseAngle: lightAngle, radius: lr, zOffset: zPos };
+                biomeRingGroup.add(lightSphere);
+            }
+
+            ringConfigs.push({
+                index,
+                zPos,
+                ringRadius,
+                tubeRadius,
+                rotationSpeed,
+                features: [],
+                lights: [],
+            });
+        });
+
+        // 连接环与脊柱的支撑臂
+        ringConfigs.forEach(rcfg => {
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2 + rcfg.index * 0.5;
+                const armGeo = new THREE.BoxGeometry(0.5, 0.5, rcfg.ringRadius - 1.8);
+                const arm = new THREE.Mesh(armGeo, hullDarkMaterial);
+                arm.position.z = rcfg.zPos;
+                arm.rotation.z = angle;
+                arm.position.x = (1.8 + (rcfg.ringRadius - 1.8) / 2) * Math.cos(angle);
+                arm.position.y = (1.8 + (rcfg.ringRadius - 1.8) / 2) * Math.sin(angle);
+                arm.position.z = rcfg.zPos;
+                arm.rotation.z = angle;
+                // 重新调整：BoxGeometry默认沿Z轴，需要旋转
+                armGeo.rotateZ(0);
+                arm.geometry = new THREE.BoxGeometry(0.4, 0.4, rcfg.ringRadius - 1.8);
+                arm.position.set(
+                    (1.8 + (rcfg.ringRadius - 1.8) / 2) * Math.cos(angle),
+                    (1.8 + (rcfg.ringRadius - 1.8) / 2) * Math.sin(angle),
+                    rcfg.zPos
+                );
+                arm.rotation.z = angle;
+                arm.castShadow = true;
+                shipGroup.add(arm);
+            }
+        });
+
+        // ---- 防护罩（前方冰盾） ----
+        const shieldGroup = new THREE.Group();
+        shieldGroup.name = 'shield';
+        shipGroup.add(shieldGroup);
+
+        const shieldOuterGeo = new THREE.SphereGeometry(10, 48, 32, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const shieldOuter = new THREE.Mesh(shieldOuterGeo, shieldMaterial);
+        shieldOuter.position.z = -36;
+        shieldOuter.rotation.x = -Math.PI / 2;
+        shieldOuter.castShadow = true;
+        shieldGroup.add(shieldOuter);
+
+        const shieldRimGeo = new THREE.TorusGeometry(10, 0.5, 16, 64);
+        const shieldRim = new THREE.Mesh(shieldRimGeo, hullMaterial);
+        shieldRim.position.z = -36;
+        shieldRim.castShadow = true;
+        shieldGroup.add(shieldRim);
+
+        // 防护罩支撑结构
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2;
+            const strutGeo = new THREE.CylinderGeometry(0.3, 0.3, 5, 8);
+            const strut = new THREE.Mesh(strutGeo, hullDarkMaterial);
+            strut.position.set(8 * Math.cos(a), 8 * Math.sin(a), -33.5);
+            strut.rotation.z = Math.PI / 2;
+            strut.rotation.y = -a;
+            strut.castShadow = true;
+            shieldGroup.add(strut);
+        }
+
+        // ---- 引擎系统 ----
+        const engineGroup = new THREE.Group();
+        engineGroup.name = 'engine';
+        shipGroup.add(engineGroup);
+
+        // 主引擎
+        const engineMainGeo = new THREE.CylinderGeometry(4.5, 3.5, 8, 24);
+        const engineMain = new THREE.Mesh(engineMainGeo, engineMaterial);
+        engineMain.rotation.x = Math.PI / 2;
+        engineMain.position.z = 38;
+        engineMain.castShadow = true;
+        engineGroup.add(engineMain);
+
+        // 引擎喷口
+        const nozzleGeo = new THREE.CylinderGeometry(3.8, 5.0, 3, 24);
+        const nozzle = new THREE.Mesh(nozzleGeo, hullDarkMaterial);
+        nozzle.rotation.x = Math.PI / 2;
+        nozzle.position.z = 42.5;
+        nozzle.castShadow = true;
+        engineGroup.add(nozzle);
+
+        // 引擎发光核心
+        const coreGlowGeo = new THREE.SphereGeometry(1.8, 16, 16);
+        const coreGlow = new THREE.Mesh(coreGlowGeo, glowMaterial.clone());
+        coreGlow.position.z = 43.5;
+        coreGlow.scale.set(1, 1, 1.8);
+        coreGlow.name = 'engineCoreGlow';
+        engineGroup.add(coreGlow);
+
+        // 引擎热辐射环
+        const heatRingGeo = new THREE.TorusGeometry(4.0, 0.4, 8, 32);
+        const heatRing = new THREE.Mesh(heatRingGeo, new THREE.MeshBasicMaterial({
+            color: 0xff8844,
+            transparent: true,
+            opacity: 0.5,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        }));
+        heatRing.position.z = 41;
+        heatRing.name = 'engineHeatRing';
+        engineGroup.add(heatRing);
+
+        // 侧引擎
+        for (let i = 0; i < 3; i++) {
+            const a = (i / 3) * Math.PI * 2;
+            const sideEngineGeo = new THREE.CylinderGeometry(1.2, 0.9, 3, 12);
+            const sideEngine = new THREE.Mesh(sideEngineGeo, engineMaterial);
+            sideEngine.rotation.x = Math.PI / 2;
+            sideEngine.position.set(4.8 * Math.cos(a), 4.8 * Math.sin(a), 36);
+            sideEngine.castShadow = true;
+            engineGroup.add(sideEngine);
+        }
+
+        // ---- 磁帆 ----
+        const sailGroup = new THREE.Group();
+        sailGroup.name = 'sail';
+        shipGroup.add(sailGroup);
+
+        // 主帆（大型圆盘）
+        const sailDiskGeo = new THREE.RingGeometry(5, 16, 64, 4);
+        const sailDisk = new THREE.Mesh(sailDiskGeo, sailMaterial);
+        sailDisk.position.z = 50;
+        sailDisk.castShadow = true;
+        sailGroup.add(sailDisk);
+
+        // 帆支撑环
+        const sailRimGeo = new THREE.TorusGeometry(16, 0.3, 8, 80);
+        const sailRim = new THREE.Mesh(sailRimGeo, hullLightMaterial);
+        sailRim.position.z = 50;
+        sailRim.castShadow = true;
+        sailGroup.add(sailRim);
+
+        // 帆的放射状支撑线
+        for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * Math.PI * 2;
+            const lineGeo = new THREE.CylinderGeometry(0.1, 0.1, 11, 4);
+            const line = new THREE.Mesh(lineGeo, hullDarkMaterial);
+            line.position.set(10.5 * Math.cos(a), 10.5 * Math.sin(a), 50);
+            line.rotation.z = a;
+            line.rotation.x = Math.PI / 2;
+            line.castShadow = true;
+            sailGroup.add(line);
+        }
+
+        // 帆的边缘发光
+        const sailGlowGeo = new THREE.TorusGeometry(16, 0.15, 8, 80);
+        const sailGlow = new THREE.Mesh(sailGlowGeo, new THREE.MeshBasicMaterial({
+            color: 0x4488cc,
+            transparent: true,
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending,
+        }));
+        sailGlow.position.z = 50;
+        sailGlow.name = 'sailGlow';
+        sailGroup.add(sailGlow);
+
+        // 帆连接桅杆
+        for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2;
+            const mastGeo = new THREE.CylinderGeometry(0.2, 0.2, 12, 8);
+            const mast = new THREE.Mesh(mastGeo, hullDarkMaterial);
+            mast.position.set(3 * Math.cos(a), 3 * Math.sin(a), 44);
+            mast.rotation.x = Math.PI / 2;
+            mast.rotation.z = -a;
+            mast.castShadow = true;
+            sailGroup.add(mast);
+        }
+
+        // ---- 飞船表面灯光 ----
+        const shipLightsGroup = new THREE.Group();
+        shipLightsGroup.name = 'shipLights';
+        shipGroup.add(shipLightsGroup);
+        for (let i = 0; i < 40; i++) {
+            const z = -34 + Math.random() * 68;
+            const a = Math.random() * Math.PI * 2;
+            const r = 2.5 + Math.random() * 8;
+            const lightGeo = new THREE.SphereGeometry(0.08 + Math.random() * 0.1, 4, 4);
+            const lightMat = new THREE.MeshBasicMaterial({
+                color: Math.random() > 0.5 ? 0xffeecc : 0xccddff,
+                transparent: true,
+                opacity: 0.7 + Math.random() * 0.3,
+                blending: THREE.AdditiveBlending,
+            });
+            const light = new THREE.Mesh(lightGeo, lightMat);
+            light.position.set(r * Math.cos(a), r * Math.sin(a), z);
+            light.userData = { baseY: r * Math.sin(a), phase: Math.random() * Math.PI * 2 };
+            shipLightsGroup.add(light);
+        }
+
+        // ---- 飞船天线 ----
+        const antennaGeo = new THREE.CylinderGeometry(0.15, 0.2, 4, 6);
+        const antennaMat = new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.9, roughness: 0.2 });
+        for (let i = 0; i < 3; i++) {
+            const a = (i / 3) * Math.PI * 2;
+            const antenna = new THREE.Mesh(antennaGeo, antennaMat);
+            antenna.position.set(2 * Math.cos(a), 2 * Math.sin(a), -32);
+            antenna.rotation.z = Math.PI / 3;
+            antenna.rotation.x = a;
+            antenna.castShadow = true;
+            shipGroup.add(antenna);
+        }
+
+        // ==================== 飞船内部结构 ====================
+        const interiorGroup = new THREE.Group();
+        interiorGroup.name = 'interior';
+        interiorGroup.visible = false;
+        scene.add(interiorGroup);
+
+        // 中央走廊地板
+        const corridorFloorGeo = new THREE.BoxGeometry(4, 0.2, 70);
+        const corridorFloorMat = new THREE.MeshStandardMaterial({
+            color: 0x3a4a5a,
+            metalness: 0.4,
+            roughness: 0.6,
+            emissive: 0x111820,
+            emissiveIntensity: 0.2,
+        });
+        const corridorFloor = new THREE.Mesh(corridorFloorGeo, corridorFloorMat);
+        corridorFloor.position.y = 0;
+        corridorFloor.receiveShadow = true;
+        corridorFloor.name = 'corridorFloor';
+        interiorGroup.add(corridorFloor);
+
+        // 走廊天花板
+        const corridorCeilGeo = new THREE.BoxGeometry(4, 0.2, 70);
+        const corridorCeilMat = new THREE.MeshStandardMaterial({
+            color: 0x2a3a4a,
+            metalness: 0.5,
+            roughness: 0.5,
+            emissive: 0x0a0f14,
+            emissiveIntensity: 0.15,
+        });
+        const corridorCeil = new THREE.Mesh(corridorCeilGeo, corridorCeilMat);
+        corridorCeil.position.y = 3.2;
+        corridorCeil.name = 'corridorCeil';
+        interiorGroup.add(corridorCeil);
+
+        // 走廊左墙
+        const corridorWallGeo = new THREE.BoxGeometry(0.2, 3.2, 70);
+        const corridorWallMat = new THREE.MeshStandardMaterial({
+            color: 0x4a5a6a,
+            metalness: 0.3,
+            roughness: 0.55,
+            emissive: 0x121a22,
+            emissiveIntensity: 0.15,
+            side: THREE.DoubleSide,
+        });
+        const wallLeft = new THREE.Mesh(corridorWallGeo, corridorWallMat);
+        wallLeft.position.set(-2.1, 1.6, 0);
+        wallLeft.name = 'corridorWallLeft';
+        interiorGroup.add(wallLeft);
+        const wallRight = new THREE.Mesh(corridorWallGeo, corridorWallMat);
+        wallRight.position.set(2.1, 1.6, 0);
+        wallRight.name = 'corridorWallRight';
+        interiorGroup.add(wallRight);
+
+        // 走廊照明灯条
+        for (let i = 0; i < 14; i++) {
+            const z = -32 + i * 5;
+            const stripGeo = new THREE.BoxGeometry(0.3, 0.1, 2.5);
+            const stripMat = new THREE.MeshBasicMaterial({
+                color: 0xffeecc,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending,
+            });
+            const strip = new THREE.Mesh(stripGeo, stripMat);
+            strip.position.set(0, 3.19, z);
+            strip.name = 'corridorLight';
+            interiorGroup.add(strip);
+        }
+
+        // 走廊地面标记
+        for (let i = 0; i < 14; i++) {
+            const z = -30 + i * 4.8;
+            const markGeo = new THREE.PlaneGeometry(1.2, 0.4);
+            const markMat = new THREE.MeshStandardMaterial({
+                color: 0x667788,
+                metalness: 0.3,
+                roughness: 0.5,
+                emissive: 0x1a2a3a,
+                emissiveIntensity: 0.3,
+                side: THREE.DoubleSide,
+            });
+            const mark = new THREE.Mesh(markGeo, markMat);
+            mark.rotation.x = -Math.PI / 2;
+            mark.position.set(0, 0.11, z);
+            mark.name = 'floorMark';
+            interiorGroup.add(mark);
+        }
+
+        // ---- 生物群落环内部区域 ----
+        BIOMES.forEach((biome, index) => {
+            const zPos = -30 + index * 5.2;
+            const ringRadius = 7.5;
+
+            // 环内部地面（弧形）
+            const innerFloorGeo = new THREE.TorusGeometry(ringRadius, 0.6, 16, 48, Math.PI * 1.5);
+            const innerFloorMat = new THREE.MeshStandardMaterial({
+                color: biome.color,
+                metalness: 0.2,
+                roughness: 0.7,
+                emissive: biome.emissive,
+                emissiveIntensity: 0.3,
+                side: THREE.DoubleSide,
+            });
+            const innerFloor = new THREE.Mesh(innerFloorGeo, innerFloorMat);
+            innerFloor.position.z = zPos;
+            innerFloor.name = `biomeFloor_${index}`;
+            interiorGroup.add(innerFloor);
+
+            // 环内部墙壁
+            const innerWallGeo = new THREE.TorusGeometry(ringRadius + 0.5, 0.8, 12, 48, Math.PI * 1.5);
+            const innerWallMat = new THREE.MeshStandardMaterial({
+                color: biome.color,
+                metalness: 0.25,
+                roughness: 0.6,
+                emissive: biome.emissive,
+                emissiveIntensity: 0.25,
+                side: THREE.DoubleSide,
+            });
+            const innerWall = new THREE.Mesh(innerWallGeo, innerWallMat);
+            innerWall.position.z = zPos;
+            innerWall.name = `biomeWall_${index}`;
+            interiorGroup.add(innerWall);
+
+            // 环内部点缀（植被球体）
+            for (let v = 0; v < 8; v++) {
+                const va = Math.random() * Math.PI * 2;
+                const vr = ringRadius + (Math.random() - 0.3) * 1.5;
+                const vegGeo = new THREE.SphereGeometry(0.3 + Math.random() * 0.6, 6, 6);
+                const vegMat = new THREE.MeshStandardMaterial({
+                    color: biome.color,
+                    metalness: 0.05,
+                    roughness: 0.8,
+                    emissive: biome.emissive,
+                    emissiveIntensity: 0.35,
+                });
+                const veg = new THREE.Mesh(vegGeo, vegMat);
+                veg.position.set(vr * Math.cos(va), 0.5 + Math.random() * 2, zPos + (Math.random() - 0.5) * 1.8);
+                veg.name = `veg_${index}`;
+                interiorGroup.add(veg);
+            }
+
+            // 入口门框（连接走廊和环）
+            const doorGeo = new THREE.BoxGeometry(3.5, 3, 0.3);
+            const doorMat = new THREE.MeshStandardMaterial({
+                color: 0x556677,
+                metalness: 0.7,
+                roughness: 0.3,
+                emissive: 0x111820,
+                emissiveIntensity: 0.2,
+            });
+            const door = new THREE.Mesh(doorGeo, doorMat);
+            door.position.set(0, 1.5, zPos - 0.5);
+            door.name = `biomeDoor_${index}`;
+            interiorGroup.add(door);
+
+            // 门上的生物群落标签（发光面板）
+            const labelGeo = new THREE.PlaneGeometry(2.4, 0.6);
+            const labelMat = new THREE.MeshBasicMaterial({
+                color: biome.color,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending,
+                side: THREE.DoubleSide,
+            });
+            const label = new THREE.Mesh(labelGeo, labelMat);
+            label.position.set(0, 2.2, zPos - 0.33);
+            label.name = `biomeLabelPanel_${index}`;
+            interiorGroup.add(label);
+        });
+
+        // ---- 控制室（飞船前部） ----
+        const controlRoomGroup = new THREE.Group();
+        controlRoomGroup.name = 'controlRoom';
+        controlRoomGroup.position.set(0, 0, -34);
+        interiorGroup.add(controlRoomGroup);
+
+        // 控制室地板
+        const crFloorGeo = new THREE.BoxGeometry(6, 0.2, 6);
+        const crFloorMat = new THREE.MeshStandardMaterial({
+            color: 0x2a3a4a,
+            metalness: 0.6,
+            roughness: 0.35,
+            emissive: 0x111820,
+            emissiveIntensity: 0.25,
+        });
+        const crFloor = new THREE.Mesh(crFloorGeo, crFloorMat);
+        crFloor.position.y = 0;
+        controlRoomGroup.add(crFloor);
+
+        // 控制室墙壁
+        const crWallGeo = new THREE.BoxGeometry(6, 3.5, 0.2);
+        const crWallMat = new THREE.MeshStandardMaterial({
+            color: 0x3a4a5a,
+            metalness: 0.4,
+            roughness: 0.45,
+            emissive: 0x0e1418,
+            emissiveIntensity: 0.2,
+            side: THREE.DoubleSide,
+        });
+        for (let i = 0; i < 4; i++) {
+            const w = new THREE.Mesh(crWallGeo, crWallMat);
+            const a = (i / 4) * Math.PI * 2;
+            w.position.set(3 * Math.cos(a), 1.75, 3 * Math.sin(a));
+            w.rotation.y = -a;
+            controlRoomGroup.add(w);
+        }
+
+        // 控制台
+        const consoleGeo = new THREE.BoxGeometry(2.5, 1, 1);
+        const consoleMat = new THREE.MeshStandardMaterial({
+            color: 0x3a4a5a,
+            metalness: 0.7,
+            roughness: 0.3,
+            emissive: 0x0a0f14,
+            emissiveIntensity: 0.3,
+        });
+        const consoleMesh = new THREE.Mesh(consoleGeo, consoleMat);
+        consoleMesh.position.set(0, 0.7, 1.5);
+        consoleMesh.name = 'controlConsole';
+        controlRoomGroup.add(consoleMesh);
+
+        // 屏幕（发光）
+        const screenGeo = new THREE.PlaneGeometry(3, 1.8);
+        const screenMat = new THREE.MeshBasicMaterial({
+            color: 0x66ccff,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+        });
+        const screen = new THREE.Mesh(screenGeo, screenMat);
+        screen.position.set(0, 2, -2.85);
+        screen.name = 'controlScreen';
+        controlRoomGroup.add(screen);
+
+        // AI核心（发光球体）
+        const aiCoreGeo = new THREE.SphereGeometry(0.8, 16, 16);
+        const aiCoreMat = new THREE.MeshBasicMaterial({
+            color: 0x4488ff,
+            transparent: true,
+            opacity: 0.7,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+        const aiCore = new THREE.Mesh(aiCoreGeo, aiCoreMat);
+        aiCore.position.set(0, 2.5, 0);
+        aiCore.name = 'aiCore';
+        controlRoomGroup.add(aiCore);
+
+        // ---- 引擎室（飞船后部） ----
+        const engineRoomGroup = new THREE.Group();
+        engineRoomGroup.name = 'engineRoom';
+        engineRoomGroup.position.set(0, 0, 36);
+        interiorGroup.add(engineRoomGroup);
+
+        const erFloorGeo = new THREE.BoxGeometry(6, 0.2, 5);
+        const erFloor = new THREE.Mesh(erFloorGeo, crFloorMat);
+        erFloor.position.y = 0;
+        engineRoomGroup.add(erFloor);
+
+        const erWallGeo = new THREE.BoxGeometry(6, 3.5, 0.2);
+        for (let i = 0; i < 4; i++) {
+            const w = new THREE.Mesh(erWallGeo, crWallMat);
+            const a = (i / 4) * Math.PI * 2;
+            w.position.set(3 * Math.cos(a), 1.75, 2.5 * Math.sin(a));
+            w.rotation.y = -a;
+            engineRoomGroup.add(w);
+        }
+
+        // 引擎室核心
+        const erCoreGeo = new THREE.CylinderGeometry(1.2, 1.2, 3, 12);
+        const erCoreMat = new THREE.MeshStandardMaterial({
+            color: 0x445566,
+            metalness: 0.9,
+            roughness: 0.15,
+            emissive: 0x1a2a3a,
+            emissiveIntensity: 0.5,
+        });
+        const erCore = new THREE.Mesh(erCoreGeo, erCoreMat);
+        erCore.position.set(0, 1.5, 0);
+        erCore.name = 'engineCore';
+        engineRoomGroup.add(erCore);
+
+        // 引擎发光
+        const erGlowGeo = new THREE.TorusGeometry(1.5, 0.3, 8, 32);
+        const erGlowMat = new THREE.MeshBasicMaterial({
+            color: 0xff6644,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending,
+        });
+        const erGlow = new THREE.Mesh(erGlowGeo, erGlowMat);
+        erGlow.position.set(0, 1.5, 0);
+        erGlow.name = 'engineRoomGlow';
+        engineRoomGroup.add(erGlow);
+
+        // ---- 内部碰撞体（简化为边界） ----
+        // 中央走廊边界
+        STATE.interiorBounds = {
+            xMin: -1.8, xMax: 1.8,
+            yMin: 0, yMax: 3.2,
+            zMin: -35, zMax: 35,
+        };
+        // 控制室边界（扩展）
+        STATE.interiorColliders.push({
+            type: 'box',
+            min: { x: -2.8, y: 0, z: -37 },
+            max: { x: 2.8, y: 3.4, z: -31 },
+            zone: '控制室',
+        });
+        // 引擎室边界
+        STATE.interiorColliders.push({
+            type: 'box',
+            min: { x: -2.8, y: 0, z: 33.5 },
+            max: { x: 2.8, y: 3.4, z: 38.5 },
+            zone: '引擎室',
+        });
+        // 生物群落环入口区域
+        BIOMES.forEach((b, i) => {
+            const zPos = -30 + i * 5.2;
+            STATE.interiorColliders.push({
+                type: 'biome',
+                zPos,
+                radius: 7.5,
+                tubeRadius: 2.8,
+                zone: b.nameZh,
+                biomeIndex: i,
+            });
+        });
+
+        // ==================== 内部碰撞检测 ====================
+        function checkInteriorCollision(pos) {
+            // 走廊边界
+            const bx = STATE.interiorBounds;
+            let clampedX = Math.max(bx.xMin, Math.min(bx.xMax, pos.x));
+            let clampedY = Math.max(bx.yMin, Math.min(bx.yMax, pos.y));
+            let clampedZ = Math.max(bx.zMin, Math.min(bx.zMax, pos.z));
+
+            // 控制室和引擎室扩展区域
+            for (const collider of STATE.interiorColliders) {
+                if (collider.type === 'box') {
+                    if (pos.x > collider.min.x && pos.x < collider.max.x &&
+                        pos.y > collider.min.y && pos.y < collider.max.y &&
+                        pos.z > collider.min.z && pos.z < collider.max.z) {
+                        // 在内部，允许
+                        return pos;
+                    }
+                    // 检查是否靠近该区域
+                    const distX = Math.max(collider.min.x - pos.x, 0, pos.x - collider.max.x);
+                    const distY = Math.max(collider.min.y - pos.y, 0, pos.y - collider.max.y);
+                    const distZ = Math.max(collider.min.z - pos.z, 0, pos.z - collider.max.z);
+                    if (distX < 2 && distY < 2 && distZ < 2) {
+                        // 在入口附近
+                    }
+                }
+            }
+
+            // 检查是否在生物群落环区域（允许进入）
+            for (const collider of STATE.interiorColliders) {
+                if (collider.type === 'biome') {
+                    const dz = Math.abs(pos.z - collider.zPos);
+                    if (dz < 1.5) {
+                        // 在环的入口区域
+                        const distFromAxis = Math.sqrt(pos.x ** 2 + pos.y ** 2);
+                        if (distFromAxis > 2 && distFromAxis < collider.radius + collider.tubeRadius) {
+                            // 在环内部
+                            return pos;
+                        }
+                    }
+                }
+            }
+
+            // 走廊内
+            if (pos.x >= clampedX - 0.1 && pos.x <= clampedX + 0.1 &&
+                pos.y >= clampedY - 0.1 && pos.y <= clampedY + 0.1 &&
+                pos.z >= clampedZ - 0.1 && pos.z <= clampedZ + 0.1) {
+                return new THREE.Vector3(clampedX, clampedY, clampedZ);
+            }
+
+            return new THREE.Vector3(clampedX, clampedY, clampedZ);
+        }
+
+        // ==================== 引擎粒子效果 ====================
+        function createEngineParticles() {
+            const count = 200;
+            const positions = new Float32Array(count * 3);
+            const velocities = [];
+            const colors = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 5;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 5;
+                positions[i * 3 + 2] = 43 + Math.random() * 3;
+                velocities.push({
+                    x: (Math.random() - 0.5) * 0.02,
+                    y: (Math.random() - 0.5) * 0.02,
+                    z: 0.15 + Math.random() * 0.3,
+                });
+                const t = Math.random();
+                colors[i * 3] = 0.2 + t * 0.3;
+                colors[i * 3 + 1] = 0.5 + t * 0.4;
+                colors[i * 3 + 2] = 0.8 + t * 0.2;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.3,
+                sizeAttenuation: true,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+            });
+
+            const particles = new THREE.Points(geo, mat);
+            particles.name = 'engineParticles';
+            particles.userData = { velocities, count };
+            shipGroup.add(particles);
+            return particles;
+        }
+        const engineParticles = createEngineParticles();
+
+        // ==================== 光照补充 ====================
+        // 飞船内部照明
+        const interiorLight = new THREE.PointLight(0xffeecc, 1.5, 40, 2);
+        interiorLight.position.set(0, 2.5, -34);
+        interiorLight.name = 'controlRoomLight';
+        interiorGroup.add(interiorLight);
+
+        const corridorLightMain = new THREE.PointLight(0xccddff, 0.8, 50, 2);
+        corridorLightMain.position.set(0, 3, 0);
+        corridorLightMain.name = 'corridorLightMain';
+        interiorGroup.add(corridorLightMain);
+
+        const engineRoomLight = new THREE.PointLight(0xff8844, 1.8, 30, 2);
+        engineRoomLight.position.set(0, 2, 36);
+        engineRoomLight.name = 'engineRoomLight';
+        interiorGroup.add(engineRoomLight);
+
+        // 生物群落环内部灯光
+        BIOMES.forEach((b, i) => {
+            const zPos = -30 + i * 5.2;
+            const light = new THREE.PointLight(b.color, 0.6, 20, 2);
+            light.position.set(4, 2, zPos);
+            light.name = `biomeLight_${i}`;
+            interiorGroup.add(light);
+        });
+
+        // 外部补充灯光
+        const shipSpotLight = new THREE.SpotLight(0xffffff, 2.5, 50, Math.PI / 6, 0.5, 2);
+        shipSpotLight.position.set(15, 20, 15);
+        shipSpotLight.target.position.set(0, 0, 5);
+        shipSpotLight.castShadow = true;
+        shipSpotLight.shadow.mapSize.width = 512;
+        shipSpotLight.shadow.mapSize.height = 512;
+        scene.add(shipSpotLight);
+        scene.add(shipSpotLight.target);
+
+        // ==================== 视图切换系统 ====================
+        const btnExterior = document.getElementById('btn-exterior');
+        const btnInterior = document.getElementById('btn-interior');
+        const btnReset = document.getElementById('btn-reset');
+        const btnAuto = document.getElementById('btn-auto');
+        const navHint = document.getElementById('nav-hint');
+        const infoPanel = document.getElementById('info-panel');
+
+        btnExterior.addEventListener('click', () => switchView('exterior'));
+        btnInterior.addEventListener('click', () => switchView('interior'));
+        btnAuto.addEventListener('click', () => {
+            STATE.autoRotate = !STATE.autoRotate;
+            orbitControls.autoRotate = STATE.autoRotate;
+            btnAuto.classList.toggle('active', STATE.autoRotate);
+        });
+        btnReset.addEventListener('click', () => {
+            if (STATE.view === 'exterior') {
+                camera.position.set(35, 18, 55);
+                orbitControls.target.set(0, 0, 0);
+                orbitControls.update();
+            } else {
+                STATE.fpPos.set(0, 0.5, 32);
+                STATE.fpYaw = 0;
+                STATE.fpPitch = 0;
+            }
+        });
+
+        function switchView(targetView) {
+            if (STATE.transitioning || STATE.view === targetView) return;
+            STATE.transitioning = true;
+            STATE.transitionProgress = 0;
+            STATE.transitionStart = performance.now();
+
+            if (targetView === 'interior') {
+                // 切换到内部
+                STATE.camStartPos = camera.position.clone();
+                STATE.camStartQuat = camera.quaternion.clone();
+                const euler = new THREE.Euler(STATE.fpPitch, STATE.fpYaw, 0, 'YXZ');
+                STATE.camEndQuat = new THREE.Quaternion().setFromEuler(euler);
+                STATE.camEndPos = STATE.fpPos.clone();
+                // 禁用OrbitControls
+                orbitControls.enabled = false;
+                orbitControls.autoRotate = false;
+                navHint.classList.add('visible');
+                btnExterior.classList.remove('active');
+                btnInterior.classList.add('active');
+                infoPanel.style.opacity = '0.5';
+                // 渲染内部
+                interiorGroup.visible = true;
+                // 让飞船外部结构半透明以看到内部
+                setExteriorOpacity(0.15);
+            } else {
+                // 切换到外部
+                STATE.camStartPos = camera.position.clone();
+                STATE.camStartQuat = camera.quaternion.clone();
+                STATE.camEndPos = new THREE.Vector3(35, 18, 55);
+                STATE.camEndQuat = new THREE.Quaternion().setFromRotationMatrix(
+                    new THREE.Matrix4().lookAt(STATE.camEndPos, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1,
+                    0))
+                );
+                orbitControls.enabled = true;
+                orbitControls.autoRotate = STATE.autoRotate;
+                orbitControls.target.set(0, 0, 0);
+                navHint.classList.remove('visible');
+                btnExterior.classList.add('active');
+                btnInterior.classList.remove('active');
+                infoPanel.style.opacity = '1';
+                interiorGroup.visible = false;
+                setExteriorOpacity(1.0);
+            }
+            STATE.view = targetView;
+        }
+
+        function setExteriorOpacity(opacity) {
+            shipGroup.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(m => { if (m.transparent !== undefined) m.transparent = opacity <
+                                1;
+                            m.opacity = opacity; });
+                    } else {
+                        if (child.material.transparent !== undefined && opacity < 1) {
+                            child.material.transparent = true;
+                            child.material.opacity = opacity;
+                            child.material.depthWrite = opacity > 0.5;
+                        } else if (opacity >= 1) {
+                            child.material.transparent = false;
+                            child.material.opacity = 1;
+                            child.material.depthWrite = true;
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTransition() {
+            if (!STATE.transitioning) return;
+            const elapsed = performance.now() - STATE.transitionStart;
+            STATE.transitionProgress = Math.min(elapsed / STATE.transitionDuration, 1);
+            // 平滑缓动
+            const t = STATE.transitionProgress;
+            const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+            const pos = new THREE.Vector3().lerpVectors(STATE.camStartPos, STATE.camEndPos, ease);
+            const quat = new THREE.Quaternion().slerpQuaternions(STATE.camStartQuat, STATE.camEndQuat, ease);
+            camera.position.copy(pos);
+            camera.quaternion.copy(quat);
+
+            if (STATE.transitionProgress >= 1) {
+                STATE.transitioning = false;
+                if (STATE.view === 'interior') {
+                    STATE.fpPos.copy(STATE.camEndPos);
+                    const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+                    STATE.fpYaw = euler.y;
+                    STATE.fpPitch = euler.x;
+                    camera.position.copy(STATE.fpPos);
+                } else {
+                    orbitControls.target.set(0, 0, 0);
+                    orbitControls.update();
+                }
+            }
+        }
+
+        // ==================== 第一人称控制 ====================
+        document.addEventListener('keydown', (e) => {
+            STATE.keys[e.key.toLowerCase()] = true;
+            if (e.key === 'Escape' && STATE.view === 'interior') {
+                switchView('exterior');
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            STATE.keys[e.key.toLowerCase()] = false;
+        });
+
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            if (STATE.view === 'interior') {
+                STATE.mouseDown = true;
+                STATE.lastMouseX = e.clientX;
+                STATE.lastMouseY = e.clientY;
+            }
+        });
+        document.addEventListener('mouseup', () => {
+            STATE.mouseDown = false;
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (STATE.view === 'interior' && STATE.mouseDown && !STATE.transitioning) {
+                const dx = e.clientX - STATE.lastMouseX;
+                const dy = e.clientY - STATE.lastMouseY;
+                STATE.fpYaw -= dx * 0.003;
+                STATE.fpPitch -= dy * 0.003;
+                STATE.fpPitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, STATE.fpPitch));
+                STATE.lastMouseX = e.clientX;
+                STATE.lastMouseY = e.clientY;
+                updateFPCamera();
+            }
+        });
+        renderer.domElement.addEventListener('wheel', (e) => {
+            if (STATE.view === 'interior') {
+                STATE.wheelDelta += e.deltaY;
+                if (Math.abs(STATE.wheelDelta) > 50) {
+                    STATE.fpHeight += e.deltaY > 0 ? -0.3 : 0.3;
+                    STATE.fpHeight = Math.max(0.2, Math.min(3.0, STATE.fpHeight));
+                    STATE.wheelDelta = 0;
+                }
+            }
+        });
+
+        function updateFPCamera() {
+            const euler = new THREE.Euler(STATE.fpPitch, STATE.fpYaw, 0, 'YXZ');
+            camera.quaternion.setFromEuler(euler);
+            camera.position.copy(STATE.fpPos);
+            camera.position.y = STATE.fpHeight;
+        }
+
+        function updateFirstPerson(deltaTime) {
+            if (STATE.view !== 'interior' || STATE.transitioning) return;
+            const speed = 4.5;
+            const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), STATE.fpYaw);
+            const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), STATE.fpYaw);
+
+            const moveDir = new THREE.Vector3();
+            if (STATE.keys['w'] || STATE.keys['arrowup']) moveDir.add(forward);
+            if (STATE.keys['s'] || STATE.keys['arrowdown']) moveDir.sub(forward);
+            if (STATE.keys['a'] || STATE.keys['arrowleft']) moveDir.sub(right);
+            if (STATE.keys['d'] || STATE.keys['arrowright']) moveDir.add(right);
+
+            if (moveDir.length() > 0) {
+                moveDir.normalize();
+                STATE.fpPos.add(moveDir.multiplyScalar(speed * deltaTime));
+            }
+
+            // 碰撞检测
+            STATE.fpPos = checkInteriorCollision(STATE.fpPos);
+
+            // 更新当前区域
+            updateCurrentZone();
+
+            // 更新相机
+            updateFPCamera();
+        }
+
+        function updateCurrentZone() {
+            const p = STATE.fpPos;
+            if (p.z < -31 && Math.abs(p.x) < 2.8) {
+                STATE.currentZone = '控制室 (Control Room)';
+            } else if (p.z > 33.5 && Math.abs(p.x) < 2.8) {
+                STATE.currentZone = '引擎室 (Engine Room)';
+            } else {
+                for (const collider of STATE.interiorColliders) {
+                    if (collider.type === 'biome') {
+                        if (Math.abs(p.z - collider.zPos) < 2) {
+                            STATE.currentZone = `生物群落: ${collider.zone}`;
+                            return;
+                        }
+                    }
+                }
+                STATE.currentZone = '中央走廊 (Main Corridor)';
+            }
+        }
+
+        // ==================== 生物群落标签投影 ====================
+        const labelElements = [];
+        BIOMES.forEach((b, i) => {
+            const el = document.createElement('div');
+            el.className = 'biome-label';
+            el.textContent = `${b.nameZh}`;
+            el.style.display = 'none';
+            document.body.appendChild(el);
+            labelElements.push({ el, zPos: -30 + i * 5.2, ringRadius: 7.5, biome: b });
+        });
+
+        function updateBiomeLabels() {
+            if (STATE.view !== 'exterior' || STATE.transitioning) {
+                labelElements.forEach(l => l.el.style.display = 'none');
+                return;
+            }
+            labelElements.forEach(({ el, zPos, ringRadius }) => {
+                const worldPos = new THREE.Vector3(0, ringRadius + 2.5, zPos);
+                worldPos.applyMatrix4(shipGroup.matrixWorld);
+                const screenPos = worldPos.clone().project(camera);
+                if (screenPos.z < 1 && screenPos.z > -1) {
+                    const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+                    el.style.display = 'block';
+                    el.style.left = x + 'px';
+                    el.style.top = y + 'px';
+                    // 根据距离调整透明度
+                    const dist = camera.position.distanceTo(worldPos);
+                    const opacity = Math.max(0, Math.min(1, 1 - (dist - 15) / 80));
+                    el.style.opacity = opacity;
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
+        // ==================== 动画循环 ====================
+        let lastTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const now = performance.now();
+            const deltaTime = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+
+            // 视图切换过渡
+            if (STATE.transitioning) {
+                updateTransition();
+            }
+
+            // 外部视图
+            if (STATE.view === 'exterior' && !STATE.transitioning) {
+                orbitControls.update();
+                updateBiomeLabels();
+
+                // 飞船缓慢自转（整体旋转，模拟航行中的微调）
+                shipGroup.rotation.y += deltaTime * 0.008;
+                shipGroup.rotation.x += deltaTime * 0.003;
+            }
+
+            // 内部视图
+            if (STATE.view === 'interior' && !STATE.transitioning) {
+                updateFirstPerson(deltaTime);
+                updateBiomeLabels();
+            }
+
+            // 生物群落环旋转（始终进行）
+            biomeRingGroup.children.forEach((child) => {
+                if (child.userData && child.userData.parentRing !== undefined) {
+                    const rcfg = ringConfigs[child.userData.parentRing];
+                    if (rcfg && child.userData.baseAngle !== undefined) {
+                        const newAngle = child.userData.baseAngle + rcfg.rotationSpeed * now / 1000;
+                        const newX = child.userData.radius * Math.cos(newAngle);
+                        const newY = child.userData.radius * Math.sin(newAngle);
+                        child.position.x = newX;
+                        child.position.y = newY;
+                    }
+                }
+            });
+
+            // 引擎发光脉动
+            const pulse = 0.6 + Math.sin(now / 300) * 0.4;
+            const coreGlowObj = engineGroup.getObjectByName('engineCoreGlow');
+            if (coreGlowObj) {
+                coreGlowObj.material.opacity = 0.5 + pulse * 0.4;
+                coreGlowObj.scale.set(1 + pulse * 0.3, 1 + pulse * 0.3, 1.8 + pulse * 0.5);
+            }
+            const heatRingObj = engineGroup.getObjectByName('engineHeatRing');
+            if (heatRingObj) {
+                heatRingObj.material.opacity = 0.2 + pulse * 0.4;
+                heatRingObj.scale.set(1 + pulse * 0.2, 1 + pulse * 0.2, 1);
+            }
+            const sailGlowObj = sailGroup.getObjectByName('sailGlow');
+            if (sailGlowObj) {
+                sailGlowObj.material.opacity = 0.2 + Math.sin(now / 500) * 0.2;
+            }
+
+            // 引擎粒子更新
+            const epObj = engineParticles;
+            if (epObj) {
+                const positions = epObj.geometry.attributes.position;
+                const vels = epObj.userData.velocities;
+                for (let i = 0; i < vels.length; i++) {
+                    positions.array[i * 3] += vels[i].x * deltaTime * 60;
+                    positions.array[i * 3 + 1] += vels[i].y * deltaTime * 60;
+                    positions.array[i * 3 + 2] += vels[i].z * deltaTime * 60;
+                    if (positions.array[i * 3 + 2] > 60) {
+                        positions.array[i * 3] = (Math.random() - 0.5) * 5;
+                        positions.array[i * 3 + 1] = (Math.random() - 0.5) * 5;
+                        positions.array[i * 3 + 2] = 43;
+                    }
+                }
+                positions.needsUpdate = true;
+            }
+
+            // 飞船灯光闪烁
+            shipLightsGroup.children.forEach((light, i) => {
+                if (light.userData && light.userData.phase !== undefined) {
+                    const flicker = 0.6 + Math.sin(now / 400 + light.userData.phase) * 0.4;
+                    light.material.opacity = flicker * (light.userData.baseY !== undefined ? 0.7 : 0.6);
+                }
+            });
+
+            // 星空微移
+            if (starField) {
+                starField.rotation.y += deltaTime * 0.01;
+                starField.rotation.x += deltaTime * 0.004;
+            }
+            if (galaxy) {
+                galaxy.rotation.y += deltaTime * 0.006;
+            }
+
+            // AI核心旋转
+            const aiCoreObj = controlRoomGroup.getObjectByName('aiCore');
+            if (aiCoreObj) {
+                aiCoreObj.rotation.y += deltaTime * 1.5;
+                aiCoreObj.rotation.x += deltaTime * 0.7;
+                aiCoreObj.material.opacity = 0.5 + Math.sin(now / 250) * 0.3;
+            }
+
+            // 引擎室发光脉动
+            const erGlowObj = engineRoomGroup.getObjectByName('engineRoomGlow');
+            if (erGlowObj) {
+                erGlowObj.material.opacity = 0.3 + Math.sin(now / 200) * 0.3;
+            }
+
+            // 控制室屏幕闪烁
+            const screenObj = controlRoomGroup.getObjectByName('controlScreen');
+            if (screenObj) {
+                screenObj.material.opacity = 0.5 + Math.sin(now / 350) * 0.3;
+            }
+
+            // 内部光照更新
+            const clMain = interiorGroup.getObjectByName('corridorLightMain');
+            if (clMain) {
+                clMain.intensity = 0.7 + Math.sin(now / 600) * 0.2;
+            }
+
+            // 更新HUD区域显示
+            if (STATE.view === 'interior') {
+                const zoneEl = document.getElementById('info-panel');
+                if (zoneEl) {
+                    const titleEl = zoneEl.querySelector('h4');
+                    if (titleEl && !titleEl.dataset.zoneDisplay) {
+                        titleEl.dataset.zoneDisplay = 'true';
+                        titleEl.innerHTML = `📍 ${STATE.currentZone}`;
+                    } else if (titleEl && titleEl.dataset.zoneDisplay) {
+                        titleEl.innerHTML = `📍 ${STATE.currentZone}`;
+                    }
+                }
+            } else {
+                const titleEl = document.querySelector('#info-panel h4');
+                if (titleEl && titleEl.dataset.zoneDisplay) {
+                    delete titleEl.dataset.zoneDisplay;
+                    titleEl.innerHTML = '📋 飞船数据';
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // ==================== 窗口大小调整 ====================
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            updateBiomeLabels();
+        });
+
+        // ==================== 启动 ====================
+        console.log('🚀 《极光》世代飞船 3D模型已启动');
+        console.log('📖 基于金·斯坦利·罗宾逊小说《Aurora》');
+        console.log('🛸 飞船特征: 12个生物群落环 | 核聚变引擎 | 磁帆 | 冰盾防护罩');
+        console.log('🎮 操作: 鼠标拖拽旋转 | 滚轮缩放 | 点击"进入内部"探索');
+        console.log('⌨️ 内部模式: WASD移动 | 鼠标拖拽环顾 | 滚轮调整高度 | ESC退出');
+        console.log('🤖 AI系统: Devi | 目的地: 天仓五 (Tau Ceti)');
+
+        // 初始自动旋转
+        btnAuto.classList.add('active');
+        STATE.autoRotate = true;
+        orbitControls.autoRotate = true;
+
+        // 渲染循环启动
+        animate();
+
+        // ==================== 测试说明 ====================
+        window.__TEST_INFO = {
+            title: '《极光》世代飞船3D模型',
+            tests: [
+                '外部视图: 鼠标拖拽可360度旋转查看飞船',
+                '缩放: 滚轮可放大缩小',
+                '自动旋转: 默认开启，可点击按钮关闭',
+                '内部探索: 点击"进入内部"按钮切换到飞船内部',
+                '内部移动: WASD键前后左右移动',
+                '内部环顾: 鼠标拖拽旋转视角',
+                '内部高度: 滚轮调整观察高度',
+                '返回外部: 点击"外部视图"按钮或按ESC',
+                '生物群落标签: 外部视图中悬停显示',
+                '引擎动态效果: 观察飞船后方引擎光晕和粒子',
+            ],
+            biomes: BIOMES.map(b => `${b.nameZh} (${b.name}) - ${b.desc}`),
+        };
+        console.log('📋 测试面板:', window.__TEST_INFO);
+    </script>
+</body>
+</html>

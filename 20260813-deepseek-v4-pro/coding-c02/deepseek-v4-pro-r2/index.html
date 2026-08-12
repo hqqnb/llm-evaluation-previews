@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电梯模拟器</title>
+<style>
+  * {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #dfe6ee 0%, #eef2f7 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+  }
+
+  #app {
+    width: 820px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+    padding: 22px;
+  }
+
+  h1 {
+    margin: 0 0 14px;
+    font-size: 24px;
+    color: #28323c;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .controls label {
+    font-size: 14px;
+    color: #5e6b77;
+    margin-left: 4px;
+  }
+
+  .controls select,
+  .controls input {
+    padding: 7px 10px;
+    border: 1px solid #cdd6df;
+    border-radius: 10px;
+    font-size: 14px;
+    background: #fafbfc;
+    outline: none;
+  }
+
+  .controls select:focus,
+  .controls input:focus {
+    border-color: #6a89cc;
+    box-shadow: 0 0 0 3px rgba(106, 137, 204, 0.12);
+  }
+
+  .controls button {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    background: #2b7a3d;
+    color: #fff;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .controls button:hover {
+    background: #236b34;
+  }
+
+  .controls button:active {
+    transform: scale(0.97);
+  }
+
+  .controls button.secondary {
+    background: #6b7785;
+  }
+
+  .controls button.secondary:hover {
+    background: #5a6572;
+  }
+
+  .stats {
+    margin-left: auto;
+    display: flex;
+    gap: 14px;
+    background: #f1f4f7;
+    padding: 7px 14px;
+    border-radius: 30px;
+    font-size: 13px;
+    color: #4a5561;
+  }
+
+  .stats b {
+    color: #1f2937;
+    margin-left: 3px;
+  }
+
+  #building {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    background: #f2f4f7;
+    border-radius: 14px;
+    border: 1px solid #d6dce4;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.06);
+    overflow: visible;
+  }
+
+  #floorContainer {
+    position: absolute;
+    left: 0;
+    right: 210px;
+    top: 0;
+    bottom: 0;
+    border-radius: 14px 0 0 14px;
+    overflow: hidden;
+  }
+
+  .floor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: rgba(255, 255, 255, 0.55);
+    border-bottom: 1px solid #dfe5eb;
+  }
+
+  .floor:nth-child(even) {
+    background: rgba(230, 236, 242, 0.6);
+  }
+
+  .floor-label {
+    width: 32px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #62707e;
+    user-select: none;
+  }
+
+  .waiting-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    overflow: visible;
+    margin-left: 8px;
+  }
+
+  .person {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    cursor: default;
+    transition: transform 0.15s;
+    z-index: 5;
+  }
+
+  .person:hover {
+    transform: scale(1.3);
+    z-index: 60;
+  }
+
+  .person .tooltip {
+    position: absolute;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: #2c3e50;
+    color: #fff;
+    padding: 5px 9px;
+    border-radius: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+    z-index: 100;
+  }
+
+  .person .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #2c3e50;
+  }
+
+  .person:hover .tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  #shaftContainer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 210px;
+    display: flex;
+    background: #2d3138;
+    border-left: 2px solid #3f454e;
+    border-radius: 0 14px 14px 0;
+    overflow: visible;
+  }
+
+  .shaft {
+    position: relative;
+    flex: 1;
+    border-left: 1px solid #4b5159;
+    background: repeating-linear-gradient(180deg,
+        #3c4149 0px,
+        #3c4149 60px,
+        #30343a 60px,
+        #30343a 120px);
+    overflow: visible;
+  }
+
+  .shaft:last-child {
+    border-right: none;
+  }
+
+  .shaft-label {
+    position: absolute;
+    top: 8px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 11px;
+    color: #d4d9df;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: 1px;
+  }
+
+  .elevator {
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    height: 54px;
+    border-radius: 8px;
+    box-shadow: 0 0 14px rgba(0, 0, 0, 0.38);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
+  .elevator.elevator-0 {
+    background: #f2b84b;
+    border: 2px solid #d1931e;
+  }
+
+  .elevator.elevator-1 {
+    background: #6a89cc;
+    border: 2px solid #4a69bd;
+  }
+
+  .elevator.elevator-2 {
+    background: #75d08a;
+    border: 2px solid #3da55b;
+  }
+
+  .elevator.door-open {
+    background: #8197f8;
+    border-color: #6579d8;
+  }
+
+  .elevator.elevator-0.door-open {
+    background: #ffd47b;
+    border-color: #e0a92e;
+  }
+
+  .elevator.elevator-2.door-open {
+    background: #a2e6b2;
+    border-color: #63bd79;
+  }
+
+  .elevator-passenger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <h1>🏢 电梯模拟器</h1>
+
+    <div class="controls">
+      <label>楼层</label>
+      <select id="spawnFloor"></select>
+
+      <label>人数</label>
+      <input type="number" id="spawnCount" min="1" max="10" value="1">
+
+      <button id="spawnBtn">生成乘客</button>
+      <button id="resetBtn" class="secondary">重置</button>
+
+      <div class="stats">
+        <span>等待<b id="waitingCount">0</b></span>
+        <span>乘坐中<b id="ridingCount">0</b></span>
+        <span>已到达<b id="arrivedCount">0</b></span>
+      </div>
+    </div>
+
+    <div id="building">
+      <div id="floorContainer"></div>
+      <div id="shaftContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const FLOORS = 10;
+    const FLOOR_HEIGHT = 60;
+    const ELEVATOR_COUNT = 3;
+    const ELEVATOR_SPEED_FLOORS_PER_SEC = 2.1;
+    const DOOR_OPEN_MS = 450;
+
+    const floorContainer = document.getElementById('floorContainer');
+    const shaftContainer = document.getElementById('shaftContainer');
+    const spawnFloorSelect = document.getElementById('spawnFloor');
+    const spawnCountInput = document.getElementById('spawnCount');
+    const spawnBtn = document.getElementById('spawnBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const waitingCountEl = document.getElementById('waitingCount');
+    const ridingCountEl = document.getElementById('ridingCount');
+    const arrivedCountEl = document.getElementById('arrivedCount');
+
+    let lastTime = null;
+    let nextPassengerId = 1;
+    let arrivedCount = 0;
+    const passengers = new Map();
+    const waitingByFloor = Array.from({ length: FLOORS }, () => []);
+    const floorClaims = new Array(FLOORS).fill(0);
+    const elevators = [];
+
+    function floorTop(floorIdx) {
+      return (FLOORS - 1 - floorIdx) * FLOOR_HEIGHT + 3;
+    }
+
+    function floorFromY(y) {
+      const idx = Math.round((FLOORS - 1 - ((y - 3) / FLOOR_HEIGHT)));
+      return Math.max(0, Math.min(FLOORS - 1, idx));
+    }
+
+    function createFloors() {
+      for (let i = 0; i < FLOORS; i++) {
+        const floorDiv = document.createElement('div');
+        floorDiv.className = 'floor';
+        floorDiv.style.bottom = `${i * FLOOR_HEIGHT}px`;
+        floorDiv.style.height = `${FLOOR_HEIGHT}px`;
+        floorDiv.innerHTML = `
+          <div class="floor-label">${i + 1}F</div>
+          <div class="waiting-area" id="waiting-${i}"></div>
+        `;
+        floorContainer.appendChild(floorDiv);
+      }
+    }
+
+    function createElevators() {
+      for (let e = 0; e < ELEVATOR_COUNT; e++) {
+        const shaft = document.createElement('div');
+        shaft.className = 'shaft';
+        shaft.innerHTML = `<div class="shaft-label">${e + 1}号梯</div>`;
+
+        const car = document.createElement('div');
+        car.className = `elevator elevator-${e}`;
+        car.id = `elevator-${e}`;
+        car.dataset.elevator = e;
+        car.style.top = `${floorTop(0)}px`;
+        car.innerHTML = `<div class="elevator-passenger"></div>`;
+
+        shaft.appendChild(car);
+        shaftContainer.appendChild(shaft);
+
+        elevators.push({
+          id: e,
+          y: floorTop(0),
+          floor: 0,
+          state: 'idle',
+          targetY: null,
+          destFloor: null,
+          pickupFloor: null,
+          claimFloor: null,
+          passengerId: null
+        });
+      }
+    }
+
+    function createPersonElement(p) {
+      const div = document.createElement('div');
+      div.className = 'person';
+      div.dataset.id = p.id;
+      div.innerHTML = `👤<div class="tooltip">目标: ${p.targetFloor + 1}F</div>`;
+      return div;
+    }
+
+    function spawnPassengers(floorIdx, count) {
+      for (let i = 0; i < count; i++) {
+        let targetFloor;
+        do {
+          targetFloor = Math.floor(Math.random() * FLOORS);
+        } while (targetFloor === floorIdx);
+
+        const id = nextPassengerId++;
+        const p = {
+          id,
+          currentFloor: floorIdx,
+          targetFloor,
+          state: 'waiting',
+          elevatorId: null
+        };
+
+        passengers.set(id, p);
+        waitingByFloor[floorIdx].push(id);
+
+        const floorWaitingArea = document.getElementById(`waiting-${floorIdx}`);
+        floorWaitingArea.appendChild(createPersonElement(p));
+      }
+
+      updateStats();
+    }
+
+    function updateStats() {
+      let waiting = 0;
+      let riding = 0;
+
+      for (const p of passengers.values()) {
+        if (p.state === 'waiting') waiting++;
+        else if (p.state === 'inElevator') riding++;
+      }
+
+      waitingCountEl.textContent = waiting;
+      ridingCountEl.textContent = riding;
+      arrivedCountEl.textContent = arrivedCount;
+    }
+
+    function dispatchIdleElevator(elevator) {
+      if (elevator.state !== 'idle' || elevator.passengerId !== null) return;
+
+      let bestFloor = -1;
+      let bestDistance = Infinity;
+
+      for (let f = 0; f < FLOORS; f++) {
+        const available = waitingByFloor[f].length - floorClaims[f];
+        if (available <= 0) continue;
+
+        const distance = Math.abs(elevator.floor - f);
+        if (distance < bestDistance || (distance === bestDistance && f < bestFloor)) {
+          bestDistance = distance;
+          bestFloor = f;
+        }
+      }
+
+      if (bestFloor !== -1) {
+        elevator.pickupFloor = bestFloor;
+        elevator.claimFloor = bestFloor;
+        floorClaims[bestFloor]++;
+        elevator.destFloor = bestFloor;
+        elevator.targetY = floorTop(bestFloor);
+        elevator.state = 'moving';
+      }
+    }
+
+    function openElevatorDoors(elevatorId) {
+      const car = document.getElementById(`elevator-${elevatorId}`);
+      car.classList.add('door-open');
+      setTimeout(() => {
+        car.classList.remove('door-open');
+      }, DOOR_OPEN_MS);
+    }
+
+    function boardPassenger(elevator, passengerId) {
+      const p = passengers.get(passengerId);
+      if (!p) return;
+
+      p.state = 'inElevator';
+      p.elevatorId = elevator.id;
+      elevator.passengerId = passengerId;
+
+      const personEl = document.querySelector(`.person[data-id="${passengerId}"]`);
+      if (personEl) {
+        personEl.remove();
+        const car = document.getElementById(`elevator-${elevator.id}`);
+        car.querySelector('.elevator-passenger').appendChild(personEl);
+      }
+
+      updateStats();
+    }
+
+    function dropPassenger(elevator, passengerId) {
+      const p = passengers.get(passengerId);
+      if (p) {
+        p.state = 'arrived';
+        p.elevatorId = null;
+        arrivedCount++;
+      }
+
+      const personEl = document.querySelector(`.person[data-id="${passengerId}"]`);
+      if (personEl) personEl.remove();
+
+      elevator.passengerId = null;
+      updateStats();
+    }
+
+    function onElevatorArrival(elevator) {
+      const floor = elevator.destFloor;
+
+      if (elevator.pickupFloor !== null) {
+        if (elevator.claimFloor !== null) {
+          floorClaims[elevator.claimFloor]--;
+          elevator.claimFloor = null;
+        }
+
+        const passengerId = waitingByFloor[floor].shift();
+        if (passengerId !== undefined) {
+          const p = passengers.get(passengerId);
+          boardPassenger(elevator, passengerId);
+          elevator.pickupFloor = null;
+          elevator.destFloor = p.targetFloor;
+          elevator.targetY = floorTop(p.targetFloor);
+          elevator.state = 'moving';
+        } else {
+          elevator.pickupFloor = null;
+          elevator.destFloor = null;
+          elevator.targetY = null;
+          elevator.state = 'idle';
+        }
+      } else if (elevator.passengerId !== null) {
+        const passengerId = elevator.passengerId;
+        dropPassenger(elevator, passengerId);
+        elevator.destFloor = null;
+        elevator.targetY = null;
+        elevator.pickupFloor = null;
+        elevator.state = 'idle';
+      } else {
+        elevator.destFloor = null;
+        elevator.targetY = null;
+        elevator.pickupFloor = null;
+        elevator.state = 'idle';
+      }
+
+      openElevatorDoors(elevator.id);
+    }
+
+    function update(dt) {
+      for (const elevator of elevators) {
+        if (elevator.state === 'moving') {
+          const targetY = elevator.targetY;
+          const dy = targetY - elevator.y;
+          const distance = Math.abs(dy);
+
+          if (distance < 0.01) {
+            elevator.y = targetY;
+            elevator.floor = elevator.destFloor;
+            onElevatorArrival(elevator);
+          } else {
+            const step = ELEVATOR_SPEED_FLOORS_PER_SEC * FLOOR_HEIGHT * dt;
+            if (distance <= step) {
+              elevator.y = targetY;
+            } else {
+              elevator.y += Math.sign(dy) * step;
+            }
+            elevator.floor = floorFromY(elevator.y);
+          }
+        } else if (elevator.state === 'idle') {
+          dispatchIdleElevator(elevator);
+        }
+      }
+    }
+
+    function render() {
+      for (const elevator of elevators) {
+        const car = document.getElementById(`elevator-${elevator.id}`);
+        if (car) {
+          car.style.top = `${elevator.y.toFixed(1)}px`;
+        }
+      }
+    }
+
+    function animationLoop(timestamp) {
+      if (lastTime === null) {
+        lastTime = timestamp;
+      }
+
+      const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+      lastTime = timestamp;
+
+      update(dt);
+      render();
+
+      requestAnimationFrame(animationLoop);
+    }
+
+    function resetSimulation() {
+      lastTime = null;
+      nextPassengerId = 1;
+      arrivedCount = 0;
+      passengers.clear();
+      floorClaims.fill(0);
+
+      for (let f = 0; f < FLOORS; f++) {
+        waitingByFloor[f].length = 0;
+        const area = document.getElementById(`waiting-${f}`);
+        if (area) area.innerHTML = '';
+      }
+
+      for (const elevator of elevators) {
+        elevator.y = floorTop(0);
+        elevator.floor = 0;
+        elevator.state = 'idle';
+        elevator.targetY = null;
+        elevator.destFloor = null;
+        elevator.pickupFloor = null;
+        elevator.claimFloor = null;
+        elevator.passengerId = null;
+
+        const car = document.getElementById(`elevator-${elevator.id}`);
+        if (car) {
+          car.style.top = `${elevator.y}px`;
+          car.querySelector('.elevator-passenger').innerHTML = '';
+        }
+      }
+
+      updateStats();
+    }
+
+    function init() {
+      for (let f = 1; f <= FLOORS; f++) {
+        const option = document.createElement('option');
+        option.value = f;
+        option.textContent = `${f}F`;
+        spawnFloorSelect.appendChild(option);
+      }
+
+      createFloors();
+      createElevators();
+      updateStats();
+
+      spawnBtn.addEventListener('click', () => {
+        const floorIdx = parseInt(spawnFloorSelect.value, 10) - 1;
+        const count = Math.max(1, Math.min(10, parseInt(spawnCountInput.value, 10) || 1));
+        spawnPassengers(floorIdx, count);
+      });
+
+      resetBtn.addEventListener('click', resetSimulation);
+
+      requestAnimationFrame(animationLoop);
+    }
+
+    init();
+  </script>
+</body>
+</html>

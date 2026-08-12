@@ -1,0 +1,345 @@
+<svg viewBox="0 0 800 600" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Sky Gradient -->
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4EA8DE" />
+      <stop offset="60%" stop-color="#90E0EF" />
+      <stop offset="100%" stop-color="#CAF0F8" />
+    </linearGradient>
+
+    <!-- Car Body Gradient -->
+    <linearGradient id="carGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF4D6D" />
+      <stop offset="100%" stop-color="#C9184A" />
+    </linearGradient>
+
+    <!-- Headlight Beam Gradient -->
+    <linearGradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFF" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#FFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Giraffe Neck Clip Path -->
+    <clipPath id="neckClip">
+      <path d="M 330 380 C 310 250 330 150 370 110 L 400 110 C 370 150 390 250 390 380 Z" />
+    </clipPath>
+
+    <!-- Giraffe Body Clip Path -->
+    <clipPath id="bodyClip">
+      <path d="M 280 450 Q 250 380 320 370 Q 380 370 420 420 Q 400 460 280 450 Z" />
+    </clipPath>
+
+    <!-- Reusable Tree Component -->
+    <g id="tree">
+      <path d="M 0 0 L 0 20" stroke="#5C4033" stroke-width="4" />
+      <circle cx="0" cy="-15" r="15" fill="#2A9D8F" />
+      <circle cx="-8" cy="-25" r="10" fill="#264653" />
+      <circle cx="8" cy="-25" r="10" fill="#264653" />
+    </g>
+  </defs>
+
+  <!-- BACKGROUND & SKY -->
+  <rect width="800" height="600" fill="url(#skyGrad)" />
+
+  <!-- Sun & Rays -->
+  <g>
+    <!-- Rotating rays -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" from="0 650 150" to="360 650 150" dur="30s" repeatCount="indefinite" />
+      <path d="M 650 40 L 650 20 L 660 20 L 660 40 Z" fill="#FFD700" />
+      <path d="M 650 260 L 650 280 L 660 280 L 660 260 Z" fill="#FFD700" />
+      <path d="M 540 150 L 520 150 L 520 160 L 540 160 Z" fill="#FFD700" />
+      <path d="M 760 150 L 780 150 L 780 160 L 760 160 Z" fill="#FFD700" />
+      <path d="M 590 90 L 580 80 L 590 70 L 600 80 Z" fill="#FFD700" />
+      <path d="M 710 210 L 720 220 L 730 210 L 720 200 Z" fill="#FFD700" />
+      <path d="M 710 90 L 720 80 L 730 90 L 720 100 Z" fill="#FFD700" />
+      <path d="M 590 210 L 580 220 L 590 230 L 600 220 Z" fill="#FFD700" />
+    </g>
+    <circle cx="650" cy="150" r="40" fill="#FFD700" />
+    <circle cx="650" cy="150" r="35" fill="#FFF3B0" />
+  </g>
+
+  <!-- Moving Clouds -->
+  <g opacity="0.8">
+    <g>
+      <animateTransform attributeName="transform" type="translate" from="900 0" to="-200 0" dur="45s" repeatCount="indefinite" />
+      <path d="M 100 100 Q 120 80 140 100 Q 160 80 180 100 Q 200 120 180 130 L 100 130 Q 80 120 100 100 Z" fill="#FFF" />
+      <path d="M 300 160 Q 310 150 320 160 Q 330 150 340 160 Q 350 170 340 180 L 300 180 Q 290 170 300 160 Z" fill="#FFF" />
+    </g>
+  </g>
+
+  <!-- Distant Hills (Parallax Background) -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" from="0 0" to="-800 0" dur="25s" repeatCount="indefinite" />
+    <path d="M 0 450 Q 200 380 450 450 T 800 450 L 800 600 L 0 600 Z" fill="#2A9D8F" />
+    <path d="M 800 450 Q 1000 380 1250 450 T 1600 450 L 1600 600 L 800 600 Z" fill="#2A9D8F" />
+  </g>
+  <g>
+    <animateTransform attributeName="transform" type="translate" from="0 0" to="-800 0" dur="15s" repeatCount="indefinite" />
+    <path d="M -100 470 Q 100 420 300 480 T 700 480 L 800 470 L 800 600 L -100 600 Z" fill="#264653" />
+    <path d="M 700 470 Q 900 420 1100 480 T 1500 480 L 1600 470 L 1600 600 L 700 600 Z" fill="#264653" />
+  </g>
+
+  <!-- Road -->
+  <rect x="0" y="480" width="800" height="120" fill="#4A4E69" />
+  
+  <!-- Road Side Lines -->
+  <line x1="0" y1="500" x2="800" y2="500" stroke="#F2E9E4" stroke-width="4" stroke-dasharray="40 40" />
+  <line x1="0" y1="580" x2="800" y2="580" stroke="#F2E9E4" stroke-width="4" stroke-dasharray="40 40" />
+  
+  <!-- Animated Road Center Line -->
+  <line x1="0" y1="540" x2="800" y2="540" stroke="#F2E9E4" stroke-width="6" stroke-dasharray="60 60">
+    <animate attributeName="stroke-dashoffset" from="0" to="-120" dur="0.4s" repeatCount="indefinite" />
+  </line>
+
+  <!-- Moving Trees (Foreground Parallax) -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" from="0 0" to="-100 0" dur="1.5s" repeatCount="indefinite" />
+    <use href="#tree" x="50" y="420" />
+    <use href="#tree" x="150" y="400" />
+    <use href="#tree" x="350" y="430" />
+    <use href="#tree" x="550" y="410" />
+    <use href="#tree" x="750" y="440" />
+    <use href="#tree" x="850" y="420" />
+    <!-- Duplicate for seamless loop -->
+    <use href="#tree" x="150" y="420" transform="translate(100,0)" />
+    <use href="#tree" x="250" y="400" transform="translate(100,0)" />
+    <use href="#tree" x="450" y="430" transform="translate(100,0)" />
+    <use href="#tree" x="650" y="410" transform="translate(100,0)" />
+    <use href="#tree" x="850" y="440" transform="translate(100,0)" />
+    <use href="#tree" x="950" y="420" transform="translate(100,0)" />
+  </g>
+
+  <!-- EXHAUST SMOKE -->
+  <g>
+    <circle cx="200" cy="460" r="15" fill="#CCC" opacity="0">
+      <animate attributeName="cx" values="190; 130" dur="1s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="460; 430" dur="1s" repeatCount="indefinite" />
+      <animate attributeName="r" values="10; 30" dur="1s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0.8; 0" dur="1s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="200" cy="460" r="15" fill="#CCC" opacity="0">
+      <animate attributeName="cx" values="190; 120" dur="1s" begin="0.2s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="460; 420" dur="1s" begin="0.2s" repeatCount="indefinite" />
+      <animate attributeName="r" values="12; 35" dur="1s" begin="0.2s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0.7; 0" dur="1s" begin="0.2s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="200" cy="460" r="15" fill="#CCC" opacity="0">
+      <animate attributeName="cx" values="190; 110" dur="1.2s" begin="0.4s" repeatCount="indefinite" />
+      <animate attributeName="cy" values="460; 410" dur="1.2s" begin="0.4s" repeatCount="indefinite" />
+      <animate attributeName="r" values="15; 40" dur="1.2s" begin="0.4s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0.6; 0" dur="1.2s" begin="0.4s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+  <!-- MAIN SCENE: GIRAFFE DRIVING TINY CAR -->
+  <!-- Overall group to apply bouncing effect to the whole vehicle & driver -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0,0; 0,-4; 0,-2; 0,-5; 0,0" dur="0.5s" repeatCount="indefinite" />
+
+    <!-- CAR BACK & INTERIOR (Drawn before Giraffe body) -->
+    <g>
+      <!-- Car Shadow -->
+      <ellipse cx="330" cy="515" rx="140" ry="10" fill="#222" opacity="0.4" />
+      
+      <!-- Car Seat Background -->
+      <rect x="300" y="380" width="80" height="50" rx="10" fill="#333" />
+      
+      <!-- GIRAFFE BODY (Squeezed inside) -->
+      <g>
+        <path d="M 280 450 Q 250 380 320 370 Q 380 370 420 420 Q 400 460 280 450 Z" fill="#F4A261" />
+        <g clip-path="url(#bodyClip)">
+          <ellipse cx="330" cy="400" rx="20" ry="25" fill="#D62828" />
+          <ellipse cx="370" cy="390" rx="18" ry="22" fill="#D62828" />
+          <ellipse cx="380" cy="430" rx="15" ry="20" fill="#D62828" />
+          <ellipse cx="310" cy="440" rx="12" ry="15" fill="#D62828" />
+        </g>
+      </g>
+
+      <!-- GIRAFFE FRONT LEG (Hanging out the window, folded) -->
+      <g>
+        <path d="M 250 440 Q 200 430 190 380 L 170 370 Q 180 430 220 460 Z" fill="#F4A261" />
+        <!-- Leg Spots -->
+        <ellipse cx="210" cy="420" rx="8" ry="12" fill="#D62828" transform="rotate(-30 210 420)" />
+        <ellipse cx="195" cy="400" rx="6" ry="10" fill="#D62828" transform="rotate(-40 195 400)" />
+        <!-- Hoof -->
+        <ellipse cx="180" cy="375" rx="10" ry="6" fill="#2A1E15" transform="rotate(-20 180 375)" />
+      </g>
+    </g>
+
+    <!-- CAR BODY -->
+    <g>
+      <!-- Main Car Shape -->
+      <path d="M 200 480 L 200 430 Q 200 390 230 390 L 300 370 Q 330 360 360 370 L 430 390 Q 460 390 460 430 L 460 480 Z" fill="url(#carGrad)" stroke="#A4133C" stroke-width="2" />
+      
+      <!-- Car Door Line -->
+      <path d="M 360 375 L 360 480" stroke="#A4133C" stroke-width="3" />
+      <!-- Door Handle -->
+      <rect x="380" y="430" width="15" height="5" rx="2" fill="#FFF" opacity="0.6" />
+      
+      <!-- Windshield / Cabin -->
+      <path d="M 250 395 L 295 380 Q 325 375 355 380 L 410 395 Q 390 420 360 420 Q 320 420 250 395 Z" fill="#1D3557" stroke="#A4133C" stroke-width="2" />
+      <!-- Windshield Reflection -->
+      <path d="M 260 392 L 295 383 Q 315 380 330 382" fill="none" stroke="#FFF" stroke-width="4" opacity="0.3" stroke-linecap="round" />
+      
+      <!-- Window Sill / Trim -->
+      <path d="M 250 395 Q 320 420 410 395" fill="none" stroke="#A4133C" stroke-width="4" />
+
+      <!-- Steering Wheel Column -->
+      <line x1="340" y1="430" x2="340" y2="410" stroke="#111" stroke-width="8" stroke-linecap="round" />
+      
+      <!-- Steering Wheel -->
+      <circle cx="340" cy="410" r="22" fill="none" stroke="#111" stroke-width="8" />
+      
+      <!-- Headlight -->
+      <ellipse cx="455" cy="430" rx="12" ry="8" fill="#FFF" stroke="#CCC" stroke-width="2" />
+      <polygon points="460,430 800,390 800,470" fill="url(#beamGrad)" />
+      
+      <!-- Taillight -->
+      <ellipse cx="205" cy="430" rx="8" ry="6" fill="#FFC300" stroke="#A4133C" stroke-width="2" />
+      
+      <!-- Exhaust Pipe -->
+      <rect x="180" y="460" width="20" height="8" rx="2" fill="#CCC" stroke="#999" stroke-width="1" />
+    </g>
+
+    <!-- GIRAFFE NECK & HEAD (Drawn over car, coming out of sunroof area) -->
+    <g>
+      <!-- Dynamic swaying animation for the neck and head -->
+      <animateTransform attributeName="transform" type="rotate" values="-3 380 450; 3 380 450; -3 380 450" dur="1.5s" repeatCount="indefinite" />
+      
+      <!-- Giraffe Neck -->
+      <g>
+        <path d="M 330 380 C 310 250 330 150 370 110 L 400 110 C 370 150 390 250 390 380 Z" fill="#F4A261" />
+        <!-- Neck Spots (Clipped to neck shape) -->
+        <g clip-path="url(#neckClip)">
+          <ellipse cx="345" cy="300" rx="15" ry="25" fill="#D62828" />
+          <ellipse cx="365" cy="230" rx="18" ry="30" fill="#D62828" />
+          <ellipse cx="350" cy="170" rx="12" ry="20" fill="#D62828" />
+          <ellipse cx="380" cy="350" rx="14" ry="22" fill="#D62828" />
+          <ellipse cx="370" cy="280" rx="10" ry="18" fill="#D62828" />
+          <ellipse cx="385" cy="200" rx="16" ry="26" fill="#D62828" />
+          <ellipse cx="360" cy="140" rx="10" ry="15" fill="#D62828" />
+        </g>
+      </g>
+
+      <!-- Giraffe Head -->
+      <g>
+        <!-- Main Head Shape -->
+        <path d="M 340 110 C 330 70 400 60 440 80 C 470 100 470 130 450 140 C 410 150 350 140 340 110 Z" fill="#F4A261" />
+        
+        <!-- Head Spots -->
+        <ellipse cx="380" cy="90" rx="12" ry="16" fill="#D62828" />
+        <ellipse cx="410" cy="100" rx="10" ry="14" fill="#D62828" />
+        <ellipse cx="370" cy="120" rx="8" ry="10" fill="#D62828" />
+        <ellipse cx="430" cy="120" rx="10" ry="12" fill="#D62828" />
+        
+        <!-- Muzzle -->
+        <ellipse cx="450" cy="110" rx="22" ry="16" fill="#E9C46A" />
+        
+        <!-- Nostrils -->
+        <circle cx="455" cy="105" r="3" fill="#111" />
+        <circle cx="462" cy="112" r="3" fill="#111" />
+        
+        <!-- Smile -->
+        <path d="M 440 120 Q 450 128 460 115" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" />
+        
+        <!-- Eye / Sunglasses -->
+        <g>
+          <!-- Left Lens -->
+          <rect x="395" y="90" width="22" height="16" rx="4" fill="#111" />
+          <!-- Right Lens -->
+          <rect x="420" y="90" width="22" height="16" rx="4" fill="#111" />
+          <!-- Bridge -->
+          <line x1="417" y1="95" x2="420" y2="95" stroke="#111" stroke-width="4" />
+          <!-- Temple (arm) -->
+          <line x1="395" y1="95" x2="380" y2="87" stroke="#111" stroke-width="3" />
+          <!-- Lens Reflection -->
+          <line x1="400" y1="92" x2="408" y2="102" stroke="#FFF" stroke-width="3" opacity="0.6" stroke-linecap="round" />
+          <line x1="424" y1="92" x2="432" y2="102" stroke="#FFF" stroke-width="3" opacity="0.6" stroke-linecap="round" />
+        </g>
+        
+        <!-- Ossicones (Horns) -->
+        <g>
+          <!-- Left Horn -->
+          <path d="M 370 85 L 360 50 Q 360 45 365 45 L 370 80 Z" fill="#F4A261" />
+          <circle cx="362" cy="48" r="6" fill="#2A1E15" />
+          <!-- Right Horn -->
+          <path d="M 415 75 L 420 40 Q 420 35 425 35 L 425 70 Z" fill="#F4A261" />
+          <circle cx="422" cy="38" r="6" fill="#2A1E15" />
+        </g>
+        
+        <!-- Ears -->
+        <g>
+          <!-- Left Ear -->
+          <path d="M 350 85 C 320 70 330 40 350 55 C 360 60 360 75 355 85 Z" fill="#F4A261" stroke="#2A1E15" stroke-width="3" stroke-linejoin="round" />
+          <!-- Right Ear -->
+          <path d="M 430 75 C 460 60 450 30 430 45 C 420 50 420 65 425 75 Z" fill="#F4A261" stroke="#2A1E15" stroke-width="3" stroke-linejoin="round" />
+        </g>
+      </g>
+
+      <!-- GIRAFFE FRONT LEG (On the steering wheel) -->
+      <g>
+        <!-- Arm -->
+        <path d="M 320 430 Q 330 380 340 400 L 370 390 Q 360 420 340 450 Z" fill="#F4A261" />
+        <!-- Arm Spots -->
+        <ellipse cx="335" cy="420" rx="6" ry="10" fill="#D62828" transform="rotate(20 335 420)" />
+        <ellipse cx="345" cy="405" rx="5" ry="8" fill="#D62828" transform="rotate(45 345 405)" />
+        <!-- Hand / Hoof on Steering Wheel -->
+        <ellipse cx="355" cy="398" rx="12" ry="10" fill="#2A1E15" transform="rotate(-30 355 398)" />
+      </g>
+    </g>
+
+    <!-- GIRAFFE SCARF (Fluttering in the wind) -->
+    <g>
+      <!-- Scarf Wrapper around neck -->
+      <path d="M 340 400 Q 360 420 390 400 L 390 380 Q 360 395 340 380 Z" fill="#E63946" />
+      <!-- Flowing tail of the scarf -->
+      <g>
+        <animateTransform attributeName="transform" type="rotate" values="-10 340 390; 5 340 390; -10 340 390" dur="1s" repeatCount="indefinite" />
+        <path d="M 340 390 C 250 380 200 420 150 400" fill="none" stroke="#E63946" stroke-width="16" stroke-linecap="round" />
+        <path d="M 340 390 C 250 380 200 420 150 400" fill="none" stroke="#FFF" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 20" opacity="0.4" />
+      </g>
+    </g>
+
+    <!-- WHEELS (Front and Back) -->
+    <g>
+      <!-- Back Wheel -->
+      <g>
+        <!-- Tire -->
+        <circle cx="240" cy="480" r="32" fill="#1A1A1A" />
+        <!-- Rim Background -->
+        <circle cx="240" cy="480" r="18" fill="#CCC" />
+        <!-- Rotating Spokes Group -->
+        <g>
+          <animateTransform attributeName="transform" type="rotate" from="0 240 480" to="360 240 480" dur="0.4s" repeatCount="indefinite" />
+          <!-- Spokes -->
+          <line x1="240" y1="462" x2="240" y2="498" stroke="#1A1A1A" stroke-width="6" />
+          <line x1="222" y1="480" x2="258" y2="480" stroke="#1A1A1A" stroke-width="6" />
+          <line x1="227" y1="467" x2="252" y2="492" stroke="#1A1A1A" stroke-width="6" />
+          <line x1="227" y1="492" x2="252" y2="467" stroke="#1A1A1A" stroke-width="6" />
+        </g>
+        <!-- Center Cap -->
+        <circle cx="240" cy="480" r="6" fill="#FFF" />
+      </g>
+
+      <!-- Front Wheel -->
+      <g>
+        <!-- Tire -->
+        <circle cx="440" cy="480" r="32" fill="#1A1A1A" />
+        <!-- Rim Background -->
+        <circle cx="440" cy="480" r="18" fill="#CCC" />
+        <!-- Rotating Spokes Group -->
+        <g>
+          <animateTransform attributeName="transform" type="rotate" from="0 440 480" to="360 440 480" dur="0.4s" repeatCount="indefinite" />
+          <!-- Spokes -->
+          <line x1="440" y1="462" x2="440" y2="498" stroke="#1A1A1A" stroke-width="6" />
+          <line x1="422" y1="480" x2="458" y2="480" stroke="#1A1A1A" stroke-width="6" />
+          <line x1="427" y1="467" x2="452" y2="492" stroke="#1A1A1A" stroke-width="6" />
+          <line x1="427" y1="492" x2="452" y2="467" stroke="#1A1A1A" stroke-width="6" />
+        </g>
+        <!-- Center Cap -->
+        <circle cx="440" cy="480" r="6" fill="#FFF" />
+      </g>
+    </g>
+  </g>
+</svg>
