@@ -1,110 +1,2615 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>《极光》星舰 · 3D 还原（金·斯坦利·罗宾逊 Aurora）</title>
-  <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="css/style.css" />
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "./vendor/three.module.js",
-        "three/addons/": "./vendor/"
-      }
-    }
-  </script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Aurora Ship</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
 </head>
 <body>
-  <div id="app"></div>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Aurora Ship" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Aurora Ship&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
 
-  <div id="loading">
-    <div class="load-ring"></div>
-    <div class="load-title">《极光》星舰</div>
-    <div class="load-sub">正在预热量子核心 · 编译舱室生态……</div>
-  </div>
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
 
-  <div id="fade"></div>
-  <div id="vignette"></div>
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: var(--border-radius-lg, 12.5px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
 
-  <header id="topbar">
-    <div class="brand">
-      <div class="brand-title">极光号 · 星舰</div>
-      <div class="brand-sub">金·斯坦利·罗宾逊《极光》（Aurora, 2015）· 2545 年自土星出发，驶向天仓五</div>
-    </div>
-    <div class="top-actions">
-      <button id="btn-exterior" class="btn primary" data-mode="exterior">飞船外观</button>
-      <button id="btn-interior" class="btn" data-mode="interior">舱内探索</button>
-      <button id="btn-info" class="btn">设定依据</button>
-      <button id="btn-help" class="btn">操作帮助</button>
-    </div>
-  </header>
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
 
-  <aside id="parts-panel" class="panel glass">
-    <div class="panel-title">船体部件</div>
-    <div id="parts-list"></div>
-  </aside>
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
 
-  <aside id="biome-panel" class="panel glass hidden">
-    <div class="panel-title">生态舱（共 24 个）</div>
-    <div class="ring-group">
-      <div class="ring-label">环 A · 旧世界生态</div>
-      <div id="ring-a-list" class="biome-list"></div>
-    </div>
-    <div class="ring-group">
-      <div class="ring-label">环 B · 新世界生态</div>
-      <div id="ring-b-list" class="biome-list"></div>
-    </div>
-    <div class="biome-foot">
-      <button id="btn-spine" class="btn">主轴内部（零重力）</button>
-      <button id="btn-back-ext" class="btn">返回飞船外观</button>
-    </div>
-  </aside>
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
 
-  <aside id="info-panel" class="panel glass hidden">
-    <div class="panel-title">设定依据 · 还原说明</div>
-    <div id="info-content"></div>
-  </aside>
+* {
+  box-sizing: border-box;
+}
 
-  <aside id="help-panel" class="panel glass hidden">
-    <div class="panel-title">操作帮助</div>
-    <div class="help-body">
-      <p><b>外观视图</b>：左键拖拽 = 360° 环绕查看 · 右键拖拽 = 平移 · 滚轮 = 缩放；点击生态舱可进入其内部。</p>
-      <p><b>舱内探索</b>：点击画面锁定鼠标，<b>WASD</b> 移动（Shift 疾走），鼠标环顾；沿舱道走到两端<b>闸门</b>即穿越至相邻生态舱，也可从右侧列表跳舱。</p>
-      <p><b>主轴内部（零重力）</b>：鼠标环顾，WASD 漂浮移动，Shift 加速；可直达舰桥、AI 核心“波琳”与发动机舱。</p>
-      <p>ESC 释放鼠标 · 按 <b>1</b> 回到外观 · 按 <b>2</b> 进入舱内。</p>
-    </div>
-  </aside>
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
 
-  <div id="hud-top" class="hidden">
-    <div id="hud-title"></div>
-    <div id="hud-sub"></div>
-  </div>
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
 
-  <div id="hud-bottom" class="glass hidden">
-    <div id="hud-hint"></div>
-  </div>
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
 
-  <div id="controls-bar" class="glass">
-    <label class="ctl">减速磁帆
-      <input type="checkbox" id="toggle-decel" />
-    </label>
-    <label class="ctl">环转速
-      <select id="spin-mode">
-        <option value="demo" selected>演示转速（加快）</option>
-        <option value="real">真实转速（0.83g · ≈193s/圈）</option>
-        <option value="slow">慢速欣赏</option>
-      </select>
-    </label>
-    <label class="ctl">航行速度
-      <input type="range" id="speed-slider" min="0" max="100" value="35" />
-    </label>
-  </div>
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
 
-  <div id="tooltip" class="hidden"></div>
-  <div id="toast"></div>
-  <div id="lock-hint" class="hidden">点击屏幕，进入舱内视野</div>
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
 
-  <script type="module" src="js/main.js"></script>
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed=&quot;true&quot;],
+    [aria-selected=&quot;true&quot;],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;style&gt;
+  #aurora-root {
+    position: relative;
+    width: 100%;
+    height: clamp(460px, 68vh, 760px);
+    overflow: hidden;
+    border-radius: 14px;
+    background: #04070f;
+    color: #e8eefb;
+    font-family: -apple-system, BlinkMacSystemFont, &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, &quot;Segoe UI&quot;, sans-serif;
+    user-select: none;
+  }
+  #aurora-canvas-wrap { position: absolute; inset: 0; cursor: grab; }
+  #aurora-canvas-wrap:active { cursor: grabbing; }
+  #aurora-canvas-wrap canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  #aurora-root .hud {
+    position: absolute;
+    pointer-events: none;
+  }
+  #aurora-root .top-left { left: 14px; top: 14px; max-width: 72%; }
+  #aurora-root .title {
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    line-height: 1.15;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+  }
+  #aurora-root .title span { font-weight: 400; letter-spacing: 3px; opacity: 0.75; }
+  #aurora-root .sub {
+    margin-top: 3px;
+    font-size: 12px;
+    opacity: 0.72;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  }
+
+  #aurora-root .bottom {
+    left: 12px; right: 12px; bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  #aurora-root .row { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; pointer-events: auto; }
+  #aurora-root .panel,
+  #aurora-root .row,
+  #aurora-root .chip,
+  #aurora-root .seg {
+    background: rgba(8, 13, 26, 0.78);
+    border: 1px solid rgba(148, 178, 235, 0.18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  #aurora-root .row {
+    padding: 7px;
+    border-radius: 12px;
+  }
+  #aurora-root .chip, #aurora-root .seg {
+    pointer-events: auto;
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    color: #dfe8fa;
+    background: rgba(8, 13, 26, 0.78);
+    border: 1px solid rgba(148, 178, 235, 0.18);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+  }
+  #aurora-root .chip:hover, #aurora-root .seg:hover { background: rgba(44, 62, 105, 0.65); }
+  #aurora-root .seg.active {
+    background: #2b4a86;
+    border-color: #5f83d4;
+    color: #ffffff;
+  }
+  #aurora-root .chip.sm, #aurora-root .seg.sm { padding: 5px 10px; font-size: 12px; }
+  #aurora-root .group { display: inline-flex; gap: 5px; }
+
+  #aurora-root .locations {
+    pointer-events: auto;
+    max-width: min(96%, 880px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    padding: 7px;
+    border-radius: 12px;
+    background: rgba(8, 13, 26, 0.78);
+    border: 1px solid rgba(148, 178, 235, 0.18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  #aurora-root .locations button {
+    pointer-events: auto;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: #cfe0ff;
+    background: rgba(38, 55, 94, 0.55);
+    border: 1px solid rgba(148, 178, 235, 0.2);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #aurora-root .locations button:hover { background: rgba(65, 92, 150, 0.75); }
+
+  #aurora-root .panel {
+    position: absolute;
+    pointer-events: auto;
+    border-radius: 12px;
+    padding: 12px 13px;
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  #aurora-root .spec {
+    right: 12px; top: 12px;
+    width: min(320px, calc(100% - 24px));
+    max-height: calc(100% - 110px);
+    overflow: auto;
+  }
+  #aurora-root .spec h3 { margin: 0 0 7px; font-size: 13px; font-weight: 600; }
+  #aurora-root .spec dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; }
+  #aurora-root .spec dt { opacity: 0.72; white-space: nowrap; }
+  #aurora-root .spec dd { margin: 0; }
+  #aurora-root .spec .note { margin-top: 8px; opacity: 0.68; font-size: 11.5px; }
+  #aurora-root .spec-btn {
+    position: absolute;
+    right: 12px; top: 12px;
+  }
+  #aurora-root .spec-btn.open { background: #2b4a86; border-color: #5f83d4; }
+
+  #aurora-root .card {
+    left: 14px; bottom: 118px;
+    width: min(300px, calc(100% - 28px));
+  }
+  #aurora-root .card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  #aurora-root .card-en { font-size: 11.5px; opacity: 0.66; margin-bottom: 6px; }
+  #aurora-root .card-desc { font-size: 12px; opacity: 0.9; margin-bottom: 9px; }
+  #aurora-root .card button {
+    pointer-events: auto;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    background: #2b4a86;
+    border: 1px solid #5f83d4;
+    color: #fff;
+    cursor: pointer;
+  }
+  #aurora-root .card button:hover { background: #365aa0; }
+
+  #aurora-root .hint {
+    pointer-events: none;
+    font-size: 11.5px;
+    opacity: 0.72;
+    text-align: center;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.85);
+    max-width: 96%;
+  }
+  #aurora-root .toast {
+    position: absolute;
+    left: 50%;
+    top: 18px;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    background: rgba(8, 13, 26, 0.85);
+    border: 1px solid rgba(148, 178, 235, 0.25);
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  #aurora-root .msg {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; font-size: 13.5px; line-height: 1.7;
+    background: #04070f;
+  }
+  [hidden] { display: none !important; }
+&lt;/style&gt;
+
+&lt;div id=&quot;aurora-root&quot;&gt;
+  &lt;div id=&quot;aurora-canvas-wrap&quot; role=&quot;img&quot; aria-label=&quot;金·斯坦利·罗宾逊《极光》中世代飞船“极光号”的交互式三维模型：双环二十四生态舱、中央主轴、六根辐条，飞船在深空中航行&quot;&gt;&lt;/div&gt;
+
+  &lt;div class=&quot;hud top-left&quot;&gt;
+    &lt;div class=&quot;title&quot;&gt;极光号 &lt;span&gt;AURORA&lt;/span&gt;&lt;/div&gt;
+    &lt;div class=&quot;sub&quot;&gt;金·斯坦利·罗宾逊《极光》· 世代飞船&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;button class=&quot;chip spec-btn&quot; id=&quot;aurora-spec-toggle&quot; type=&quot;button&quot; aria-expanded=&quot;false&quot;&gt;设定说明&lt;/button&gt;
+  &lt;div class=&quot;panel spec&quot; id=&quot;aurora-spec-panel&quot; hidden&gt;
+    &lt;h3&gt;飞船设定（据原著）&lt;/h3&gt;
+    &lt;dl&gt;
+      &lt;dt&gt;结构&lt;/dt&gt;&lt;dd&gt;10 公里中央主轴 + 双环，每环 12 个生态舱（圆筒舱段，直径 1 公里、长 4 公里）&lt;/dd&gt;
+      &lt;dt&gt;重力&lt;/dt&gt;&lt;dd&gt;双环绕主轴反向旋转，以离心力模拟重力&lt;/dd&gt;
+      &lt;dt&gt;辐条&lt;/dt&gt;&lt;dd&gt;每环 6 根辐条连接主轴，另有内环锁定结构&lt;/dd&gt;
+      &lt;dt&gt;推进&lt;/dt&gt;&lt;dd&gt;0.1 倍光速飞向天仓五；后部聚变脉冲引擎（“每秒两次的微型聚变弹”）&lt;/dd&gt;
+      &lt;dt&gt;防护&lt;/dt&gt;&lt;dd&gt;前方冰盾抵御星际尘埃&lt;/dd&gt;
+      &lt;dt&gt;乘客&lt;/dt&gt;&lt;dd&gt;2,122 人，历经约 160 年、六七代人&lt;/dd&gt;
+      &lt;dt&gt;启航&lt;/dt&gt;&lt;dd&gt;2545 年，自土星轨道&lt;/dd&gt;
+    &lt;/dl&gt;
+    &lt;div class=&quot;note&quot;&gt;生态舱名按小说明确出现的名称标注；未具名的舱段以小说所述十二类地球生态区命名。环 A 为旧世界（东半球），环 B 为新世界（西半球）。&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;panel card&quot; id=&quot;aurora-pick-card&quot; hidden&gt;
+    &lt;div class=&quot;card-title&quot; id=&quot;aurora-pick-name&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;card-en&quot; id=&quot;aurora-pick-en&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;card-desc&quot; id=&quot;aurora-pick-desc&quot;&gt;&lt;/div&gt;
+    &lt;button type=&quot;button&quot; id=&quot;aurora-pick-enter&quot;&gt;进入该生态舱&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;hud bottom&quot;&gt;
+    &lt;div class=&quot;row&quot;&gt;
+      &lt;button class=&quot;seg active&quot; id=&quot;aurora-mode-exterior&quot; type=&quot;button&quot;&gt;外景&lt;/button&gt;
+      &lt;button class=&quot;seg&quot; id=&quot;aurora-mode-interior&quot; type=&quot;button&quot;&gt;内部探索&lt;/button&gt;
+      &lt;span class=&quot;group&quot; role=&quot;group&quot; aria-label=&quot;时间倍率&quot;&gt;
+        &lt;button class=&quot;seg sm&quot; data-ts=&quot;1&quot; type=&quot;button&quot;&gt;真实 1×&lt;/button&gt;
+        &lt;button class=&quot;seg sm active&quot; data-ts=&quot;8&quot; type=&quot;button&quot;&gt;快进 8×&lt;/button&gt;
+        &lt;button class=&quot;seg sm&quot; data-ts=&quot;0&quot; type=&quot;button&quot;&gt;暂停&lt;/button&gt;
+      &lt;/span&gt;
+      &lt;button class=&quot;chip sm&quot; id=&quot;aurora-auto-btn&quot; type=&quot;button&quot; aria-pressed=&quot;true&quot;&gt;自动环绕 ✓&lt;/button&gt;
+      &lt;button class=&quot;chip sm&quot; id=&quot;aurora-reset-btn&quot; type=&quot;button&quot;&gt;重置视角&lt;/button&gt;
+      &lt;button class=&quot;chip sm&quot; id=&quot;aurora-back-btn&quot; type=&quot;button&quot; hidden&gt;返回外景&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;locations&quot; id=&quot;aurora-locations&quot; hidden&gt;&lt;/div&gt;
+    &lt;div class=&quot;hint&quot; id=&quot;aurora-hint&quot;&gt;拖动旋转 · 滚轮缩放 · 右键平移 · 点击生态舱查看详情&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;toast&quot; id=&quot;aurora-toast&quot; hidden&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script type=&quot;module&quot;&gt;
+(async () =&gt; {
+  const root = document.getElementById(&quot;aurora-root&quot;);
+  const wrap = document.getElementById(&quot;aurora-canvas-wrap&quot;);
+  const toastEl = document.getElementById(&quot;aurora-toast&quot;);
+  const hintEl = document.getElementById(&quot;aurora-hint&quot;);
+
+  function showToast(text, ms = 2600) {
+    toastEl.textContent = text;
+    toastEl.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() =&gt; { toastEl.hidden = true; }, ms);
+  }
+
+  let THREE;
+  let OrbitControls;
+  try {
+    THREE = await import(&quot;https://esm.sh/three@0.160.1&quot;);
+    OrbitControls = (await import(&quot;https://esm.sh/three@0.160.1/examples/jsm/controls/OrbitControls.js&quot;)).OrbitControls;
+  } catch (err) {
+    const msg = document.createElement(&quot;div&quot;);
+    msg.className = &quot;msg&quot;;
+    msg.textContent = &quot;无法加载三维引擎（网络受限）。请联网后刷新重试。\n&quot; + (err &amp;&amp; err.message ? err.message : &quot;&quot;);
+    root.appendChild(msg);
+    return;
+  }
+
+  if (!window.WebGLRenderingContext) {
+    const msg = document.createElement(&quot;div&quot;);
+    msg.className = &quot;msg&quot;;
+    msg.textContent = &quot;当前环境不支持 WebGL，无法显示飞船模型。&quot;;
+    root.appendChild(msg);
+    return;
+  }
+
+  // ---------- 常量（单位：公里） ----------
+  const RING_R = 7.727;            // 12 个 4km 舱段组成的正十二边形外接圆半径
+  const SPINE_HALF = 5;            // 主轴长 10 km
+  const RING_Z = 2.62;             // 两环沿主轴的位置
+  const G_KM = 0.0098;             // 9.8 m/s^2
+  const OMEGA = Math.sqrt(G_KM / RING_R); // 真实自转角速度（约 0.0356 rad/s）
+
+  // ---------- 渲染器 / 场景 ----------
+  const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.22;
+  wrap.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+
+  // 程序化环境贴图，让金属表面有星空反光
+  (function buildEnvironment() {
+    const c = document.createElement(&quot;canvas&quot;);
+    c.width = 512; c.height = 256;
+    const x = c.getContext(&quot;2d&quot;);
+    const g = x.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, &quot;#22355c&quot;);
+    g.addColorStop(0.5, &quot;#0c1422&quot;);
+    g.addColorStop(1, &quot;#0a0f1a&quot;);
+    x.fillStyle = g;
+    x.fillRect(0, 0, 512, 256);
+    const glow = (px, py, r, col) =&gt; {
+      const rg = x.createRadialGradient(px, py, 1, px, py, r);
+      rg.addColorStop(0, col);
+      rg.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+      x.fillStyle = rg;
+      x.fillRect(px - r, py - r, r * 2, r * 2);
+    };
+    glow(120, 70, 130, &quot;rgba(200,220,255,0.9)&quot;);
+    glow(390, 150, 170, &quot;rgba(255,235,200,0.55)&quot;);
+    glow(60, 210, 80, &quot;rgba(150,190,255,0.4)&quot;);
+    for (let i = 0; i &lt; 240; i++) {
+      x.fillStyle = &quot;rgba(235,245,255,&quot; + (0.2 + Math.random() * 0.6) + &quot;)&quot;;
+      x.fillRect(Math.random() * 512, Math.random() * 256, 1.2, 1.2);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromEquirectangular(tex).texture;
+    pmrem.dispose();
+  })();
+
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.0005, 20000);
+  camera.position.set(24, 13, 14);
+  scene.add(camera);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 0.55;
+  controls.maxDistance = 90;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 0.35;
+
+  // 灯光
+  scene.add(new THREE.AmbientLight(0x22304a, 0.9));
+  scene.add(new THREE.HemisphereLight(0x46578e, 0x0a0e18, 0.78));
+  const sunKey = new THREE.DirectionalLight(0xffffff, 2.6);
+  sunKey.position.set(-9, 5, -11);
+  scene.add(sunKey);
+  const sunFill = new THREE.DirectionalLight(0x8fb4ff, 0.62);
+  sunFill.position.set(8, 2, 12);
+  scene.add(sunFill);
+  const cameraLight = new THREE.PointLight(0xe2ecff, 1.7, 0, 0); // 无衰减，室内照明
+  camera.add(cameraLight);
+
+  // ---------- 程序化纹理 ----------
+  function hullTexture() {
+    const c = document.createElement(&quot;canvas&quot;);
+    c.width = 512; c.height = 256;
+    const x = c.getContext(&quot;2d&quot;);
+    x.fillStyle = &quot;#b9c3cf&quot;;
+    x.fillRect(0, 0, 512, 256);
+    x.strokeStyle = &quot;rgba(70,82,98,0.22)&quot;;
+    x.lineWidth = 2;
+    for (let i = 0; i &lt;= 16; i++) {
+      const px = Math.round(i * 512 / 16);
+      x.beginPath(); x.moveTo(px, 0); x.lineTo(px, 256); x.stroke();
+    }
+    for (let j = 0; j &lt;= 8; j++) {
+      const py = Math.round(j * 256 / 8);
+      x.beginPath(); x.moveTo(0, py); x.lineTo(512, py); x.stroke();
+    }
+    for (let i = 0; i &lt; 900; i++) {
+      x.fillStyle = &quot;rgba(80,92,108,&quot; + (0.04 + Math.random() * 0.08) + &quot;)&quot;;
+      x.fillRect(Math.random() * 512, Math.random() * 256, 1.4, 1.4);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(3, 1);
+    return t;
+  }
+  const HULL_TEX = hullTexture();
+
+  function radialGlowTexture(inner, outer) {
+    const c = document.createElement(&quot;canvas&quot;);
+    c.width = c.height = 256;
+    const x = c.getContext(&quot;2d&quot;);
+    const g = x.createRadialGradient(128, 128, 2, 128, 128, 128);
+    g.addColorStop(0, inner);
+    g.addColorStop(0.35, outer);
+    g.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+    x.fillStyle = g;
+    x.fillRect(0, 0, 256, 256);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+  const GLOW_TEX = radialGlowTexture(&quot;rgba(255,255,255,0.9)&quot;, &quot;rgba(190,215,255,0.22)&quot;);
+
+  function labelTexture(text, sub, color) {
+    const c = document.createElement(&quot;canvas&quot;);
+    c.width = 512; c.height = 128;
+    const x = c.getContext(&quot;2d&quot;);
+    x.clearRect(0, 0, 512, 128);
+    x.textAlign = &quot;center&quot;;
+    x.fillStyle = color || &quot;#eef3ff&quot;;
+    x.font = &quot;600 46px &#x27;PingFang SC&#x27;,&#x27;Microsoft YaHei&#x27;,sans-serif&quot;;
+    x.shadowColor = &quot;rgba(0,0,0,0.9)&quot;;
+    x.shadowBlur = 10;
+    x.fillText(text, 256, 58);
+    if (sub) {
+      x.font = &quot;400 28px &#x27;PingFang SC&#x27;,&#x27;Microsoft YaHei&#x27;,sans-serif&quot;;
+      x.globalAlpha = 0.78;
+      x.fillText(sub, 256, 102);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
+  function makeSprite(tex, w, h) {
+    const m = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false });
+    const s = new THREE.Sprite(m);
+    s.scale.set(w, h, 1);
+    return s;
+  }
+
+  // ---------- 深空背景 ----------
+  function buildSky() {
+    const c = document.createElement(&quot;canvas&quot;);
+    c.width = 2048; c.height = 1024;
+    const x = c.getContext(&quot;2d&quot;);
+    x.fillStyle = &quot;#02030a&quot;;
+    x.fillRect(0, 0, 2048, 1024);
+
+    const blobs = [[42,20,74],[18,32,66],[16,48,66],[52,22,58],[22,54,80]];
+    for (let i = 0; i &lt; 34; i++) {
+      const col = blobs[(Math.random() * blobs.length) | 0];
+      const bx = Math.random() * 2048;
+      const by = Math.random() * 1024;
+      const r = 120 + Math.random() * 420;
+      const g = x.createRadialGradient(bx, by, 4, bx, by, r);
+      g.addColorStop(0, &quot;rgba(&quot; + col.join(&quot;,&quot;) + &quot;,&quot; + (0.05 + Math.random() * 0.08) + &quot;)&quot;);
+      g.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+      x.fillStyle = g;
+      x.fillRect(bx - r, by - r, r * 2, r * 2);
+    }
+
+    // 银河带
+    for (let i = 0; i &lt; 2600; i++) {
+      const bx = Math.random() * 2048;
+      const band = 512 + Math.sin(bx / 2048 * Math.PI * 3) * 90;
+      const by = band + (Math.random() - 0.5) * 130;
+      x.fillStyle = &quot;rgba(190,205,235,&quot; + (0.02 + Math.random() * 0.08) + &quot;)&quot;;
+      x.fillRect(bx, by, 1 + Math.random() * 1.8, 1 + Math.random() * 1.8);
+    }
+    // 恒星
+    for (let i = 0; i &lt; 1500; i++) {
+      const warm = Math.random() &lt; 0.18;
+      const a = 0.25 + Math.random() * 0.75;
+      x.fillStyle = warm ? &quot;rgba(255,225,190,&quot; + a + &quot;)&quot; : &quot;rgba(220,232,255,&quot; + a + &quot;)&quot;;
+      const s = Math.random() &lt; 0.08 ? 2.2 : 1 + Math.random() * 1.4;
+      x.fillRect(Math.random() * 2048, Math.random() * 1024, s, s);
+    }
+
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(7000, 48, 32),
+      new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide, depthWrite: false })
+    );
+    scene.add(sky);
+  }
+  buildSky();
+
+  // 前方目标星（天仓五方向）与身后太阳系
+  const tauGlow = makeSprite(GLOW_TEX, 420, 420);
+  tauGlow.position.set(0, 0, 2200);
+  tauGlow.material.color.set(0xffd9a0);
+  scene.add(tauGlow);
+  const solGlow = makeSprite(GLOW_TEX, 240, 240);
+  solGlow.position.set(0, 0, -2200);
+  solGlow.material.color.set(0xa8c8ff);
+  scene.add(solGlow);
+
+  // 流动星点（中景）
+  const STAR_N = 750;
+  const starPos = new Float32Array(STAR_N * 3);
+  for (let i = 0; i &lt; STAR_N; i++) {
+    starPos[i * 3] = (Math.random() - 0.5) * 3600;
+    starPos[i * 3 + 1] = (Math.random() - 0.5) * 3600;
+    starPos[i * 3 + 2] = (Math.random() - 0.5) * 2400;
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute(&quot;position&quot;, new THREE.BufferAttribute(starPos, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+    color: 0xcfe0ff, size: 1.5, sizeAttenuation: true,
+    transparent: true, opacity: 0.9, depthWrite: false
+  }));
+  scene.add(stars);
+
+  // 高速星痕（近景线条）
+  const STREAK_N = 220;
+  const streakPos = new Float32Array(STREAK_N * 6);
+  for (let i = 0; i &lt; STREAK_N; i++) {
+    const x = (Math.random() - 0.5) * 3200;
+    const y = (Math.random() - 0.5) * 3200;
+    const z = (Math.random() - 0.5) * 2600;
+    const len = 8 + Math.random() * 30;
+    streakPos[i * 6] = x; streakPos[i * 6 + 1] = y; streakPos[i * 6 + 2] = z;
+    streakPos[i * 6 + 3] = x; streakPos[i * 6 + 4] = y; streakPos[i * 6 + 5] = z + len;
+  }
+  const streakGeo = new THREE.BufferGeometry();
+  streakGeo.setAttribute(&quot;position&quot;, new THREE.BufferAttribute(streakPos, 3));
+  const streaks = new THREE.LineSegments(streakGeo, new THREE.LineBasicMaterial({
+    color: 0x9fc4ff, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false
+  }));
+  scene.add(streaks);
+
+  // 船周微尘
+  const DUST_N = 260;
+  const dustPos = new Float32Array(DUST_N * 3);
+  for (let i = 0; i &lt; DUST_N; i++) {
+    const r = 2.2 + Math.random() * 11;
+    const th = Math.random() * Math.PI * 2;
+    const ph = Math.acos(2 * Math.random() - 1);
+    dustPos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+    dustPos[i * 3 + 1] = r * Math.sin(ph) * Math.sin(th);
+    dustPos[i * 3 + 2] = r * Math.cos(ph);
+  }
+  const dustGeo = new THREE.BufferGeometry();
+  dustGeo.setAttribute(&quot;position&quot;, new THREE.BufferAttribute(dustPos, 3));
+  const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+    color: 0x9db8ff, size: 0.018, transparent: true, opacity: 0.5,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+  }));
+  scene.add(dust);
+
+  // ---------- 飞船 ----------
+  const ship = new THREE.Group();
+  scene.add(ship);
+  const HULL_MAT_PROTO = new THREE.MeshStandardMaterial({
+    color: 0x4d5a6a, metalness: 0.62, roughness: 0.42,
+    map: HULL_TEX, emissive: 0x06090f, transparent: true, opacity: 0.62,
+    side: THREE.DoubleSide, depthWrite: false
+  });
+  const METAL = new THREE.MeshStandardMaterial({ color: 0x8a95a4, metalness: 0.8, roughness: 0.34 });
+  const DARK_METAL = new THREE.MeshStandardMaterial({ color: 0x39424f, metalness: 0.75, roughness: 0.45 });
+
+  // 主轴
+  const spine = new THREE.Group();
+  ship.add(spine);
+  const spineHull = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, SPINE_HALF * 2, 48), METAL);
+  spine.add(spineHull);
+  for (let i = 0; i &lt; 20; i++) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.345, 0.007, 6, 40), DARK_METAL);
+    rib.position.z = -4.8 + i * 0.5;
+    spine.add(rib);
+  }
+  // 船艏
+  const nose = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.34, 0.8, 32), METAL);
+  nose.position.z = SPINE_HALF + 0.4;
+  spine.add(nose);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.17, 0.8, 24), METAL);
+  neck.position.z = SPINE_HALF + 1.15;
+  spine.add(neck);
+
+  // 前方冰盾
+  const shield = new THREE.Group();
+  ship.add(shield);
+  const shieldDisc = new THREE.Mesh(
+    new THREE.CylinderGeometry(2.45, 2.45, 0.06, 64),
+    new THREE.MeshStandardMaterial({
+      color: 0xaee2ff, metalness: 0.05, roughness: 0.12,
+      transparent: true, opacity: 0.24, side: THREE.DoubleSide, depthWrite: false
+    })
+  );
+  shieldDisc.rotation.x = Math.PI / 2;
+  shieldDisc.position.z = SPINE_HALF + 1.8;
+  shield.add(shieldDisc);
+  for (const r of [0.9, 1.65, 2.25]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.018, 6, 72), DARK_METAL);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.z = SPINE_HALF + 1.82;
+    shield.add(ring);
+  }
+  for (let i = 0; i &lt; 4; i++) {
+    const a = i * Math.PI / 2;
+    const strut = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 2.05), METAL);
+    strut.position.set(Math.cos(a) * 0.95, Math.sin(a) * 0.95, SPINE_HALF + 0.85);
+    strut.rotation.z = a;
+    shield.add(strut);
+  }
+
+  // 后部引擎（聚变脉冲）
+  const engine = new THREE.Group();
+  engine.position.z = -SPINE_HALF;
+  ship.add(engine);
+  const engineBody = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.34, 1.1, 40), METAL);
+  engineBody.position.z = -0.5;
+  engine.add(engineBody);
+  const bells = [];
+  const bellOffsets = [[0, 0], [0.28, 0], [-0.14, 0.24], [-0.14, -0.24], [0, 0.34], [0, -0.34]];
+  for (const [bx, by] of bellOffsets) {
+    const bell = new THREE.Mesh(new THREE.ConeGeometry(0.125, 0.72, 24, 1, true), DARK_METAL);
+    bell.position.set(bx, by, -1.25);
+    bell.rotation.x = -Math.PI / 2;
+    engine.add(bell);
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.125, 0.014, 6, 28),
+      new THREE.MeshBasicMaterial({ color: 0xff9a3c })
+    );
+    rim.position.set(bx, by, -0.95);
+    rim.rotation.x = -Math.PI / 2;
+    engine.add(rim);
+    bells.push(rim);
+  }
+  const plume = new THREE.Mesh(
+    new THREE.ConeGeometry(0.34, 2.6, 28, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: 0xffb45a, transparent: true, opacity: 0.22,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    })
+  );
+  plume.position.z = -3.2;
+  plume.rotation.x = Math.PI / 2;
+  engine.add(plume);
+  const engineLight = new THREE.PointLight(0xff8a3c, 0, 3.2, 2);
+  engineLight.position.z = -2.2;
+  engine.add(engineLight);
+  let nextPulse = 1.2;
+  let pulseStart = -10;
+
+  // 航行灯（左红右绿）
+  const navL = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 12),
+    new THREE.MeshBasicMaterial({ color: 0xff4a4a }));
+  navL.position.set(-0.36, 0, 4.55);
+  spine.add(navL);
+  const navR = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 12),
+    new THREE.MeshBasicMaterial({ color: 0x4aff8a }));
+  navR.position.set(0.36, 0, 4.55);
+  spine.add(navR);
+
+  const nameTag = makeSprite(labelTexture(&quot;极光号&quot;, &quot;AURORA&quot;, &quot;#eef3ff&quot;), 3.4, 0.85);
+  nameTag.position.set(0, 0.55, 2.4);
+  spine.add(nameTag);
+
+  // 船内房间（主轴，世界坐标系）
+  function buildBridge() {
+    const g = new THREE.Group();
+    g.position.set(0, 0, 4.62);
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(0.3, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: 0x27303d, metalness: 0.7, roughness: 0.35, side: THREE.DoubleSide })
+    );
+    g.add(dome);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(0.3, 32),
+      new THREE.MeshStandardMaterial({ color: 0x1b2230, metalness: 0.5, roughness: 0.6 }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.03;
+    g.add(floor);
+    for (let i = 0; i &lt; 5; i++) {
+      const a = (i / 5) * Math.PI * 2 + 0.3;
+      const console = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.06), DARK_METAL);
+      console.position.set(Math.cos(a) * 0.2, 0.02, Math.sin(a) * 0.2);
+      console.rotation.y = -a;
+      g.add(console);
+      const scr = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.035, 0.008),
+        new THREE.MeshBasicMaterial({ color: 0x3f7de0 }));
+      scr.position.set(Math.cos(a) * 0.2, 0.05, Math.sin(a) * 0.2);
+      scr.rotation.y = -a;
+      g.add(scr);
+    }
+    // 星图全息
+    const holo = new THREE.Group();
+    holo.position.y = 0.12;
+    g.add(holo);
+    for (let i = 0; i &lt; 26; i++) {
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.006 + Math.random() * 0.008, 8, 8),
+        new THREE.MeshBasicMaterial({ color: i % 3 ? 0x6fd0ff : 0xffd08a }));
+      dot.position.set((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.12, (Math.random() - 0.5) * 0.2);
+      holo.add(dot);
+    }
+    return g;
+  }
+
+  function buildAICore() {
+    const g = new THREE.Group();
+    const room = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.15, 32, 1, true),
+      new THREE.MeshStandardMaterial({ color: 0x171f2c, metalness: 0.7, roughness: 0.4, side: THREE.DoubleSide }));
+    g.add(room);
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.95, 24),
+      new THREE.MeshStandardMaterial({ color: 0x0a1824, metalness: 0.3, roughness: 0.25, emissive: 0x2fd0ff, emissiveIntensity: 0.8 }));
+    g.add(core);
+    const coreGlow = makeSprite(GLOW_TEX, 0.5, 0.5);
+    coreGlow.material.color.set(0x35d8ff);
+    coreGlow.material.opacity = 0.5;
+    coreGlow.material.blending = THREE.AdditiveBlending;
+    g.add(coreGlow);
+    for (let i = 0; i &lt; 4; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09 + i * 0.012, 0.004, 6, 28),
+        new THREE.MeshBasicMaterial({ color: 0x6fe8ff }));
+      ring.position.y = -0.3 + i * 0.2;
+      ring.rotation.x = Math.PI / 2;
+      g.add(ring);
+    }
+    return g;
+  }
+
+  function buildAlgaeLab() {
+    const g = new THREE.Group();
+    g.position.set(0, 0, -3.35);
+    const room = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.15, 32, 1, true),
+      new THREE.MeshStandardMaterial({ color: 0x1b232e, metalness: 0.65, roughness: 0.45, side: THREE.DoubleSide }));
+    g.add(room);
+    for (let i = 0; i &lt; 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const tank = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.07, 0.24),
+        new THREE.MeshStandardMaterial({ color: 0x0e2a1c, roughness: 0.3, emissive: 0x37e07a, emissiveIntensity: 0.55, transparent: true, opacity: 0.85 }));
+      tank.position.set(Math.cos(a) * 0.18, 0.02, Math.sin(a) * 0.18);
+      tank.rotation.y = -a;
+      g.add(tank);
+    }
+    const pipe = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.012, 8, 36), METAL);
+    pipe.rotation.x = Math.PI / 2;
+    pipe.position.y = 0.18;
+    g.add(pipe);
+    return g;
+  }
+
+  spine.add(buildBridge());
+  spine.add(buildAICore());
+  spine.add(buildAlgaeLab());
+
+  // ---------- 生态舱数据 ----------
+  const RING_A_DEFS = [
+    { name: &quot;喜马拉雅&quot;, en: &quot;Himalayas&quot;, ground: 0x6d7468, tree: 0x3d5a3a, trees: 26, snow: true,  sun: 0xe8f4ff, desc: &quot;高山与雪线，旧世界舱段&quot; },
+    { name: &quot;长江&quot;, en: &quot;Yangtze&quot;, ground: 0x4f8a44, tree: 0x35703a, trees: 70, water: true, town: true, sun: 0xfff1c4, desc: &quot;亚热带河谷与稻田&quot; },
+    { name: &quot;西伯利亚&quot;, en: &quot;Siberia&quot;, ground: 0xdfe7ea, tree: 0x2f4f36, trees: 80, snow: true, sun: 0xdcecff, desc: &quot;泰加林与冻土&quot; },
+    { name: &quot;伊朗&quot;, en: &quot;Iran&quot;, ground: 0xb99a68, tree: 0x6f7f4a, trees: 4, sun: 0xffe7b0, desc: &quot;干旱高原&quot; },
+    { name: &quot;蒙古&quot;, en: &quot;Mongolia&quot;, ground: 0xa8a05c, tree: 0x55733f, trees: 8, town: true, animals: true, sun: 0xffe3a0, desc: &quot;草原牧场与蒙古包&quot; },
+    { name: &quot;欧亚草原&quot;, en: &quot;the Steppes&quot;, ground: 0xb3a25f, tree: 0x55733f, trees: 6, town: true, sun: 0xffe0a5, desc: &quot;麦田与牧场；与蒙古之间是“俄罗斯轮盘赌”舱门&quot; },
+    { name: &quot;巴尔干&quot;, en: &quot;the Balkans&quot;, ground: 0x7d8a52, tree: 0x45662f, trees: 45, water: true, town: true, sun: 0xfff0c0, desc: &quot;地中海式丘陵与村庄&quot; },
+    { name: &quot;塔斯马尼亚&quot;, en: &quot;Tasmania&quot;, ground: 0x3f7a44, tree: 0x2e6a34, trees: 85, water: true, sun: 0xeef6d8, desc: &quot;温带雨林&quot; },
+    { name: &quot;冰川冻原&quot;, en: &quot;permafrost glacier&quot;, ground: 0xc8d4dc, tree: 0x4a5a60, trees: 0, snow: true, sun: 0xdff0ff, desc: &quot;永久冻土与冰川（生态区类型舱段）&quot; },
+    { name: &quot;稀树草原&quot;, en: &quot;savannah&quot;, ground: 0xa98e52, tree: 0x557f3a, trees: 12, animals: true, sun: 0xffe6a8, desc: &quot;稀树草原（生态区类型舱段）&quot; },
+    { name: &quot;灌丛&quot;, en: &quot;chaparral&quot;, ground: 0x8a7c52, tree: 0x6a7c48, trees: 18, sun: 0xffe2a0, desc: &quot;干旱灌丛带（生态区类型舱段）&quot; },
+    { name: &quot;热带季雨林&quot;, en: &quot;tropical seasonal forest&quot;, ground: 0x356f38, tree: 0x2c7a32, trees: 95, water: true, sun: 0xf7f2c8, desc: &quot;热带季雨林（生态区类型舱段）&quot; },
+  ];
+  const RING_B_DEFS = [
+    { name: &quot;新斯科舍&quot;, en: &quot;Nova Scotia&quot;, ground: 0x55703c, tree: 0x6f8f3a, tree2: 0xc86a2a, trees: 85, water: true, town: true, boats: true, sun: 0xf8edc8, desc: &quot;森林丘陵环绕长池，镇上“风湾”；黛薇一家居住于此&quot; },
+    { name: &quot;拉布拉多&quot;, en: &quot;Labrador&quot;, ground: 0xb9c6cc, tree: 0x33493f, trees: 30, water: true, snow: true, sun: 0xdcecff, desc: &quot;冰期模拟的冻原海岸&quot; },
+    { name: &quot;内华达山脉&quot;, en: &quot;the Sierra&quot;, ground: 0x5f7652, tree: 0x2f5d3d, trees: 70, water: true, sun: 0xeef4dc, desc: &quot;高山针叶林&quot; },
+    { name: &quot;北美大草原&quot;, en: &quot;the Prairie&quot;, ground: 0xb39a55, tree: 0x55733f, trees: 5, town: true, sun: 0xffe2a2, desc: &quot;金色草原与农庄&quot; },
+    { name: &quot;潘帕斯&quot;, en: &quot;the Pampas&quot;, ground: 0x9aa05a, tree: 0x55733f, trees: 3, animals: true, sun: 0xffe3a0, desc: &quot;南美草原&quot; },
+    { name: &quot;索诺拉&quot;, en: &quot;Sonora&quot;, ground: 0xc2a06a, tree: 0x5f7a4a, trees: 6, sun: 0xffe8b2, desc: &quot;沙漠&quot; },
+    { name: &quot;皮德蒙特&quot;, en: &quot;Piedmont&quot;, ground: 0x6d8648, tree: 0x3c7030, trees: 55, water: true, town: true, sun: 0xf4edc0, desc: &quot;温带丘陵&quot; },
+    { name: &quot;哥斯达黎加&quot;, en: &quot;Costa Rica&quot;, ground: 0x2f6a34, tree: 0x1f7a2c, trees: 100, water: true, town: true, sun: 0xf3f1b8, desc: &quot;热带雨林&quot; },
+    { name: &quot;亚马孙&quot;, en: &quot;Amazonia&quot;, ground: 0x2a6432, tree: 0x1e7528, trees: 110, water: true, sun: 0xf2efba, desc: &quot;热带雨林&quot; },
+    { name: &quot;奥林匹亚&quot;, en: &quot;Olympia&quot;, ground: 0x3f7444, tree: 0x275f34, trees: 90, water: true, sun: 0xe6f0d8, desc: &quot;太平洋西北温带雨林&quot; },
+    { name: &quot;巴塔哥尼亚&quot;, en: &quot;Patagonia&quot;, ground: 0x8a8158, tree: 0x4d6b3c, trees: 8, water: true, sun: 0xf0e6c8, desc: &quot;山地草原&quot; },
+    { name: &quot;牧场&quot;, en: &quot;rangeland&quot;, ground: 0x9fa05a, tree: 0x55733f, trees: 4, animals: true, town: true, sun: 0xffe1a2, desc: &quot;牧场草原（生态区类型舱段）&quot; },
+  ];
+
+  const hullMeshes = [];
+  const biomeGroups = { A: [], B: [] };
+  const spokeGroups = { A: [], B: [] };
+  const cabinMeshes = [];
+  const AI_PARTICLES = [];
+
+  function randRange(a, b) { return a + Math.random() * (b - a); }
+
+  function buildBiome(group, def, ring, index) {
+    group.userData = { biome: true, ring, index, def };
+
+    const hullMat = HULL_MAT_PROTO.clone();
+    hullMat.emissive = new THREE.Color(0x06090f);
+    const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 4, 48, 1, false), hullMat);
+    hull.userData = { pick: &quot;biome&quot;, ring, index, def };
+    group.add(hull);
+    hullMeshes.push(hull);
+
+    // 内壁弧面地形（约占下半 120°）
+    const ground = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.46, 0.46, 4, 40, 1, true, Math.PI - 1.05, 2.1),
+      new THREE.MeshStandardMaterial({ color: def.ground, metalness: 0, roughness: 0.95, side: THREE.DoubleSide })
+    );
+    group.add(ground);
+
+    // 湖泊 / 河流
+    if (def.water) {
+      const water = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.455, 0.455, 4, 24, 1, true, Math.PI - 0.4, 0.8),
+        new THREE.MeshStandardMaterial({
+          color: 0x2b6e9e, metalness: 0.05, roughness: 0.12,
+          transparent: true, opacity: 0.86, side: THREE.DoubleSide, depthWrite: false
+        })
+      );
+      group.add(water);
+    }
+
+    // 太阳管线（沿轴线的“阳光”）
+    const sunline = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.045, 0.045, 3.94, 16),
+      new THREE.MeshBasicMaterial({ color: def.sun })
+    );
+    group.add(sunline);
+    const sunGlow = makeSprite(GLOW_TEX, 1.1, 1.1);
+    sunGlow.material.color.set(def.sun);
+    sunGlow.material.opacity = 0.55;
+    sunGlow.material.blending = THREE.AdditiveBlending;
+    sunGlow.position.y = 1.9;
+    group.add(sunGlow);
+
+    // 起伏的丘陵
+    for (let i = 0; i &lt; 12; i++) {
+      const th = Math.PI + randRange(-0.95, 0.95);
+      const y = randRange(-1.9, 1.9);
+      const hill = new THREE.Mesh(
+        new THREE.SphereGeometry(randRange(0.025, 0.07), 8, 6),
+        new THREE.MeshStandardMaterial({ color: def.ground, roughness: 1 })
+      );
+      hill.position.set(Math.sin(th) * 0.455, y, Math.cos(th) * 0.455);
+      hill.scale.set(1, 0.42, 1);
+      group.add(hill);
+    }
+    if (def.snow) {
+      for (let i = 0; i &lt; 14; i++) {
+        const th = Math.PI + randRange(-1.0, 1.0);
+        const y = randRange(-1.9, 1.9);
+        const patch = new THREE.Mesh(
+          new THREE.SphereGeometry(randRange(0.02, 0.05), 8, 6),
+          new THREE.MeshStandardMaterial({ color: 0xf4f9fc, roughness: 0.9 })
+        );
+        patch.position.set(Math.sin(th) * 0.455, y, Math.cos(th) * 0.455);
+        patch.scale.set(1.25, 0.35, 1.25);
+        group.add(patch);
+      }
+    }
+
+    // 树木（实例化）
+    const treeCount = def.trees || 0;
+    if (treeCount &gt; 0) {
+      const foliage = new THREE.InstancedMesh(
+        new THREE.ConeGeometry(0.012, 0.028, 6),
+        new THREE.MeshStandardMaterial({ color: def.tree || 0x3f7040, roughness: 0.9 }),
+        treeCount
+      );
+      const trunks = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.0018, 0.0024, 0.01, 5),
+        new THREE.MeshStandardMaterial({ color: 0x4a3524, roughness: 1 }),
+        treeCount
+      );
+      const m = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const up = new THREE.Vector3();
+      const s = new THREE.Vector3();
+      const p = new THREE.Vector3();
+      const Y = new THREE.Vector3(0, 1, 0);
+      for (let i = 0; i &lt; treeCount; i++) {
+        const th = Math.PI + randRange(-1.0, 1.0);
+        if (def.water &amp;&amp; Math.abs(th - Math.PI) &lt; 0.42) { i--; continue; }
+        p.set(Math.sin(th) * 0.452, randRange(-1.88, 1.88), Math.cos(th) * 0.452);
+        up.set(Math.sin(th), 0, Math.cos(th)).normalize();
+        q.setFromUnitVectors(Y, up);
+        const sc = randRange(0.7, 1.6);
+        s.set(sc, sc, sc);
+        m.compose(p, q, s);
+        foliage.setMatrixAt(i, m);
+        trunks.setMatrixAt(i, m);
+        if (def.tree2 &amp;&amp; Math.random() &lt; 0.45) {
+          foliage.setColorAt(i, new THREE.Color(def.tree2));
+        } else {
+          foliage.setColorAt(i, new THREE.Color(def.tree));
+        }
+      }
+      foliage.instanceMatrix.needsUpdate = true;
+      if (foliage.instanceColor) foliage.instanceColor.needsUpdate = true;
+      trunks.instanceMatrix.needsUpdate = true;
+      group.add(foliage);
+      group.add(trunks);
+    }
+
+    // 房屋与灯火
+    if (def.town) {
+      const houses = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(0.014, 0.012, 0.02),
+        new THREE.MeshStandardMaterial({ color: def.name === &quot;蒙古&quot; ? 0xe8e2d0 : 0xd8cfb8, roughness: 0.9 }),
+        26
+      );
+      const windows = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(0.003, 0.0025, 0.0025),
+        new THREE.MeshBasicMaterial({ color: 0xffd98a }),
+        26
+      );
+      const m = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const up = new THREE.Vector3();
+      const s = new THREE.Vector3(1, 1, 1);
+      const p = new THREE.Vector3();
+      const Y = new THREE.Vector3(0, 1, 0);
+      for (let i = 0; i &lt; 26; i++) {
+        const th = Math.PI + randRange(-0.9, 0.9);
+        const y = randRange(-1.85, 1.85);
+        p.set(Math.sin(th) * 0.452, y, Math.cos(th) * 0.452);
+        up.set(Math.sin(th), 0, Math.cos(th)).normalize();
+        q.setFromUnitVectors(Y, up);
+        m.compose(p, q, s);
+        houses.setMatrixAt(i, m);
+        windows.setMatrixAt(i, m.clone().multiply(new THREE.Matrix4().makeTranslation(0, 0.0085, 0)));
+      }
+      houses.instanceMatrix.needsUpdate = true;
+      windows.instanceMatrix.needsUpdate = true;
+      group.add(houses);
+      group.add(windows);
+    }
+
+    // 帆船（长池）
+    if (def.boats) {
+      const sails = new THREE.InstancedMesh(
+        new THREE.ConeGeometry(0.0028, 0.008, 4),
+        new THREE.MeshStandardMaterial({ color: 0xf2f4f6, roughness: 0.6 }),
+        7
+      );
+      const hulls = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(0.0016, 0.001, 0.006),
+        new THREE.MeshStandardMaterial({ color: 0x8a5a3a, roughness: 0.8 }),
+        7
+      );
+      const m = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const up = new THREE.Vector3();
+      const s = new THREE.Vector3(1, 1, 1);
+      const p = new THREE.Vector3();
+      const Y = new THREE.Vector3(0, 1, 0);
+      for (let i = 0; i &lt; 7; i++) {
+        p.set(randRange(-0.2, 0.2), randRange(-1.7, 1.7), -0.45);
+        up.set(0, 0, -1);
+        q.setFromUnitVectors(Y, up);
+        m.compose(p, q, s);
+        sails.setMatrixAt(i, m);
+        hulls.setMatrixAt(i, m);
+      }
+      sails.instanceMatrix.needsUpdate = true;
+      hulls.instanceMatrix.needsUpdate = true;
+      group.add(sails);
+      group.add(hulls);
+    }
+
+    // 放牧的畜群
+    if (def.animals) {
+      const herd = new THREE.InstancedMesh(
+        new THREE.SphereGeometry(0.002, 6, 5),
+        new THREE.MeshStandardMaterial({ color: 0xe9e6da, roughness: 1 }),
+        22
+      );
+      const m = new THREE.Matrix4();
+      const p = new THREE.Vector3();
+      for (let i = 0; i &lt; 22; i++) {
+        const th = Math.PI + randRange(-0.85, 0.85);
+        p.set(Math.sin(th) * 0.452, randRange(-1.85, 1.85), Math.cos(th) * 0.452);
+        m.setPosition(p);
+        herd.setMatrixAt(i, m);
+      }
+      herd.instanceMatrix.needsUpdate = true;
+      group.add(herd);
+    }
+
+    // 端部舱门（15° 斜切锁门）
+    for (const sgn of [1, -1]) {
+      const hatch = new THREE.Mesh(
+        new THREE.CircleGeometry(0.44, 32),
+        new THREE.MeshBasicMaterial({ color: def.sun, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false })
+      );
+      hatch.position.y = sgn * 2.01;
+      hatch.rotation.x = Math.PI / 2 + sgn * 0.26;
+      group.add(hatch);
+    }
+  }
+
+  function buildRing(ringId, defs, spinSign, spokeOffsetDeg, zCenter) {
+    const ring = new THREE.Group();
+    ring.position.z = zCenter;
+    ring.userData = { ringId, spinSign };
+    ship.add(ring);
+
+    for (let i = 0; i &lt; 12; i++) {
+      const phi = THREE.MathUtils.degToRad(i * 30);
+      const c = Math.cos(phi), s = Math.sin(phi);
+      const T = new THREE.Vector3(-s, c, 0);
+      const O = new THREE.Vector3(c, s, 0);
+      const g = new THREE.Group();
+      g.position.set(RING_R * c, RING_R * s, 0);
+      g.quaternion.setFromRotationMatrix(
+        new THREE.Matrix4().makeBasis(
+          new THREE.Vector3(0, 0, 1),
+          T,
+          new THREE.Vector3(-c, -s, 0)
+        )
+      );
+      ring.add(g);
+      biomeGroups[ringId].push(g);
+      buildBiome(g, defs[i], ringId, i);
+    }
+
+    // 舱段之间的锁门节点
+    for (let i = 0; i &lt; 12; i++) {
+      const phi = THREE.MathUtils.degToRad(i * 30 + 15);
+      const c = Math.cos(phi), s = Math.sin(phi);
+      const node = new THREE.Group();
+      node.position.set(RING_R * c, RING_R * s, 0);
+      node.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-s, c, 0));
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.85, 0.32), METAL);
+      node.add(box);
+      ring.add(node);
+
+      let lockName = null;
+      let ringColors = [0x67a0e8];
+      if (ringId === &quot;A&quot;) {
+        if (i === 4) { lockName = &quot;俄罗斯轮盘赌&quot;; ringColors = [0x4a7be8, 0xe05050, 0xf0c040]; }
+        else if (i === 3) { lockName = &quot;基辅大门&quot;; ringColors = [0xf0c040, 0xc8ccd4]; }
+      }
+      ringColors.forEach((col, k) =&gt; {
+        const r = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.013, 6, 28),
+          new THREE.MeshBasicMaterial({ color: col }));
+        r.position.y = -0.22 + k * 0.2;
+        node.add(r);
+      });
+      if (lockName) {
+        const sp = makeSprite(labelTexture(lockName, null, &quot;#dff0ff&quot;), 1.7, 0.42);
+        sp.position.y = 0.62;
+        node.add(sp);
+      }
+    }
+
+    // 辐条与内锁定环
+    for (let k = 0; k &lt; 6; k++) {
+      const phi = THREE.MathUtils.degToRad(k * 60 + spokeOffsetDeg);
+      const c = Math.cos(phi), s = Math.sin(phi);
+      const O = new THREE.Vector3(c, s, 0);
+      const T = new THREE.Vector3(-s, c, 0);
+      const spoke = new THREE.Group();
+      spoke.quaternion.setFromRotationMatrix(
+        new THREE.Matrix4().makeBasis(
+          new THREE.Vector3(0, 0, 1),
+          O,
+          T
+        )
+      );
+      spoke.position.set(0.34 * c, 0.34 * s, 0);
+      ring.add(spoke);
+      spokeGroups[ringId].push(spoke);
+
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 7.05, 14, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0x4a5360, metalness: 0.8, roughness: 0.4, side: THREE.DoubleSide }));
+      shaft.position.y = 3.52;
+      spoke.add(shaft);
+      const glowLine = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 6.95, 8),
+        new THREE.MeshBasicMaterial({ color: 0x7fc4ff, transparent: true, opacity: 0.55 }));
+      glowLine.position.y = 3.52;
+      spoke.add(glowLine);
+      for (let h = 0; h &lt; 9; h++) {
+        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.078, 0.004, 5, 20), DARK_METAL);
+        hoop.position.y = 0.65 + h * 0.75;
+        spoke.add(hoop);
+      }
+      // 电梯轿厢
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.1),
+        new THREE.MeshStandardMaterial({ color: 0x8b96a6, metalness: 0.7, roughness: 0.4 }));
+      cabin.position.y = 3.5;
+      const cabinWin = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.08, 0.06),
+        new THREE.MeshBasicMaterial({ color: 0xffe2a0 }));
+      cabinWin.position.set(0.052, 0, 0);
+      cabin.add(cabinWin);
+      spoke.add(cabin);
+      cabin.userData = { phase: k * 1.13, dir: k % 2 ? 1 : -1 };
+      cabinMeshes.push(cabin);
+    }
+
+    const lockRing = new THREE.Mesh(new THREE.TorusGeometry(3.85, 0.028, 8, 72), DARK_METAL);
+    ring.add(lockRing);
+  }
+
+  buildRing(&quot;A&quot;, RING_A_DEFS, 1, 0, RING_Z);
+  buildRing(&quot;B&quot;, RING_B_DEFS, -1, 30, -RING_Z);
+
+  // 生态舱名称标签
+  function attachLabels(defs, ringId) {
+    for (let i = 0; i &lt; 12; i++) {
+      const phi = THREE.MathUtils.degToRad(i * 30 + 15);
+      const c = Math.cos(phi), s = Math.sin(phi);
+      const sp = makeSprite(labelTexture(defs[i].name, defs[i].en, &quot;#eef3ff&quot;), 2.2, 0.62);
+      sp.position.set((RING_R + 0.62) * c, (RING_R + 0.62) * s, 0);
+      biomeGroups[ringId][i].parent.add(sp);
+    }
+  }
+  attachLabels(RING_A_DEFS, &quot;A&quot;);
+  attachLabels(RING_B_DEFS, &quot;B&quot;);
+
+  // AI 核心上升粒子
+  const aiParticleGeo = new THREE.BufferGeometry();
+  const aiParticlePos = new Float32Array(120 * 3);
+  for (let i = 0; i &lt; 120; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 0.02 + Math.random() * 0.06;
+    aiParticlePos[i * 3] = Math.cos(a) * r;
+    aiParticlePos[i * 3 + 1] = (Math.random() - 0.5) * 1.0;
+    aiParticlePos[i * 3 + 2] = Math.sin(a) * r;
+  }
+  aiParticleGeo.setAttribute(&quot;position&quot;, new THREE.BufferAttribute(aiParticlePos, 3));
+  const aiParticles = new THREE.Points(aiParticleGeo, new THREE.PointsMaterial({
+    color: 0x6fe8ff, size: 0.006, transparent: true, opacity: 0.8,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+  }));
+  spine.add(aiParticles);
+  AI_PARTICLES.push(aiParticles);
+
+  // ---------- 内部探索地点 ----------
+  const INTERIOR = [
+    { id: &quot;bridge&quot;, label: &quot;舰桥&quot;, kind: &quot;spine&quot;, pos: [0, 0.1, 4.52], target: [0, 0.12, 4.1] },
+    { id: &quot;ai&quot;, label: &quot;飞船 AI 核心&quot;, kind: &quot;spine&quot;, pos: [0.17, 0.05, 0.15], target: [0, 0.05, 0] },
+    { id: &quot;algae&quot;, label: &quot;藻类实验室&quot;, kind: &quot;spine&quot;, pos: [0.15, 0.03, -3.5], target: [0, 0.02, -3.4] },
+    { id: &quot;spokeA&quot;, label: &quot;辐条电梯 · A 环&quot;, kind: &quot;spoke&quot;, ring: &quot;A&quot;, k: 0, y: 3.4 },
+    { id: &quot;spokeB&quot;, label: &quot;辐条电梯 · B 环&quot;, kind: &quot;spoke&quot;, ring: &quot;B&quot;, k: 2, y: 3.4 },
+    { id: &quot;biome-A-4&quot;, label: &quot;蒙古草原&quot;, kind: &quot;biome&quot;, ring: &quot;A&quot;, index: 4 },
+    { id: &quot;biome-A-2&quot;, label: &quot;西伯利亚泰加林&quot;, kind: &quot;biome&quot;, ring: &quot;A&quot;, index: 2 },
+    { id: &quot;biome-A-5&quot;, label: &quot;欧亚草原&quot;, kind: &quot;biome&quot;, ring: &quot;A&quot;, index: 5 },
+    { id: &quot;biome-B-0&quot;, label: &quot;新斯科舍 · 长池&quot;, kind: &quot;biome&quot;, ring: &quot;B&quot;, index: 0 },
+    { id: &quot;biome-B-7&quot;, label: &quot;哥斯达黎加雨林&quot;, kind: &quot;biome&quot;, ring: &quot;B&quot;, index: 7 },
+    { id: &quot;biome-B-5&quot;, label: &quot;索诺拉沙漠&quot;, kind: &quot;biome&quot;, ring: &quot;B&quot;, index: 5 },
+  ];
+
+  function resolveParent(loc) {
+    if (loc.kind === &quot;spine&quot;) return spine;
+    if (loc.kind === &quot;spoke&quot;) return spokeGroups[loc.ring][loc.k];
+    return biomeGroups[loc.ring][loc.index];
+  }
+
+  function orientCamera(loc) {
+    const parent = resolveParent(loc);
+    parent.attach(camera);
+    if (loc.kind === &quot;biome&quot;) {
+      camera.position.set(0, -1.0, -0.435);
+      const target = new THREE.Vector3(0, 1.5, -0.45);
+      const up = new THREE.Vector3(0, 0, 1);
+      setCameraBasis(camera.position, target, up);
+    } else if (loc.kind === &quot;spoke&quot;) {
+      camera.position.set(0, loc.y, 0);
+      const target = new THREE.Vector3(0, loc.y + 1, 0);
+      const up = new THREE.Vector3(0, 0, 1);
+      setCameraBasis(camera.position, target, up);
+    } else {
+      camera.position.set(loc.pos[0], loc.pos[1], loc.pos[2]);
+      const target = new THREE.Vector3(loc.target[0], loc.target[1], loc.target[2]);
+      const up = new THREE.Vector3(0, 1, 0);
+      setCameraBasis(camera.position, target, up);
+    }
+  }
+
+  function setCameraBasis(pos, target, up) {
+    const f = target.clone().sub(pos).normalize();
+    const right = new THREE.Vector3().crossVectors(f, up).normalize();
+    const u = new THREE.Vector3().crossVectors(right, f).normalize();
+    camera.quaternion.setFromRotationMatrix(
+      new THREE.Matrix4().makeBasis(right, u, f.clone().negate())
+    );
+  }
+
+  function enterInterior(id) {
+    const loc = INTERIOR.find(l =&gt; l.id === id) || id;
+    orientCamera(loc);
+    controls.enabled = false;
+    controls.autoRotate = false;
+    document.getElementById(&quot;aurora-auto-btn&quot;).setAttribute(&quot;aria-pressed&quot;, &quot;false&quot;);
+    document.getElementById(&quot;aurora-auto-btn&quot;).textContent = &quot;自动环绕&quot;;
+    document.getElementById(&quot;aurora-mode-interior&quot;).classList.add(&quot;active&quot;);
+    document.getElementById(&quot;aurora-mode-exterior&quot;).classList.remove(&quot;active&quot;);
+    document.getElementById(&quot;aurora-back-btn&quot;).hidden = false;
+    document.getElementById(&quot;aurora-locations&quot;).hidden = false;
+    document.getElementById(&quot;aurora-pick-card&quot;).hidden = true;
+    hintEl.textContent = &quot;拖动转动视角 · W/A/S/D 移动 · Q/E 升降 · 滚轮缩放视野&quot;;
+    cameraLight.intensity = 0.9;
+    for (const hull of hullMeshes) hull.material.opacity = 0.45;
+    if (loc.kind === &quot;biome&quot;) {
+      biomeGroups[loc.ring][loc.index].userData.hull.material.opacity = 1;
+    }
+  }
+
+  function exitInterior() {
+    scene.attach(camera);
+    camera.position.set(24, 13, 14);
+    controls.target.set(0, 0, 0);
+    controls.enabled = true;
+    controls.update();
+    document.getElementById(&quot;aurora-mode-exterior&quot;).classList.add(&quot;active&quot;);
+    document.getElementById(&quot;aurora-mode-interior&quot;).classList.remove(&quot;active&quot;);
+    document.getElementById(&quot;aurora-back-btn&quot;).hidden = true;
+    document.getElementById(&quot;aurora-locations&quot;).hidden = true;
+    document.getElementById(&quot;aurora-pick-card&quot;).hidden = true;
+    hintEl.textContent = &quot;拖动旋转 · 滚轮缩放 · 右键平移 · 点击生态舱查看详情&quot;;
+    cameraLight.intensity = 1.7;
+    for (const hull of hullMeshes) hull.material.opacity = 0.62;
+    currentBiomeLoc = null;
+  }
+
+  // 把每个生态舱的 hull 引用存进 group，供进入时置为不透明
+  for (const ringId of [&quot;A&quot;, &quot;B&quot;]) {
+    for (let i = 0; i &lt; 12; i++) {
+      biomeGroups[ringId][i].userData.hull = hullMeshes.find(h =&gt; h.userData.ring === ringId &amp;&amp; h.userData.index === i);
+    }
+  }
+
+  let currentBiomeLoc = null;
+  const modeInteriorBtn = document.getElementById(&quot;aurora-mode-interior&quot;);
+  const modeExteriorBtn = document.getElementById(&quot;aurora-mode-exterior&quot;);
+  const backBtn = document.getElementById(&quot;aurora-back-btn&quot;);
+  const autoBtn = document.getElementById(&quot;aurora-auto-btn&quot;);
+  const resetBtn = document.getElementById(&quot;aurora-reset-btn&quot;);
+  const specToggle = document.getElementById(&quot;aurora-spec-toggle&quot;);
+  const specPanel = document.getElementById(&quot;aurora-spec-panel&quot;);
+  const pickCard = document.getElementById(&quot;aurora-pick-card&quot;);
+  const locationsEl = document.getElementById(&quot;aurora-locations&quot;);
+
+  modeInteriorBtn.addEventListener(&quot;click&quot;, () =&gt; enterInterior(&quot;bridge&quot;));
+  modeExteriorBtn.addEventListener(&quot;click&quot;, exitInterior);
+  backBtn.addEventListener(&quot;click&quot;, exitInterior);
+  autoBtn.addEventListener(&quot;click&quot;, () =&gt; {
+    if (controls.enabled) {
+      controls.autoRotate = !controls.autoRotate;
+      autoBtn.setAttribute(&quot;aria-pressed&quot;, String(controls.autoRotate));
+      autoBtn.textContent = controls.autoRotate ? &quot;自动环绕 ✓&quot; : &quot;自动环绕&quot;;
+    }
+  });
+  resetBtn.addEventListener(&quot;click&quot;, () =&gt; {
+    if (!controls.enabled) { exitInterior(); }
+    camera.position.set(24, 13, 14);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  });
+  specToggle.addEventListener(&quot;click&quot;, () =&gt; {
+    const show = specPanel.hidden;
+    specPanel.hidden = !show;
+    specToggle.setAttribute(&quot;aria-expanded&quot;, String(show));
+    specToggle.classList.toggle(&quot;open&quot;, show);
+  });
+
+  // 内部地点按钮
+  for (const loc of INTERIOR) {
+    const b = document.createElement(&quot;button&quot;);
+    b.type = &quot;button&quot;;
+    b.textContent = loc.label;
+    b.addEventListener(&quot;click&quot;, () =&gt; enterInterior(loc.id));
+    locationsEl.appendChild(b);
+  }
+
+  // 时间倍率
+  let timeScale = 8;
+  for (const btn of document.querySelectorAll(&quot;[data-ts]&quot;)) {
+    btn.addEventListener(&quot;click&quot;, () =&gt; {
+      timeScale = Number(btn.dataset.ts);
+      document.querySelectorAll(&quot;[data-ts]&quot;).forEach(x =&gt; x.classList.toggle(&quot;active&quot;, x === btn));
+    });
+  }
+
+  // ---------- 射线拾取（点击生态舱） ----------
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  let hoverHull = null;
+  let downX = 0, downY = 0;
+
+  renderer.domElement.addEventListener(&quot;pointerdown&quot;, e =&gt; { downX = e.clientX; downY = e.clientY; });
+  renderer.domElement.addEventListener(&quot;pointerup&quot;, e =&gt; {
+    if (Math.hypot(e.clientX - downX, e.clientY - downY) &gt; 5) return;
+    if (!controls.enabled) return;
+    pickAt(e.clientX, e.clientY, true);
+  });
+  renderer.domElement.addEventListener(&quot;pointermove&quot;, e =&gt; {
+    if (controls.enabled) {
+      pointer.x = (e.clientX / renderer.domElement.clientWidth) * 2 - 1;
+      pointer.y = -(e.clientY / renderer.domElement.clientHeight) * 2 + 1;
+      pickAt(e.clientX, e.clientY, false);
+    }
+  });
+
+  function pickAt(clientX, clientY, click) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(hullMeshes, false);
+    const hit = hits[0];
+    if (!click) {
+      const target = hit ? hit.object : null;
+      if (hoverHull &amp;&amp; hoverHull !== target) setHover(hoverHull, false);
+      if (target) setHover(target, true);
+      hoverHull = target;
+      wrap.style.cursor = hit ? &quot;pointer&quot; : &quot;grab&quot;;
+      return;
+    }
+    if (!hit) {
+      pickCard.hidden = true;
+      return;
+    }
+    const d = hit.object.userData;
+    const def = d.def;
+    document.getElementById(&quot;aurora-pick-name&quot;).textContent = def.name;
+    document.getElementById(&quot;aurora-pick-en&quot;).textContent = def.en + (d.ring === &quot;A&quot; ? &quot; · A 环（旧世界）&quot; : &quot; · B 环（新世界）&quot;);
+    document.getElementById(&quot;aurora-pick-desc&quot;).textContent = def.desc;
+    pickCard.hidden = false;
+    currentBiomeLoc = { kind: &quot;biome&quot;, ring: d.ring, index: d.index, label: def.name };
+  }
+
+  function setHover(obj, on) {
+    obj.material.emissive.setHex(on ? 0x1d3a66 : 0x06090f);
+    obj.material.emissiveIntensity = on ? 1 : 1;
+  }
+
+  document.getElementById(&quot;aurora-pick-enter&quot;).addEventListener(&quot;click&quot;, () =&gt; {
+    if (currentBiomeLoc) enterInterior(currentBiomeLoc);
+  });
+
+  // ---------- 内部飞行控制 ----------
+  const keys = {};
+  window.addEventListener(&quot;keydown&quot;, e =&gt; { keys[e.code] = true; if ([&quot;KeyW&quot;,&quot;KeyA&quot;,&quot;KeyS&quot;,&quot;KeyD&quot;,&quot;KeyQ&quot;,&quot;KeyE&quot;].includes(e.code)) e.preventDefault(); });
+  window.addEventListener(&quot;keyup&quot;, e =&gt; { keys[e.code] = false; });
+
+  let lookDragging = false;
+  let lastX = 0, lastY = 0;
+  renderer.domElement.addEventListener(&quot;pointerdown&quot;, e =&gt; {
+    if (!controls.enabled) {
+      lookDragging = true;
+      lastX = e.clientX; lastY = e.clientY;
+      renderer.domElement.setPointerCapture(e.pointerId);
+    }
+  });
+  renderer.domElement.addEventListener(&quot;pointermove&quot;, e =&gt; {
+    if (lookDragging &amp;&amp; !controls.enabled) {
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      camera.rotateY(-dx * 0.0028);
+      camera.rotateX(-dy * 0.0028);
+      camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x, -1.45, 1.45);
+    }
+  });
+  renderer.domElement.addEventListener(&quot;pointerup&quot;, () =&gt; { lookDragging = false; });
+  renderer.domElement.addEventListener(&quot;wheel&quot;, e =&gt; {
+    if (!controls.enabled) {
+      e.preventDefault();
+      camera.fov = THREE.MathUtils.clamp(camera.fov + e.deltaY * 0.025, 32, 95);
+      camera.updateProjectionMatrix();
+    }
+  }, { passive: false });
+
+  function clampInterior() {
+    const p = camera.position;
+    if (camera.parent === spine) {
+      const rho = Math.hypot(p.x, p.y);
+      if (rho &gt; 0.26) { p.x *= 0.26 / rho; p.y *= 0.26 / rho; }
+      p.z = THREE.MathUtils.clamp(p.z, -4.85, 4.72);
+    } else if (camera.parent.userData &amp;&amp; camera.parent.userData.biome) {
+      const rho = Math.hypot(p.x, p.z);
+      if (rho &gt; 0.455) { p.x *= 0.455 / rho; p.z *= 0.455 / rho; }
+      if (rho &lt; 0.08) { p.x *= 0.08 / rho; p.z *= 0.08 / rho; }
+      p.y = THREE.MathUtils.clamp(p.y, -1.92, 1.92);
+      p.z = THREE.MathUtils.clamp(p.z, -0.458, 0.32);
+      p.x = THREE.MathUtils.clamp(p.x, -0.44, 0.44);
+    } else {
+      // 辐条电梯
+      const rho = Math.hypot(p.x, p.z);
+      if (rho &gt; 0.045) { p.x *= 0.045 / rho; p.z *= 0.045 / rho; }
+      p.y = THREE.MathUtils.clamp(p.y, 0.6, 7.35);
+    }
+  }
+
+  function moveCamera(dt) {
+    if (controls.enabled) return;
+    const speed = 0.14 * (keys.ShiftLeft || keys.ShiftRight ? 3 : 1);
+    const parent = camera.parent;
+    const isSpine = parent === spine;
+    const localUp = isSpine ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1);
+    const wpos = camera.getWorldPosition(new THREE.Vector3());
+    const worldForward = camera.getWorldDirection(new THREE.Vector3());
+    const toLocal = (v) =&gt; parent.worldToLocal(v.clone().add(wpos)).sub(parent.worldToLocal(wpos.clone())).normalize();
+    const f = toLocal(worldForward).multiplyScalar(speed * dt);
+    const right = new THREE.Vector3().crossVectors(f.clone().normalize(), localUp).normalize().multiplyScalar(speed * dt);
+    const up = localUp.clone().multiplyScalar(speed * dt);
+    const d = new THREE.Vector3();
+    if (keys.KeyW || keys.ArrowUp) d.add(f);
+    if (keys.KeyS || keys.ArrowDown) d.sub(f);
+    if (keys.KeyD || keys.ArrowRight) d.add(right);
+    if (keys.KeyA || keys.ArrowLeft) d.sub(right);
+    if (keys.KeyE) d.add(up);
+    if (keys.KeyQ) d.sub(up);
+    camera.position.add(d);
+    clampInterior();
+  }
+
+  // ---------- 尺寸适配 ----------
+  function resize() {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  const ro = new ResizeObserver(resize);
+  ro.observe(wrap);
+  resize();
+
+  // ---------- 主循环 ----------
+  const clock = new THREE.Clock();
+  let frames = 0, fpsTime = 0, fps = 0;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const t = clock.elapsedTime;
+
+    // 环反向旋转
+    if (timeScale &gt; 0) {
+      ship.children.forEach(child =&gt; {
+        if (child.userData.spinSign) child.rotation.z += child.userData.spinSign * OMEGA * timeScale * dt;
+      });
+    }
+
+    // 深空航行：星点与星痕向后流动
+    const starSpeed = 26 * timeScale;
+    const zArr = stars.geometry.attributes.position.array;
+    for (let i = 0; i &lt; STAR_N; i++) {
+      let z = zArr[i * 3 + 2] - starSpeed * dt;
+      if (z &lt; -1200) z += 2400;
+      zArr[i * 3 + 2] = z;
+    }
+    stars.geometry.attributes.position.needsUpdate = true;
+
+    const streakSpeed = 150 * timeScale;
+    const sArr = streaks.geometry.attributes.position.array;
+    for (let i = 0; i &lt; STREAK_N; i++) {
+      let z = sArr[i * 6 + 2] - streakSpeed * dt;
+      if (z &lt; -1300) z += 2600;
+      sArr[i * 6 + 2] = z;
+      sArr[i * 6 + 5] = z + 8 + ((i * 37) % 30);
+    }
+    streaks.geometry.attributes.position.needsUpdate = true;
+    dust.rotation.z += dt * 0.012;
+    dust.rotation.x += dt * 0.007;
+
+    // 聚变脉冲（“每秒两次的微型聚变弹”）
+    if (t &gt; nextPulse) {
+      pulseStart = t;
+      nextPulse = t + 0.48 + Math.random() * 0.08;
+    }
+    const sincePulse = t - pulseStart;
+    const flash = Math.exp(-sincePulse * 5.5);
+    engineLight.intensity = flash * 8;
+    plume.material.opacity = 0.1 + flash * 0.42;
+    plume.scale.setScalar(0.8 + flash * 0.45);
+    for (const rim of bells) rim.material.color.setHex(flash &gt; 0.15 ? 0xffc06a : 0xff8a3c);
+
+    // 航行灯闪烁
+    navL.material.opacity = 0.35 + 0.65 * (Math.sin(t * 2.4) &gt; 0 ? 1 : 0);
+    navR.material.opacity = 0.35 + 0.65 * (Math.sin(t * 2.4 + Math.PI) &gt; 0 ? 1 : 0);
+
+    // 电梯轿厢沿辐条往复
+    for (const cab of cabinMeshes) {
+      let y = cab.userData.phase + t * 0.16 * Math.max(timeScale, 0.001) * cab.userData.dir;
+      y = ((y % 14) + 14) % 14;
+      if (y &gt; 7.3) y = 14 - y;
+      cab.position.y = THREE.MathUtils.clamp(y, 0.5, 7.1);
+    }
+
+    // AI 核心粒子
+    const ap = aiParticles.geometry.attributes.position.array;
+    for (let i = 0; i &lt; 120; i++) {
+      let y = ap[i * 3 + 1] + dt * 0.05;
+      if (y &gt; 0.5) y -= 1.0;
+      ap[i * 3 + 1] = y;
+    }
+    aiParticles.geometry.attributes.position.needsUpdate = true;
+
+    moveCamera(dt);
+    controls.update();
+    renderer.render(scene, camera);
+
+    frames++;
+    fpsTime += dt;
+    if (fpsTime &gt;= 1) {
+      fps = frames / fpsTime;
+      frames = 0; fpsTime = 0;
+    }
+  }
+  animate();
+
+  window.__aurora = { ready: true, fps: () =&gt; fps, debug: { scene, ship, spine, camera } };
+  showToast(&quot;点击生态舱查看详情，或选择「内部探索」进入船舱&quot;, 4200);
+})();
+&lt;/script&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
 </body>
 </html>
