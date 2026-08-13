@@ -2,8 +2,7 @@
   "campaign_id": "20260813-deepseek-v4-pro",
   "item_id": "coding-c01",
   "model_alias": "codex-deepseek-v4-pro",
-  "source": "codex-desktop-visualize-skill",
+  "source": "codex-agent-built-project",
   "entry": "index.html",
-  "self_contained": true,
-  "index_sha256": "f5c6d14cebc29a5bcb545937582f7117ab2318b05109d03d0a688f03acda675b"
+  "index_sha256": "510ca145224e108095068d0a95eca712cdf3fa46fd8d858105aad0b78cefbc00"
 }
