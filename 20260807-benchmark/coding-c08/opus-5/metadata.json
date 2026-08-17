@@ -1,0 +1,9 @@
+{
+  "model": "Opus 5",
+  "prompt_id": "coding-c08",
+  "status": "published-with-evaluation-fix",
+  "evaluation_side_fix": "js/main.js audio initialization no longer blocks map loading",
+  "original_delivery_score_proposal": "4/10",
+  "tests": "83/83 passed",
+  "review": "See the canonical evaluation repository review record before scoring."
+}

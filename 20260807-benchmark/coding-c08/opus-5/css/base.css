@@ -1,0 +1,133 @@
+/* ==========================================================================
+   base.css — design tokens, reset and layer setup.
+   Every other stylesheet (hud / buy / menu) builds on the variables here.
+   ========================================================================== */
+
+:root {
+  --t-color: #e0a24c;
+  --t-color-dim: #8a6a34;
+  --ct-color: #5b9bdd;
+  --accent: #ffcc55;
+  --accent-2: #6ee7a8;
+  --panel: rgba(12, 14, 16, 0.72);
+  --panel-2: rgba(20, 24, 28, 0.9);
+  --panel-3: rgba(8, 10, 11, 0.94);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.28);
+  --text: #e8ece8;
+  --dim: #9aa3a0;
+  --dimmer: #6b736f;
+  --warn: #ff5a4a;
+  --hp: #8ee27a;
+  --money: #8ed06b;
+  --armor: #6fb6e8;
+  --font-cond: "Bahnschrift Condensed", "DIN Alternate", "Oswald", "Arial Narrow",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "Consolas", ui-monospace, monospace;
+  --shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+  --grit: repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, transparent 1px 3px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: #07090a;
+  color: var(--text);
+  font-family: var(--font-cond);
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app { position: fixed; inset: 0; overflow: hidden; }
+
+#view {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  cursor: none;
+}
+#view.unlocked { cursor: default; }
+
+.layer { position: absolute; inset: 0; pointer-events: none; }
+#hud-root { z-index: 10; }
+#ui-root { z-index: 30; }
+
+button, input, select { font-family: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* --- boot splash ---------------------------------------------------------- */
+#boot {
+  position: absolute; inset: 0; z-index: 90;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 22px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(70, 92, 110, .35), transparent 62%),
+    linear-gradient(180deg, #0a0d10, #05070800 70%), #06080a;
+  transition: opacity .5s ease;
+}
+#boot.hidden { opacity: 0; pointer-events: none; }
+.boot-logo {
+  font-size: clamp(30px, 5.4vw, 62px);
+  letter-spacing: .26em;
+  font-weight: 700;
+  color: #eef2ef;
+  text-shadow: 0 0 26px rgba(255, 204, 85, .28);
+}
+.boot-logo span { color: var(--accent); }
+.boot-bar {
+  width: min(380px, 54vw); height: 3px;
+  background: rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+.boot-bar i {
+  display: block; height: 100%; width: 30%;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: bootSlide 1.15s ease-in-out infinite;
+}
+@keyframes bootSlide { 0% { transform: translateX(-110%); } 100% { transform: translateX(360%); } }
+.boot-msg { color: var(--dim); letter-spacing: .18em; font-size: 13px; }
+#boot-error { position: absolute; inset: 0; display: grid; place-items: center; color: var(--warn); }
+
+/* shared helpers other stylesheets rely on */
+.slab {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(3px);
+}
+.mono { font-family: var(--font-mono); }
+.t-col { color: var(--t-color); }
+.ct-col { color: var(--ct-color); }
+.hidden { display: none !important; }
+
+/* --- map info overlay (M) -------------------------------------------------- */
+.mapinfo {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(1020px, 92vw); max-height: 84vh; overflow: auto;
+  padding: 20px 24px 16px;
+  background: var(--panel-3);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
+  box-shadow: var(--shadow);
+  z-index: 40; pointer-events: none;
+}
+.mapinfo-head { display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.mapinfo-head b { font-size: 24px; letter-spacing: .08em; }
+.mapinfo-head span { color: var(--dim); letter-spacing: .22em; font-size: 12px; text-transform: uppercase; }
+.mapinfo-desc { color: var(--dim); font-size: 13px; margin: 10px 0 14px; line-height: 1.6; }
+.mapinfo-cols { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 22px; }
+.mapinfo-cols h4 {
+  font-size: 12px; letter-spacing: .2em; color: var(--accent);
+  text-transform: uppercase; margin: 0 0 6px; font-weight: 600;
+}
+.mapinfo-cols ul { list-style: none; display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; }
+.mapinfo-cols li { font-size: 12.5px; color: #cfd6d2; display: flex; justify-content: space-between; gap: 8px; }
+.mapinfo-cols li i { color: var(--dimmer); font-style: normal; font-size: 11px; letter-spacing: .1em; }
+.mapinfo-foot { text-align: right; color: var(--dimmer); font-size: 11px; letter-spacing: .16em; margin-top: 6px; }
+
+

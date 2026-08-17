@@ -1,0 +1,17 @@
+{
+  "name": "cs-tactical-fps",
+  "version": "1.0.0",
+  "description": "Browser-based Counter-Strike style tactical FPS (Three.js)",
+  "main": "index.js",
+  "scripts": {
+    "test": "node tests/run.js",
+    "serve": "node tools/serve.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "type": "module"
+}
