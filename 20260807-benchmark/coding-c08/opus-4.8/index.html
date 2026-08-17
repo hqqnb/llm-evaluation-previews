@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tactical Strike — 战术射击</title>
+<link rel="stylesheet" href="css/style.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="game-canvas"></canvas>
+
+  <!-- HUD overlay (hidden until in-game) -->
+  <div id="hud" class="hidden">
+    <div id="crosshair">
+      <span class="ch ch-t"></span><span class="ch ch-b"></span>
+      <span class="ch ch-l"></span><span class="ch ch-r"></span>
+      <span class="ch ch-dot"></span>
+    </div>
+    <div id="hit-marker"></div>
+    <div id="flash-overlay"></div>
+    <div id="damage-vignette"></div>
+
+    <div id="topbar">
+      <div class="score t-score"><span id="score-t">0</span></div>
+      <div class="round-timer" id="round-timer">1:55</div>
+      <div class="score ct-score"><span id="score-ct">0</span></div>
+    </div>
+    <div id="round-banner"></div>
+
+    <div id="bottom-left">
+      <div class="stat health"><span class="ico">✚</span><span id="hp-val">100</span></div>
+      <div class="stat armor"><span class="ico">🛡</span><span id="armor-val">0</span></div>
+    </div>
+
+    <div id="bottom-right">
+      <div class="ammo"><span id="ammo-mag">30</span><span class="ammo-sep">/</span><span id="ammo-reserve">90</span></div>
+      <div class="weapon-name" id="weapon-name">AK-47</div>
+    </div>
+
+    <div id="bomb-status" class="hidden"></div>
+    <div id="money-hud"><span class="dollar">$</span><span id="money-val">800</span></div>
+
+    <div id="kill-feed"></div>
+
+    <div id="radar">
+      <canvas id="radar-canvas" width="260" height="260"></canvas>
+    </div>
+
+    <div id="inventory-bar"></div>
+    <div id="center-msg"></div>
+  </div>
+
+  <!-- Buy menu -->
+  <div id="buy-menu" class="overlay hidden">
+    <div class="buy-panel">
+      <div class="buy-header">
+        <h2>购买菜单 <span class="buy-money">$<span id="buy-money">0</span></span></h2>
+        <div class="buy-hint">数字键快速购买 · B 关闭</div>
+      </div>
+      <div class="buy-columns" id="buy-columns"></div>
+      <div class="buy-footer">
+        <div id="buy-owned"></div>
+        <button id="buy-close">完成 (B)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scoreboard -->
+  <div id="scoreboard" class="overlay hidden">
+    <div class="sb-panel">
+      <div class="sb-head"><span class="sb-map" id="sb-map"></span><span class="sb-score" id="sb-score"></span></div>
+      <div class="sb-teams">
+        <div class="sb-team sb-t"><h3>恐怖分子</h3><div class="sb-rows" id="sb-t-rows"></div></div>
+        <div class="sb-team sb-ct"><h3>反恐精英</h3><div class="sb-rows" id="sb-ct-rows"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main menu -->
+  <div id="main-menu" class="overlay">
+    <div class="menu-bg"></div>
+    <div class="menu-content">
+      <h1 class="game-title">TACTICAL<span>STRIKE</span></h1>
+      <p class="subtitle">经典爆破 · 5v5 战术对抗</p>
+      <div class="menu-form">
+        <div class="form-row">
+          <label>地图</label>
+          <div class="seg" id="sel-map"></div>
+        </div>
+        <div class="form-row">
+          <label>阵营</label>
+          <div class="seg" id="sel-team">
+            <button data-v="CT" class="active">反恐精英</button>
+            <button data-v="T">恐怖分子</button>
+            <button data-v="AUTO">自动分配</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>每队人数</label>
+          <div class="seg" id="sel-count">
+            <button data-v="2">2v2</button>
+            <button data-v="3" class="active">3v3</button>
+            <button data-v="5">5v5</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Bot 难度</label>
+          <div class="seg" id="sel-diff">
+            <button data-v="easy">简单</button>
+            <button data-v="normal" class="active">普通</button>
+            <button data-v="hard">困难</button>
+            <button data-v="expert">专家</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>获胜局数</label>
+          <div class="seg" id="sel-maxwin">
+            <button data-v="4">抢4</button>
+            <button data-v="8" class="active">抢8</button>
+            <button data-v="16">抢16</button>
+          </div>
+        </div>
+      </div>
+      <button id="start-btn" class="big-btn">进入战场</button>
+      <div class="controls-hint">
+        WASD 移动 · Shift 静步 · Ctrl 下蹲 · 空格 跳跃 · 左键 开火 · 右键 开镜<br/>
+        R 换弹 · 1-5 切换武器 · G 丢弃 · B 购买 · Tab 记分板 · Esc 暂停
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause menu -->
+  <div id="pause-menu" class="overlay hidden">
+    <div class="menu-content pause-content">
+      <h2>已暂停</h2>
+      <button id="resume-btn" class="big-btn">继续游戏</button>
+      <button id="restart-btn" class="menu-btn">重新开始本场</button>
+      <button id="mapselect-btn" class="menu-btn">返回主菜单</button>
+      <div class="pause-controls">
+        <label>鼠标灵敏度 <span id="sens-val">1.0</span></label>
+        <input type="range" id="sens-slider" min="0.2" max="3" step="0.1" value="1.0" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Match results -->
+  <div id="results-menu" class="overlay hidden">
+    <div class="menu-content">
+      <h1 id="result-title">胜利</h1>
+      <div id="result-score"></div>
+      <div id="result-mvp"></div>
+      <button id="rematch-btn" class="big-btn">再来一场</button>
+      <button id="tomenu-btn" class="menu-btn">返回主菜单</button>
+    </div>
+  </div>
+
+  <div id="loading" class="overlay hidden"><div class="spinner"></div><p>载入战场…</p></div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
