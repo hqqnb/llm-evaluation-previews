@@ -1,1 +1,727 @@
-<!doctype html>\n<html lang=\"zh-CN\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>弓箭射击模拟游戏</title>\n  <style>\n    :root {\n      --bg1: #78c7ff;\n      --bg2: #dff6ff;\n      --panel: rgba(255,255,255,.86);\n      --ink: #203040;\n      --accent: #d97706;\n      --green: #16a34a;\n      --red: #dc2626;\n    }\n    * { box-sizing: border-box; }\n    html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: var(--ink); }\n    body {\n      background: linear-gradient(#7dd3fc 0%, #dbeafe 65%, #86efac 65%, #4ade80 100%);\n      overflow: hidden;\n      user-select: none;\n    }\n    #game { display: block; width: 100vw; height: 100vh; cursor: crosshair; }\n    .hud {\n      position: fixed; inset: 14px auto auto 14px; z-index: 5;\n      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;\n      pointer-events: none;\n    }\n    .card {\n      background: var(--panel); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.7);\n      box-shadow: 0 8px 24px rgba(0,0,0,.12); border-radius: 14px; padding: 10px 12px;\n      pointer-events: auto;\n    }\n    .stats { font-weight: 800; line-height: 1.45; }\n    .stats span { display: inline-block; min-width: 64px; }\n    button {\n      border: 0; border-radius: 12px; padding: 10px 14px; font-weight: 800; color: white;\n      background: linear-gradient(135deg, #f59e0b, #dc2626); cursor: pointer;\n      box-shadow: 0 5px 0 rgba(100,40,0,.35); transform: translateY(0);\n    }\n    button:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(100,40,0,.35); }\n    .help { max-width: 430px; font-size: 13px; line-height: 1.45; }\n    .leaderboard {\n      position: fixed; right: 14px; top: 14px; z-index: 6; width: min(320px, calc(100vw - 28px));\n      background: var(--panel); border: 1px solid rgba(255,255,255,.7); border-radius: 16px;\n      box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 12px;\n    }\n    .leaderboard h2 { margin: 0 0 8px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }\n    .leaderboard ol { margin: 0; padding-left: 26px; max-height: 210px; overflow: auto; }\n    .leaderboard li { padding: 4px 0; font-weight: 700; }\n    .leaderboard .empty { color: #64748b; font-size: 13px; }\n    .toast {\n      position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 7;\n      background: rgba(15,23,42,.88); color: white; border-radius: 999px; padding: 11px 18px;\n      font-weight: 800; opacity: 0; transition: opacity .25s, bottom .25s; pointer-events: none;\n    }\n    .toast.show { opacity: 1; bottom: 42px; }\n    .overlay {\n      position: fixed; inset: 0; z-index: 10; display: grid; place-items: center;\n      background: rgba(15,23,42,.30); backdrop-filter: blur(2px);\n    }\n    .modal {\n      width: min(560px, calc(100vw - 30px)); background: rgba(255,255,255,.94); border-radius: 24px;\n      box-shadow: 0 24px 70px rgba(0,0,0,.28); padding: 24px; text-align: center;\n    }\n    .modal h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); }\n    .modal p { margin: 8px 0; line-height: 1.6; }\n    .big { font-size: 22px; font-weight: 900; color: var(--red); }\n    .hide { display: none; }\n    @media (max-width: 760px) {\n      .leaderboard { top: auto; bottom: 14px; right: 14px; }\n      .help { display: none; }\n      .hud { right: 14px; }\n    }\n  </style>\n</head>\n<body>\n  <canvas id=\"game\" aria-label=\"弓箭射击模拟游戏画布\"></canvas>\n\n  <div class=\"hud\">\n    <div class=\"card stats\">\n      <div>时间：<span id=\"time\">0.00s</span></div>\n      <div>命中：<span id=\"hits\">0 / 4</span></div>\n      <div>箭数：<span id=\"shots\">0</span></div>\n    </div>\n    <div class=\"card\"><button id=\"restartBtn\">重新开始</button></div>\n    <div class=\"card help\">操作：移动鼠标/手指瞄准；按住左键或触摸蓄力，松开射箭。命中四个靶子即完成，时间越短排行榜越高。</div>\n  </div>\n\n  <section class=\"leaderboard\">\n    <h2>🏆 排行榜 <button id=\"clearBtn\" title=\"清空本地排行榜\" style=\"padding:6px 9px;font-size:12px;background:linear-gradient(135deg,#64748b,#334155);\">清空</button></h2>\n    <ol id=\"board\"></ol>\n    <div id=\"emptyBoard\" class=\"empty\">暂无成绩，完成一局后自动记录。</div>\n  </section>\n\n  <div id=\"startOverlay\" class=\"overlay\">\n    <div class=\"modal\">\n      <h1>🏹 弓箭射击模拟</h1>\n      <p>场上有 <b>四个靶子</b>。按住蓄力，松开射出弓箭。</p>\n      <p>命中全部靶子后记录用时，用时越短排名越高。</p>\n      <button id=\"startBtn\" style=\"font-size:18px;padding:13px 24px;margin-top:10px;\">开始游戏</button>\n    </div>\n  </div>\n\n  <div id=\"finishOverlay\" class=\"overlay hide\">\n    <div class=\"modal\">\n      <h1>全部命中！</h1>\n      <p class=\"big\" id=\"finalTime\">用时：0.00s</p>\n      <p id=\"rankText\">成绩已记录。</p>\n      <button id=\"againBtn\" style=\"font-size:18px;padding:13px 24px;margin-top:10px;\">再来一局</button>\n    </div>\n  </div>\n\n  <div id=\"toast\" class=\"toast\">命中！</div>\n\n<script>\n(() => {\n  const canvas = document.getElementById('game');\n  const ctx = canvas.getContext('2d');\n  const timeEl = document.getElementById('time');\n  const hitsEl = document.getElementById('hits');\n  const shotsEl = document.getElementById('shots');\n  const boardEl = document.getElementById('board');\n  const emptyBoard = document.getElementById('emptyBoard');\n  const startOverlay = document.getElementById('startOverlay');\n  const finishOverlay = document.getElementById('finishOverlay');\n  const finalTimeEl = document.getElementById('finalTime');\n  const rankText = document.getElementById('rankText');\n  const toast = document.getElementById('toast');\n\n  let W = 0, H = 0, dpr = 1;\n  let running = false, finished = false;\n  let startTime = 0, elapsed = 0, shots = 0;\n  let targets = [], arrows = [], particles = [];\n  let aim = { x: 0, y: 0 };\n  let charging = false, chargeStart = 0;\n  const bow = { x: 100, y: 0 };\n  const STORAGE = 'archery_game_leaderboard_v1';\n\n  function resize() {\n    dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));\n    W = window.innerWidth; H = window.innerHeight;\n    canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);\n    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';\n    ctx.setTransform(dpr,0,0,dpr,0,0);\n    bow.y = H * 0.62;\n    if (!running || targets.length === 0) makeTargets();\n  }\n\n  function makeTargets() {\n    const minX = Math.max(360, W * 0.42);\n    const maxX = W - 95;\n    const groundY = H * 0.66;\n    const spots = [\n      { x: minX + (maxX-minX)*0.10, y: groundY - 110, r: 42 },\n      { x: minX + (maxX-minX)*0.38, y: groundY - 190, r: 38 },\n      { x: minX + (maxX-minX)*0.66, y: groundY - 95, r: 44 },\n      { x: minX + (maxX-minX)*0.88, y: groundY - 165, r: 40 },\n    ];\n    targets = spots.map((s, i) => ({ ...s, id: i + 1, hit: false, wobble: Math.random()*Math.PI*2 }));\n    if (W < 700) {\n      targets = [\n        { x: W*0.58, y: H*0.42, r: 34, id: 1, hit: false, wobble: 0 },\n        { x: W*0.78, y: H*0.34, r: 32, id: 2, hit: false, wobble: 1 },\n        { x: W*0.58, y: H*0.62, r: 34, id: 3, hit: false, wobble: 2 },\n        { x: W*0.80, y: H*0.56, r: 32, id: 4, hit: false, wobble: 3 },\n      ];\n    }\n  }\n\n  function resetGame(autoStart=false) {\n    arrows = []; particles = []; shots = 0; elapsed = 0; finished = false;\n    makeTargets(); updateHud();\n    finishOverlay.classList.add('hide');\n    if (autoStart) startGame(); else { running = false; startOverlay.classList.remove('hide'); }\n  }\n  function startGame() {\n    running = true; finished = false; elapsed = 0; startTime = performance.now();\n    startOverlay.classList.add('hide'); finishOverlay.classList.add('hide');\n  }\n\n  function getPos(e) {\n    const rect = canvas.getBoundingClientRect();\n    const p = e.touches ? e.touches[0] || e.changedTouches[0] : e;\n    return { x: p.clientX - rect.left, y: p.clientY - rect.top };\n  }\n  function pointerMove(e) { aim = getPos(e); }\n  function pointerDown(e) {\n    if (!running || finished) return;\n    e.preventDefault(); pointerMove(e); charging = true; chargeStart = performance.now();\n  }\n  function pointerUp(e) {\n    if (!running || finished || !charging) return;\n    e.preventDefault(); pointerMove(e); charging = false;\n    const held = Math.min(1.35, (performance.now() - chargeStart) / 1000);\n    const power = 620 + held * 620;\n    const dx = aim.x - bow.x, dy = aim.y - bow.y;\n    const len = Math.hypot(dx, dy) || 1;\n    arrows.push({ x: bow.x + dx/len*38, y: bow.y + dy/len*38, vx: dx/len*power, vy: dy/len*power, angle: Math.atan2(dy,dx), stuck: false, life: 0 });\n    shots++; updateHud();\n  }\n\n  function update(dt) {\n    if (running && !finished) elapsed = (performance.now() - startTime) / 1000;\n    const gravity = 420;\n    for (const a of arrows) {\n      if (a.stuck) continue;\n      a.life += dt; a.vy += gravity * dt; a.x += a.vx * dt; a.y += a.vy * dt; a.angle = Math.atan2(a.vy, a.vx);\n      for (const t of targets) {\n        if (!t.hit && Math.hypot(a.x - t.x, a.y - t.y) <= t.r) {\n          t.hit = true; a.stuck = true; a.x = t.x; a.y = t.y; a.angle = Math.atan2(a.vy, a.vx);\n          burst(t.x, t.y); showToast('命中靶子 ' + t.id + '！'); updateHud(); checkFinish(); break;\n        }\n      }\n    }\n    arrows = arrows.filter(a => a.stuck || (a.x > -120 && a.x < W+160 && a.y < H+160 && a.life < 6));\n    for (const p of particles) { p.life -= dt; p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 260*dt; }\n    particles = particles.filter(p => p.life > 0);\n  }\n\n  function burst(x,y) {\n    for (let i=0;i<28;i++) {\n      const ang = Math.random()*Math.PI*2, sp = 70 + Math.random()*240;\n      particles.push({ x, y, vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp, life: .45 + Math.random()*.45, color: ['#facc15','#ef4444','#2563eb','#ffffff'][i%4] });\n    }\n  }\n  function checkFinish() {\n    if (targets.every(t => t.hit)) {\n      finished = true; running = false; const score = elapsed;\n      const rank = saveScore(score, shots); renderBoard();\n      finalTimeEl.textContent = `用时：${score.toFixed(2)}s（${shots} 箭）`;\n      rankText.textContent = `成绩已记录，本次排名第 ${rank} 名。`;\n      setTimeout(() => finishOverlay.classList.remove('hide'), 500);\n    }\n  }\n  function updateHud() {\n    timeEl.textContent = elapsed.toFixed(2) + 's';\n    hitsEl.textContent = targets.filter(t=>t.hit).length + ' / 4';\n    shotsEl.textContent = String(shots);\n  }\n\n  function draw() {\n    ctx.clearRect(0,0,W,H);\n    drawScene(); drawTargets(); drawBow(); drawArrows(); drawParticles(); drawAim();\n    updateHud();\n  }\n  function drawScene() {\n    // clouds\n    ctx.save(); ctx.globalAlpha=.75; ctx.fillStyle='white';\n    [[W*.18,H*.16,42],[W*.48,H*.12,34],[W*.78,H*.19,46]].forEach(c=>{\n      ctx.beginPath(); ctx.arc(c[0],c[1],c[2],0,7); ctx.arc(c[0]+c[2]*.8,c[1]+8,c[2]*.75,0,7); ctx.arc(c[0]-c[2]*.75,c[1]+10,c[2]*.65,0,7); ctx.fill();\n    }); ctx.restore();\n    // ground\n    ctx.fillStyle = '#22c55e'; ctx.fillRect(0,H*.66,W,H*.34);\n    ctx.fillStyle = 'rgba(21,128,61,.22)';\n    for(let x=-30;x<W;x+=55){ ctx.beginPath(); ctx.ellipse(x,H*.70+Math.sin(x)*8,45,8,0,0,7); ctx.fill(); }\n  }\n  function drawTargets() {\n    for (const t of targets) {\n      // stand\n      ctx.strokeStyle = '#7c2d12'; ctx.lineWidth = 8; ctx.lineCap='round';\n      ctx.beginPath(); ctx.moveTo(t.x, t.y+t.r); ctx.lineTo(t.x, H*.66+20); ctx.stroke();\n      ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(t.x, H*.66-4); ctx.lineTo(t.x-32,H*.66+34); ctx.moveTo(t.x,H*.66-4); ctx.lineTo(t.x+32,H*.66+34); ctx.stroke();\n      ctx.save(); ctx.translate(t.x,t.y); if(t.hit) ctx.globalAlpha=.45;\n      const rings = [['#ef4444',1],['#fff',.78],['#2563eb',.58],['#fff',.38],['#facc15',.20]];\n      rings.forEach(([col,sc]) => { ctx.fillStyle=col; ctx.beginPath(); ctx.arc(0,0,t.r*sc,0,Math.PI*2); ctx.fill(); });\n      ctx.strokeStyle='#111827'; ctx.lineWidth=2; ctx.stroke();\n      if (t.hit) { ctx.fillStyle='#16a34a'; ctx.font='bold 22px system-ui'; ctx.textAlign='center'; ctx.fillText('✓',0,8); }\n      ctx.restore();\n    }\n  }\n  function drawBow() {\n    const dx = aim.x - bow.x, dy = aim.y - bow.y, ang = Math.atan2(dy, dx);\n    const pull = charging ? Math.min(32, (performance.now()-chargeStart)/1000*34) : 0;\n    ctx.save(); ctx.translate(bow.x,bow.y); ctx.rotate(ang);\n    ctx.strokeStyle = '#92400e'; ctx.lineWidth = 8; ctx.lineCap='round';\n    ctx.beginPath(); ctx.arc(0,0,48,-1.15,1.15); ctx.stroke();\n    ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2;\n    ctx.beginPath(); ctx.moveTo(20,-44); ctx.lineTo(-pull,0); ctx.lineTo(20,44); ctx.stroke();\n    if (charging) { ctx.strokeStyle='#374151'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(-pull-12,0); ctx.lineTo(54,0); ctx.stroke(); }\n    ctx.restore();\n  }\n  function drawArrows() {\n    for (const a of arrows) {\n      ctx.save(); ctx.translate(a.x,a.y); ctx.rotate(a.angle);\n      ctx.strokeStyle='#4b5563'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(-30,0); ctx.lineTo(18,0); ctx.stroke();\n      ctx.fillStyle='#111827'; ctx.beginPath(); ctx.moveTo(26,0); ctx.lineTo(12,-6); ctx.lineTo(12,6); ctx.closePath(); ctx.fill();\n      ctx.fillStyle='#dc2626'; ctx.beginPath(); ctx.moveTo(-30,0); ctx.lineTo(-43,-8); ctx.lineTo(-38,0); ctx.lineTo(-43,8); ctx.closePath(); ctx.fill();\n      ctx.restore();\n    }\n  }\n  function drawParticles() {\n    for (const p of particles) { ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,7); ctx.fill(); ctx.globalAlpha=1; }\n  }\n  function drawAim() {\n    if (!running || finished) return;\n    ctx.save(); ctx.strokeStyle='rgba(15,23,42,.55)'; ctx.lineWidth=1.5; ctx.setLineDash([5,6]);\n    ctx.beginPath(); ctx.moveTo(bow.x,bow.y); ctx.lineTo(aim.x,aim.y); ctx.stroke(); ctx.setLineDash([]);\n    ctx.strokeStyle='rgba(220,38,38,.9)'; ctx.lineWidth=2;\n    ctx.beginPath(); ctx.arc(aim.x,aim.y,13,0,7); ctx.moveTo(aim.x-20,aim.y); ctx.lineTo(aim.x-7,aim.y); ctx.moveTo(aim.x+7,aim.y); ctx.lineTo(aim.x+20,aim.y); ctx.moveTo(aim.x,aim.y-20); ctx.lineTo(aim.x,aim.y-7); ctx.moveTo(aim.x,aim.y+7); ctx.lineTo(aim.x,aim.y+20); ctx.stroke();\n    if (charging) { const pct=Math.min(1,(performance.now()-chargeStart)/1350); ctx.fillStyle='rgba(245,158,11,.85)'; ctx.fillRect(aim.x-35,aim.y+26,70*pct,7); ctx.strokeStyle='#111827'; ctx.strokeRect(aim.x-35,aim.y+26,70,7); }\n    ctx.restore();\n  }\n\n  function loadScores() { try { return JSON.parse(localStorage.getItem(STORAGE) || '[]'); } catch { return []; } }\n  function saveScore(time, shots) {\n    const list = loadScores(); list.push({ time, shots, date: new Date().toLocaleString() });\n    list.sort((a,b) => a.time - b.time || a.shots - b.shots); const trimmed = list.slice(0,10);\n    localStorage.setItem(STORAGE, JSON.stringify(trimmed));\n    return trimmed.findIndex(s => s.time === time && s.shots === shots) + 1 || trimmed.length;\n  }\n  function renderBoard() {\n    const list = loadScores(); boardEl.innerHTML=''; emptyBoard.style.display = list.length ? 'none' : 'block';\n    list.forEach(s => { const li=document.createElement('li'); li.textContent = `${s.time.toFixed(2)}s · ${s.shots} 箭 · ${s.date}`; boardEl.appendChild(li); });\n  }\n  function showToast(msg) { toast.textContent=msg; toast.classList.add('show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>toast.classList.remove('show'),900); }\n\n  let last = performance.now();\n  function loop(now) { const dt = Math.min(.033, (now-last)/1000); last=now; update(dt); draw(); requestAnimationFrame(loop); }\n\n  window.addEventListener('resize', resize);\n  canvas.addEventListener('mousemove', pointerMove);\n  canvas.addEventListener('mousedown', pointerDown);\n  window.addEventListener('mouseup', pointerUp);\n  canvas.addEventListener('touchstart', pointerDown, {passive:false});\n  canvas.addEventListener('touchmove', pointerMove, {passive:false});\n  canvas.addEventListener('touchend', pointerUp, {passive:false});\n  document.getElementById('startBtn').onclick = () => resetGame(true);\n  document.getElementById('restartBtn').onclick = () => resetGame(true);\n  document.getElementById('againBtn').onclick = () => resetGame(true);\n  document.getElementById('clearBtn').onclick = () => { if(confirm('确定清空排行榜？')) { localStorage.removeItem(STORAGE); renderBoard(); } };\n\n  resize(); renderBoard(); aim = { x: W*.55, y: H*.45 }; requestAnimationFrame(loop);\n})();\n</script>\n</body>\n</html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>弓箭射击模拟游戏</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      background: linear-gradient(#8fd3ff, #dff5ff 65%, #7ccd65 65%);
+      color: #222;
+    }
+
+    .wrap {
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    h1 {
+      margin: 6px 0;
+      font-size: 28px;
+    }
+
+    .panel {
+      width: min(1000px, 100%);
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 12px;
+    }
+
+    .game-box,
+    .side-box {
+      background: rgba(255, 255, 255, 0.88);
+      border: 2px solid rgba(0, 0, 0, 0.15);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background:
+        radial-gradient(circle at 80% 15%, rgba(255,255,255,0.8) 0 4%, transparent 4.5%),
+        linear-gradient(#8fd3ff 0 64%, #7ccd65 64% 100%);
+      cursor: crosshair;
+    }
+
+    .side-box {
+      padding: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      background: #f4f7fb;
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid #d7e0ea;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .stat span {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #236bff;
+      color: white;
+      transition: 0.15s;
+    }
+
+    button:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #4b5563;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0 14px;
+      flex-wrap: wrap;
+    }
+
+    .help {
+      font-size: 14px;
+      line-height: 1.65;
+      background: #fff8dc;
+      border: 1px solid #eadf9b;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+
+    .leaderboard h2 {
+      margin: 8px 0;
+      font-size: 20px;
+    }
+
+    ol {
+      padding-left: 24px;
+      margin: 0;
+    }
+
+    li {
+      padding: 6px 0;
+      border-bottom: 1px dashed #ddd;
+      font-size: 15px;
+    }
+
+    .empty {
+      color: #777;
+      font-size: 14px;
+      padding: 8px 0;
+    }
+
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 10;
+      padding: 20px;
+    }
+
+    .modal {
+      width: min(420px, 100%);
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+      text-align: center;
+    }
+
+    .modal h2 {
+      margin-top: 0;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 16px;
+      margin: 8px 0 12px;
+    }
+
+    @media (max-width: 820px) {
+      .panel {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>弓箭射击模拟游戏</h1>
+
+    <div class="panel">
+      <div class="game-box">
+        <canvas id="game" width="960" height="540"></canvas>
+      </div>
+
+      <div class="side-box">
+        <div class="stats">
+          <div class="stat">
+            <b>用时</b>
+            <span id="time">0.00s</span>
+          </div>
+          <div class="stat">
+            <b>命中</b>
+            <span id="hits">0 / 4</span>
+          </div>
+          <div class="stat">
+            <b>射箭次数</b>
+            <span id="shots">0</span>
+          </div>
+          <div class="stat">
+            <b>状态</b>
+            <span id="state">待开始</span>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="startBtn">开始游戏</button>
+          <button id="resetBtn" class="secondary">重置本局</button>
+          <button id="clearBtn" class="secondary">清空排行榜</button>
+        </div>
+
+        <div class="help">
+          <b>玩法：</b><br />
+          1. 点击“开始游戏”后计时开始。<br />
+          2. 在画面中按住鼠标或手指拖动瞄准。<br />
+          3. 松开即可射箭，命中四个靶子后结束。<br />
+          4. 完成时间越短，排行榜名次越高。
+        </div>
+
+        <div class="leaderboard">
+          <h2>排行榜</h2>
+          <ol id="board"></ol>
+          <div id="emptyBoard" class="empty">暂无成绩</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalMask" class="modal-mask">
+    <div class="modal">
+      <h2>全部命中！</h2>
+      <p>你的完成时间：<b id="finalTime">0.00s</b></p>
+      <p>请输入名字保存成绩：</p>
+      <input id="playerName" maxlength="16" placeholder="例如：神射手" />
+      <button id="saveScoreBtn">保存到排行榜</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const timeEl = document.getElementById("time");
+    const hitsEl = document.getElementById("hits");
+    const shotsEl = document.getElementById("shots");
+    const stateEl = document.getElementById("state");
+    const boardEl = document.getElementById("board");
+    const emptyBoardEl = document.getElementById("emptyBoard");
+
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    const modalMask = document.getElementById("modalMask");
+    const finalTimeEl = document.getElementById("finalTime");
+    const playerNameEl = document.getElementById("playerName");
+    const saveScoreBtn = document.getElementById("saveScoreBtn");
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const bow = { x: 95, y: 390 };
+    const gravity = 650;
+    const maxPull = 170;
+    const minShootPull = 15;
+
+    let gameState = "idle";
+    let startTime = 0;
+    let finishTime = 0;
+    let elapsed = 0;
+    let shots = 0;
+    let aiming = false;
+    let aimPoint = { x: bow.x + 120, y: bow.y - 30 };
+    let arrow = null;
+    let lastFrame = performance.now();
+
+    let targets = [];
+
+    function createTargets() {
+      return [
+        { x: 745, y: 160, r: 38, hit: false },
+        { x: 860, y: 245, r: 36, hit: false },
+        { x: 705, y: 335, r: 34, hit: false },
+        { x: 830, y: 420, r: 32, hit: false }
+      ];
+    }
+
+    function resetGame(startImmediately = false) {
+      targets = createTargets();
+      shots = 0;
+      elapsed = 0;
+      finishTime = 0;
+      arrow = null;
+      aiming = false;
+      aimPoint = { x: bow.x + 120, y: bow.y - 30 };
+      gameState = startImmediately ? "playing" : "idle";
+      if (startImmediately) startTime = performance.now();
+      updateHUD();
+    }
+
+    function startGame() {
+      resetGame(true);
+    }
+
+    function finishGame() {
+      gameState = "finished";
+      finishTime = elapsed;
+      finalTimeEl.textContent = finishTime.toFixed(2) + "s";
+      modalMask.style.display = "flex";
+      playerNameEl.value = "";
+      setTimeout(() => playerNameEl.focus(), 50);
+      updateHUD();
+    }
+
+    function allTargetsHit() {
+      return targets.every(t => t.hit);
+    }
+
+    function hitCount() {
+      return targets.filter(t => t.hit).length;
+    }
+
+    function updateHUD() {
+      timeEl.textContent = elapsed.toFixed(2) + "s";
+      hitsEl.textContent = `${hitCount()} / 4`;
+      shotsEl.textContent = shots;
+
+      if (gameState === "idle") stateEl.textContent = "待开始";
+      if (gameState === "playing") stateEl.textContent = "进行中";
+      if (gameState === "finished") stateEl.textContent = "已完成";
+    }
+
+    function getMousePos(evt) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+      return {
+        x: (clientX - rect.left) * W / rect.width,
+        y: (clientY - rect.top) * H / rect.height
+      };
+    }
+
+    function clampAimPoint(p) {
+      let dx = p.x - bow.x;
+      let dy = p.y - bow.y;
+      const d = Math.hypot(dx, dy);
+      if (d > maxPull) {
+        dx = dx / d * maxPull;
+        dy = dy / d * maxPull;
+      }
+      return { x: bow.x + dx, y: bow.y + dy };
+    }
+
+    function pointerDown(evt) {
+      if (gameState !== "playing") return;
+      evt.preventDefault();
+      aiming = true;
+      aimPoint = clampAimPoint(getMousePos(evt));
+    }
+
+    function pointerMove(evt) {
+      if (!aiming || gameState !== "playing") return;
+      evt.preventDefault();
+      aimPoint = clampAimPoint(getMousePos(evt));
+    }
+
+    function pointerUp(evt) {
+      if (!aiming || gameState !== "playing") return;
+      evt.preventDefault();
+      aiming = false;
+
+      const dx = aimPoint.x - bow.x;
+      const dy = aimPoint.y - bow.y;
+      const pull = Math.hypot(dx, dy);
+
+      if (pull < minShootPull) return;
+
+      shots++;
+
+      arrow = {
+        x: bow.x,
+        y: bow.y,
+        vx: dx * 4.1,
+        vy: dy * 4.1,
+        angle: Math.atan2(dy, dx)
+      };
+
+      updateHUD();
+    }
+
+    canvas.addEventListener("mousedown", pointerDown);
+    canvas.addEventListener("mousemove", pointerMove);
+    window.addEventListener("mouseup", pointerUp);
+
+    canvas.addEventListener("touchstart", pointerDown, { passive: false });
+    canvas.addEventListener("touchmove", pointerMove, { passive: false });
+    window.addEventListener("touchend", pointerUp, { passive: false });
+
+    startBtn.addEventListener("click", startGame);
+    resetBtn.addEventListener("click", () => resetGame(gameState === "playing"));
+    clearBtn.addEventListener("click", () => {
+      if (confirm("确定清空排行榜吗？")) {
+        localStorage.removeItem("archeryLeaderboard");
+        renderLeaderboard();
+      }
+    });
+
+    saveScoreBtn.addEventListener("click", saveScore);
+
+    playerNameEl.addEventListener("keydown", e => {
+      if (e.key === "Enter") saveScore();
+    });
+
+    function saveScore() {
+      const name = playerNameEl.value.trim() || "匿名玩家";
+      const list = getLeaderboard();
+
+      list.push({
+        name,
+        time: Number(finishTime.toFixed(2)),
+        date: new Date().toLocaleString()
+      });
+
+      list.sort((a, b) => a.time - b.time);
+      localStorage.setItem("archeryLeaderboard", JSON.stringify(list.slice(0, 10)));
+
+      modalMask.style.display = "none";
+      renderLeaderboard();
+    }
+
+    function getLeaderboard() {
+      try {
+        return JSON.parse(localStorage.getItem("archeryLeaderboard")) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function renderLeaderboard() {
+      const list = getLeaderboard();
+      boardEl.innerHTML = "";
+
+      emptyBoardEl.style.display = list.length ? "none" : "block";
+
+      list.forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML = `<b>${escapeHtml(item.name)}</b> - ${item.time.toFixed(2)}s<br><small>${item.date}</small>`;
+        boardEl.appendChild(li);
+      });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, ch => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[ch]));
+    }
+
+    function update(dt) {
+      if (gameState === "playing") {
+        elapsed = (performance.now() - startTime) / 1000;
+      }
+
+      if (arrow && gameState === "playing") {
+        arrow.x += arrow.vx * dt;
+        arrow.y += arrow.vy * dt;
+        arrow.vy += gravity * dt;
+        arrow.angle = Math.atan2(arrow.vy, arrow.vx);
+
+        for (const t of targets) {
+          if (!t.hit) {
+            const d = Math.hypot(arrow.x - t.x, arrow.y - t.y);
+            if (d <= t.r) {
+              t.hit = true;
+              arrow = null;
+              if (allTargetsHit()) finishGame();
+              break;
+            }
+          }
+        }
+
+        if (arrow && (arrow.x > W + 80 || arrow.x < -80 || arrow.y > H + 80 || arrow.y < -120)) {
+          arrow = null;
+        }
+      }
+
+      updateHUD();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      drawScene();
+      drawTargets();
+      drawBow();
+
+      if (aiming && gameState === "playing") {
+        drawAimGuide();
+      }
+
+      if (arrow) {
+        drawArrow(arrow.x, arrow.y, arrow.angle);
+      }
+
+      if (gameState === "idle") {
+        drawCenterText("点击右侧“开始游戏”开始挑战");
+      }
+
+      if (gameState === "finished") {
+        drawCenterText("挑战完成！");
+      }
+    }
+
+    function drawScene() {
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      drawCloud(160, 90, 1.1);
+      drawCloud(450, 70, 0.9);
+
+      ctx.fillStyle = "#6ebb54";
+      ctx.fillRect(0, 350, W, H - 350);
+
+      ctx.fillStyle = "#4b9c3d";
+      for (let x = 0; x < W; x += 32) {
+        ctx.beginPath();
+        ctx.moveTo(x, H);
+        ctx.lineTo(x + 12, 365);
+        ctx.lineTo(x + 24, H);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "#85562a";
+      ctx.fillRect(55, 352, 80, 12);
+    }
+
+    function drawCloud(x, y, s) {
+      ctx.beginPath();
+      ctx.arc(x, y, 22 * s, 0, Math.PI * 2);
+      ctx.arc(x + 24 * s, y - 10 * s, 28 * s, 0, Math.PI * 2);
+      ctx.arc(x + 55 * s, y, 24 * s, 0, Math.PI * 2);
+      ctx.arc(x + 28 * s, y + 12 * s, 24 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawTargets() {
+      targets.forEach((t, i) => {
+        ctx.save();
+
+        ctx.strokeStyle = "#5b3a1c";
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(t.x, t.y + t.r);
+        ctx.lineTo(t.x, H - 58);
+        ctx.stroke();
+
+        ctx.fillStyle = "#754c24";
+        ctx.fillRect(t.x - 28, H - 62, 56, 12);
+
+        ctx.translate(t.x, t.y);
+
+        if (t.hit) {
+          ctx.globalAlpha = 0.45;
+        }
+
+        const rings = [
+          { r: t.r, c: "#f3f3f3" },
+          { r: t.r * 0.78, c: "#e33b3b" },
+          { r: t.r * 0.55, c: "#f3f3f3" },
+          { r: t.r * 0.34, c: "#236bff" },
+          { r: t.r * 0.16, c: "#ffd43b" }
+        ];
+
+        rings.forEach(ring => {
+          ctx.beginPath();
+          ctx.fillStyle = ring.c;
+          ctx.arc(0, 0, ring.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(0,0,0,0.25)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#111";
+        ctx.font = "bold 14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(t.hit ? "命中" : String(i + 1), 0, -t.r - 10);
+
+        ctx.restore();
+      });
+    }
+
+    function drawBow() {
+      ctx.save();
+      ctx.translate(bow.x, bow.y);
+
+      ctx.strokeStyle = "#5b2c06";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(0, 0, 70, -Math.PI / 2, Math.PI / 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = "#eee";
+      ctx.lineWidth = 2;
+
+      if (aiming && gameState === "playing") {
+        ctx.beginPath();
+        ctx.moveTo(0, -70);
+        ctx.lineTo(aimPoint.x - bow.x, aimPoint.y - bow.y);
+        ctx.lineTo(0, 70);
+        ctx.stroke();
+
+        drawArrow(aimPoint.x - bow.x, aimPoint.y - bow.y, Math.atan2(aimPoint.y - bow.y, aimPoint.x - bow.x), true);
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(0, -70);
+        ctx.lineTo(0, 70);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#2b1606";
+      ctx.beginPath();
+      ctx.arc(0, 0, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawAimGuide() {
+      const dx = aimPoint.x - bow.x;
+      const dy = aimPoint.y - bow.y;
+      const power = Math.min(Math.hypot(dx, dy) / maxPull, 1);
+
+      ctx.strokeStyle = `rgba(35, 107, 255, ${0.25 + power * 0.5})`;
+      ctx.setLineDash([8, 8]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bow.x, bow.y);
+      ctx.lineTo(aimPoint.x, aimPoint.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "#111";
+      ctx.font = "14px Arial";
+      ctx.fillText(`力度：${Math.round(power * 100)}%`, bow.x + 12, bow.y - 92);
+    }
+
+    function drawArrow(x, y, angle, local = false) {
+      ctx.save();
+
+      if (!local) {
+        ctx.translate(x, y);
+      } else {
+        ctx.translate(x, y);
+      }
+
+      ctx.rotate(angle);
+
+      ctx.strokeStyle = "#3a2512";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-28, 0);
+      ctx.lineTo(22, 0);
+      ctx.stroke();
+
+      ctx.fillStyle = "#555";
+      ctx.beginPath();
+      ctx.moveTo(30, 0);
+      ctx.lineTo(18, -6);
+      ctx.lineTo(18, 6);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#d13b3b";
+      ctx.beginPath();
+      ctx.moveTo(-30, 0);
+      ctx.lineTo(-44, -8);
+      ctx.lineTo(-39, 0);
+      ctx.lineTo(-44, 8);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawCenterText(text) {
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.52)";
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = "white";
+      ctx.font = "bold 34px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, W / 2, H / 2);
+
+      ctx.restore();
+    }
+
+    function loop(now) {
+      const dt = Math.min((now - lastFrame) / 1000, 0.033);
+      lastFrame = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    resetGame(false);
+    renderLeaderboard();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

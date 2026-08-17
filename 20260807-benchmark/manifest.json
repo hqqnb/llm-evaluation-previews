@@ -1,11 +1,12 @@
 {
   "campaign_id": "20260807-benchmark",
   "generated_at": "2026-08-07T08:40:57.570101+00:00",
+  "updated_at": "2026-08-17T12:10:55Z",
   "source_repository": "hqqnb/llm-evaluation-question-bank",
   "extraction_policy": "mechanical-only-no-code-repair",
   "counts": {
-    "published": 64,
-    "not_extracted": 4,
-    "not_successful": 4
+    "published": 67,
+    "not_extracted": 3,
+    "not_successful": 2
   }
 }

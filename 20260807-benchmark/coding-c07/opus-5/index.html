@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>3D 数据可视化地球仪 · Three.js</title>
+<style>
+  :root{
+    --bg:#03060d; --panel:rgba(10,18,32,.82); --line:rgba(120,180,255,.18);
+    --txt:#dce8ff; --dim:#8ea6c8; --acc:#4fd1ff; --acc2:#ffb347;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+    font:13px/1.5 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;overflow:hidden}
+  #gl{position:fixed;inset:0;display:block;touch-action:none}
+
+  /* 载入遮罩 */
+  #loading{position:fixed;inset:0;display:grid;place-content:center;gap:14px;justify-items:center;
+    background:radial-gradient(ellipse at center,#08131f,#02040a);z-index:50;transition:opacity .6s}
+  #loading.off{opacity:0;pointer-events:none}
+  .ring{width:46px;height:46px;border:3px solid rgba(79,209,255,.2);border-top-color:var(--acc);
+    border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #loadTxt{color:var(--dim);font-size:12px;letter-spacing:.5px}
+
+  /* 控制面板 */
+  #panel{position:fixed;top:14px;right:14px;width:286px;max-height:calc(100vh - 28px);
+    background:var(--panel);backdrop-filter:blur(12px);border:1px solid var(--line);
+    border-radius:12px;z-index:20;display:flex;flex-direction:column;
+    box-shadow:0 12px 40px rgba(0,0,0,.55);overflow:hidden}
+  #panel .hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 12px;border-bottom:1px solid var(--line);font-weight:600;letter-spacing:.5px}
+  #panel .hd small{color:var(--dim);font-weight:400;display:block;font-size:11px;letter-spacing:0}
+  #panel .bd{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+  #panel.min .bd{display:none}
+  .lbl{display:flex;justify-content:space-between;align-items:center;color:var(--dim);
+    font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+  .lbl b{color:var(--acc);font-variant-numeric:tabular-nums}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;padding:7px 0;border:1px solid var(--line);background:rgba(255,255,255,.04);
+    color:var(--dim);border-radius:8px;cursor:pointer;font-size:12px;transition:.18s}
+  .seg button:hover{color:var(--txt);border-color:rgba(120,180,255,.4)}
+  .seg button.on{background:linear-gradient(180deg,rgba(79,209,255,.28),rgba(79,209,255,.1));
+    color:#fff;border-color:rgba(79,209,255,.7)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:3px;
+    background:linear-gradient(90deg,#2a4a6a,#4fd1ff);outline:none;margin:0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:#fff;border:2px solid var(--acc);cursor:pointer;box-shadow:0 0 8px rgba(79,209,255,.8)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;
+    border:2px solid var(--acc);cursor:pointer}
+  .row{display:flex;gap:6px;align-items:center}
+  .btn{padding:7px 10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--txt);
+    border-radius:8px;cursor:pointer;font-size:12px}
+  .btn:hover{border-color:var(--acc);color:#fff}
+  select{flex:1;background:rgba(255,255,255,.05);color:var(--txt);border:1px solid var(--line);
+    border-radius:8px;padding:6px;font-size:12px}
+  .chk{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
+  .chk label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer}
+  .chk input{accent-color:var(--acc)}
+  #rank{display:flex;flex-direction:column;gap:3px;font-size:11px}
+  #rank .r{display:flex;justify-content:space-between;gap:6px;padding:3px 6px;border-radius:5px;
+    background:rgba(255,255,255,.035)}
+  #rank .r i{font-style:normal;color:var(--dim);font-variant-numeric:tabular-nums}
+
+  /* 图例 */
+  #legend{position:fixed;left:14px;bottom:14px;z-index:20;background:var(--panel);
+    backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:214px}
+  #legend .t{font-size:11px;color:var(--dim);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
+  #bar{height:9px;border-radius:5px;margin-bottom:4px}
+  #legend .sc{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);
+    font-variant-numeric:tabular-nums}
+  #legend .hint{margin-top:7px;font-size:11px;color:#6f88a8;line-height:1.5}
+
+  /* HUD */
+  #hud{position:fixed;left:14px;top:14px;z-index:20;font-size:11px;color:var(--dim);
+    background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 10px;
+    font-variant-numeric:tabular-nums;line-height:1.7}
+  #hud b{color:var(--acc2)}
+
+  /* 悬停提示 */
+  #tip{position:fixed;z-index:40;pointer-events:none;opacity:0;transition:opacity .12s;
+    background:rgba(6,12,22,.94);border:1px solid rgba(120,180,255,.35);border-radius:9px;
+    padding:8px 10px;font-size:12px;max-width:250px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+  #tip .h{color:#fff;font-weight:600;margin-bottom:3px}
+  #tip .l{display:flex;justify-content:space-between;gap:12px;color:var(--dim)}
+  #tip .l span:last-child{color:var(--txt);font-variant-numeric:tabular-nums}
+
+  /* 城市信息弹窗 */
+  #card{position:fixed;left:14px;bottom:150px;width:250px;z-index:30;background:var(--panel);
+    backdrop-filter:blur(12px);border:1px solid rgba(79,209,255,.35);border-radius:12px;
+    padding:12px;display:none;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+  #card.on{display:block;animation:pop .22s ease-out}
+  @keyframes pop{from{transform:translateY(8px) scale(.97);opacity:0}}
+  #card .x{position:absolute;top:7px;right:9px;cursor:pointer;color:var(--dim);font-size:15px}
+  #card .x:hover{color:#fff}
+  #card h3{margin:0 0 2px;font-size:15px}
+  #card .sub{color:var(--dim);font-size:11px;margin-bottom:8px}
+  #card .kv{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed rgba(120,180,255,.13);font-size:12px}
+  #card .kv span:last-child{color:var(--acc);font-variant-numeric:tabular-nums}
+  #card .rt{margin-top:8px;font-size:11px;color:var(--dim);line-height:1.7}
+  #card .rt b{color:var(--txt);font-weight:500}
+
+  @media (max-width:640px){
+    #panel{width:calc(100vw - 28px);max-height:52vh}
+    #legend{width:calc(100vw - 28px)}
+    #card{bottom:auto;top:64px;width:calc(100vw - 28px)}
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="loading"><div class="ring"></div><div id="loadTxt">正在加载地球纹理…</div></div>
+
+<div id="hud">
+  <div>UTC <b id="hClock">--:--</b> · 第 <b id="hDoy">-</b> 天</div>
+  <div>年份 <b id="hYear">-</b> · <span id="hFps">-- FPS</span></div>
+</div>
+
+<div id="panel">
+  <div class="hd">
+    <span>数据可视化控制台<small>Three.js Data Globe</small></span>
+    <span class="btn" id="collapse" style="padding:2px 8px">—</span>
+  </div>
+  <div class="bd">
+    <div class="lbl"><span>数据指标</span></div>
+    <div class="seg" id="metricSeg">
+      <button data-m="gdp" class="on">GDP</button>
+      <button data-m="pop">人口</button>
+      <button data-m="flights">航班量</button>
+    </div>
+
+    <div class="lbl"><span>时间轴</span><b id="yearLabel">2000</b></div>
+    <input type="range" id="year" min="2000" max="2025" step="0.01" value="2000">
+    <div class="row">
+      <button class="btn" id="play" style="flex:1">▶ 播放</button>
+      <select id="speed">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+    </div>
+
+    <div class="lbl"><span>显示图层</span></div>
+    <div class="chk">
+      <label><input type="checkbox" id="tHeat" checked>热力着色</label>
+      <label><input type="checkbox" id="tArc" checked>航线弧</label>
+      <label><input type="checkbox" id="tCity" checked>城市点</label>
+      <label><input type="checkbox" id="tLabel" checked>城市名</label>
+      <label><input type="checkbox" id="tAtm" checked>大气光晕</label>
+      <label><input type="checkbox" id="tStar" checked>星空</label>
+    </div>
+
+    <div class="lbl"><span>自转速度</span><b id="spinLabel">1.0×</b></div>
+    <input type="range" id="spin" min="0" max="8" step="0.1" value="1">
+
+    <div class="lbl"><span>时刻 (UTC 小时)</span><b id="hourLabel">12.0</b></div>
+    <input type="range" id="hour" min="0" max="24" step="0.05" value="12">
+
+    <div class="lbl"><span>季节 (年内日序)</span><b id="doyLabel">172</b></div>
+    <input type="range" id="doy" min="1" max="365" step="1" value="172">
+
+    <div class="lbl"><span>热力层不透明度</span><b id="opaLabel">0.62</b></div>
+    <input type="range" id="opa" min="0" max="1" step="0.01" value="0.62">
+
+    <div class="lbl"><span>夜间灯光强度</span><b id="nlLabel">1.3</b></div>
+    <input type="range" id="nl" min="0" max="3" step="0.05" value="1.3">
+
+    <div class="lbl"><span id="rankTitle">地区排行</span></div>
+    <div id="rank"></div>
+
+    <div class="row">
+      <button class="btn" id="reset" style="flex:1">重置视角</button>
+      <button class="btn" id="shot" style="flex:1">截图 PNG</button>
+    </div>
+  </div>
+</div>
+
+<div id="legend">
+  <div class="t" id="legendTitle">GDP 热力标尺</div>
+  <div id="bar"></div>
+  <div class="sc"><span id="lgMin">-</span><span id="lgMax">-</span></div>
+  <div class="hint">拖拽旋转 · 滚轮缩放 · 点击城市查看详情 · 悬停航线查看航班</div>
+</div>
+
+<div id="tip"></div>
+
+<div id="card">
+  <div class="x" id="cardX">✕</div>
+  <h3 id="cName">-</h3>
+  <div class="sub" id="cSub">-</div>
+  <div id="cKV"></div>
+  <div class="rt" id="cRt"></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   0. 常量 / 工具
+   ============================================================ */
+const R = 1;                     // 地球半径
+const Y0 = 2000, Y1 = 2025;      // 时间轴范围
+const METRICS = {
+  gdp:     { name:'GDP',    unitCity:'亿美元', unitReg:'万亿美元', cityF:v=>v.toFixed(0), regF:v=>v.toFixed(2) },
+  pop:     { name:'人口',   unitCity:'百万人', unitReg:'百万人',   cityF:v=>v.toFixed(1), regF:v=>v.toFixed(0) },
+  flights: { name:'航班量', unitCity:'百万客/年', unitReg:'百万客/年', cityF:v=>v.toFixed(1), regF:v=>v.toFixed(0) }
+};
+let metric = 'gdp';
+
+/** 经纬度 -> 三维坐标（与等距圆柱投影贴图对齐） */
+function ll2v(lat, lon, r = R, out = new THREE.Vector3()){
+  const phi = (90 - lat) * Math.PI / 180;
+  const th  = (lon + 180) * Math.PI / 180;
+  return out.set(-r*Math.sin(phi)*Math.cos(th), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(th));
+}
+const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
+const lerp  = (a,b,t)=>a+(b-a)*t;
+function hash(s){ let h=2166136261; for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);} return ((h>>>0)%10000)/10000; }
+/** 大圆距离 km */
+function gcKm(a,b){
+  const t=Math.PI/180, la1=a.lat*t, la2=b.lat*t, dl=(b.lon-a.lon)*t;
+  const c=Math.sin(la1)*Math.sin(la2)+Math.cos(la1)*Math.cos(la2)*Math.cos(dl);
+  return 6371*Math.acos(clamp(c,-1,1));
+}
+/** 颜色标尺 (低->高)：深蓝 → 青 → 绿 → 黄 → 橙红 */
+const RAMP = [[12,32,86],[16,110,178],[26,196,190],[126,214,102],[248,214,86],[246,138,48],[224,58,52]];
+function ramp(t){
+  t = clamp(t,0,1)*(RAMP.length-1);
+  const i = Math.min(RAMP.length-2, Math.floor(t)), f = t-i;
+  const a = RAMP[i], b = RAMP[i+1];
+  return [Math.round(lerp(a[0],b[0],f)), Math.round(lerp(a[1],b[1],f)), Math.round(lerp(a[2],b[2],f))];
+}
+const rampCss = t => { const c = ramp(t); return `rgb(${c[0]},${c[1]},${c[2]})`; };
+
+/** 随年份增长的指标值（含 2020-2021 航空业下滑） */
+function valueAt(base, g, year, key, m){
+  const t = year - Y0;
+  let v = base * Math.pow(1+g, t);
+  v *= 1 + 0.025*Math.sin(hash(key+m)*12 + t*1.6);
+  if (m === 'flights'){
+    if (year >= 2019.9 && year < 2021)      v *= lerp(1, 0.38, clamp((year-19.9-1980)/0 + (year-2019.9)/0.6,0,1));
+    else if (year >= 2021 && year < 2022.6) v *= lerp(0.45, 0.95, (year-2021)/1.6);
+  }
+  return v;
+}
+
+/* ============================================================
+   1. 数据：城市 / 航线 / 地区多边形
+   ============================================================ */
+// [code, 中文名, 国家, lat, lon, gdp(亿美元 2000), pop(百万), pax(百万客/年), gGdp, gPop, gPax]
+const CITY_RAW = [
+['NYC','纽约','美国',40.71,-74.01,9000,18.0,90,.035,.006,.025],
+['LAX','洛杉矶','美国',34.05,-118.24,5600,12.4,67,.032,.008,.022],
+['CHI','芝加哥','美国',41.88,-87.63,4200,8.8,72,.028,.004,.015],
+['SFO','旧金山','美国',37.77,-122.42,3000,6.8,41,.045,.007,.024],
+['YYZ','多伦多','加拿大',43.65,-79.38,2000,4.7,28,.033,.014,.030],
+['MEX','墨西哥城','墨西哥',19.43,-99.13,1800,18.5,21,.030,.010,.038],
+['BOG','波哥大','哥伦比亚',4.71,-74.07,600,6.8,8,.045,.013,.055],
+['GRU','圣保罗','巴西',-23.55,-46.63,1500,17.8,15,.035,.011,.045],
+['EZE','布宜诺斯艾利斯','阿根廷',-34.60,-58.38,900,12.6,9,.025,.009,.030],
+['LHR','伦敦','英国',51.51,-0.13,4800,8.1,90,.030,.012,.018],
+['CDG','巴黎','法国',48.86,2.35,4200,9.8,74,.026,.008,.017],
+['FRA','法兰克福','德国',50.11,8.68,1800,3.6,49,.028,.006,.020],
+['AMS','阿姆斯特丹','荷兰',52.37,4.90,1300,2.2,39,.030,.009,.026],
+['MAD','马德里','西班牙',40.42,-3.70,1500,5.5,32,.024,.010,.030],
+['FCO','罗马','意大利',41.90,12.50,1300,3.7,26,.018,.005,.024],
+['SVO','莫斯科','俄罗斯',55.76,37.62,1200,11.2,20,.045,.008,.050],
+['IST','伊斯坦布尔','土耳其',41.01,28.98,1000,10.0,14,.045,.017,.075],
+['DXB','迪拜','阿联酋',25.20,55.27,400,1.0,12,.070,.055,.095],
+['DOH','多哈','卡塔尔',25.29,51.53,200,0.6,4,.080,.065,.110],
+['CAI','开罗','埃及',30.04,31.24,600,16.0,9,.040,.020,.035],
+['LOS','拉各斯','尼日利亚',6.52,3.38,300,7.2,3,.055,.038,.060],
+['NBO','内罗毕','肯尼亚',-1.29,36.82,120,2.5,2.5,.055,.040,.060],
+['JNB','约翰内斯堡','南非',-26.20,28.05,600,8.5,12,.028,.020,.025],
+['DEL','德里','印度',28.61,77.21,500,15.7,9,.075,.024,.100],
+['BOM','孟买','印度',19.08,72.88,600,16.4,12,.070,.018,.085],
+['BKK','曼谷','泰国',13.76,100.50,900,6.7,29,.035,.013,.045],
+['SIN','新加坡','新加坡',1.35,103.82,1000,4.0,28,.045,.020,.048],
+['CGK','雅加达','印尼',-6.21,106.85,700,12.5,12,.055,.023,.080],
+['HKG','香港','中国',22.32,114.17,1700,6.8,33,.030,.008,.035],
+['PEK','北京','中国',39.90,116.41,400,13.6,27,.115,.028,.075],
+['PVG','上海','中国',31.23,121.47,550,16.4,21,.110,.025,.085],
+['ICN','首尔','韩国',37.57,126.98,2000,9.9,37,.040,.004,.035],
+['NRT','东京','日本',35.68,139.65,9500,34.5,60,.010,.000,.012],
+['SYD','悉尼','澳大利亚',-33.87,151.21,1300,4.0,24,.035,.016,.028],
+['AKL','奥克兰','新西兰',-36.85,174.76,400,1.2,10,.035,.018,.026]
+];
+const CITIES = CITY_RAW.map(r=>({
+  code:r[0], name:r[1], country:r[2], lat:r[3], lon:r[4],
+  base:{gdp:r[5],pop:r[6],flights:r[7]}, g:{gdp:r[8],pop:r[9],flights:r[10]}, routes:[]
+}));
+const CITY = {}; CITIES.forEach(c=>CITY[c.code]=c);
+const cityValue = (c,y,m=metric)=>valueAt(c.base[m], c.g[m], y, c.code, m);
+
+// [from,to,航司,航班号,机型,年客运量(百万,2000),增长率]
+const ROUTE_RAW = [
+['LHR','NYC','BA','BA112','B777-300ER',3.0,.020],['NYC','LAX','AA','AA1','A321neo',3.8,.018],
+['NYC','CDG','AF','AF007','B777-300ER',1.6,.019],['LHR','DXB','EK','EK002','A380-800',2.2,.055],
+['DXB','SIN','EK','EK354','A380-800',1.5,.050],['DXB','DEL','EK','EK510','B777-300ER',1.2,.065],
+['DXB','JNB','EK','EK763','B777-300ER',0.6,.045],['DOH','LHR','QR','QR003','A380-800',0.8,.080],
+['IST','FRA','TK','TK1587','A321neo',0.9,.055],['FRA','PEK','LH','LH720','B747-8I',0.6,.045],
+['AMS','PVG','KL','KL895','B777-300ER',0.5,.050],['CDG','NRT','AF','AF276','B777-300ER',0.4,.020],
+['LHR','HKG','CX','CX252','B777-300ER',0.9,.030],['HKG','SYD','CX','CX111','A330-300',0.6,.032],
+['PEK','LAX','CA','CA987','B777-300ER',0.5,.060],['PVG','SFO','MU','MU587','B777-300ER',0.5,.065],
+['NRT','LAX','NH','NH106','B787-9',0.7,.022],['ICN','NYC','KE','KE081','B747-8I',0.6,.035],
+['SIN','SYD','SQ','SQ231','A380-800',0.9,.030],['SIN','BKK','SQ','SQ976','B787-10',1.3,.040],
+['BKK','HKG','TG','TG600','A350-900',0.9,.038],['CGK','SIN','GA','GA836','B737-800',1.5,.055],
+['BOM','LHR','AI','AI131','B787-8',0.6,.045],['DEL','SIN','SQ','SQ403','B787-10',0.5,.070],
+['NBO','DXB','EK','EK720','B777-300ER',0.3,.060],['CAI','FRA','MS','MS785','A330-300',0.3,.035],
+['LOS','LHR','BA','BA075','B777-300ER',0.3,.050],['JNB','LHR','BA','BA056','A380-800',0.5,.025],
+['GRU','LHR','BA','BA248','B777-300ER',0.4,.040],['GRU','MAD','IB','IB6825','A330-200',0.5,.042],
+['EZE','MAD','IB','IB6845','A350-900',0.4,.030],['BOG','MEX','AM','AM697','B737-800',0.5,.050],
+['MEX','LAX','AM','AM646','B737-800',1.2,.035],['YYZ','LHR','AC','AC856','B777-300ER',0.7,.030],
+['SFO','SIN','SQ','SQ033','A350-900ULR',0.3,.060],['SYD','AKL','QF','QF143','B737-800',1.1,.030],
+['AKL','LAX','NZ','NZ2','B787-9',0.4,.028],['SVO','FRA','LH','LH1445','A320neo',0.6,.045],
+['MAD','FCO','IB','IB3232','A320neo',0.9,.030],['FCO','CAI','MS','MS704','A320neo',0.25,.035],
+['PVG','NRT','NH','NH920','B787-9',0.8,.040],['PEK','ICN','KE','KE852','A330-300',0.9,.045],
+['DEL','BOM','AI','AI806','A320neo',2.0,.085],['NYC','CHI','UA','UA326','B737-800',3.0,.014],
+['LHR','AMS','KL','KL1008','B737-700',1.2,.020]
+];
+const ROUTES = ROUTE_RAW.map((r,i)=>{
+  const a=CITY[r[0]], b=CITY[r[1]];
+  const o={ id:i, a, b, airline:r[2], flight:r[3], ac:r[4], pax:r[5], g:r[6], km:Math.round(gcKm(a,b)) };
+  a.routes.push(o); b.routes.push(o); return o;
+});
+const routePax = (r,y)=>valueAt(r.pax, r.g, y, r.flight, 'flights');
+
+// 地区（粗略多边形，经纬度顺序 [lon,lat]） + 指标基准
+// [code,名称, gdp(万亿$), pop(百万), flights(百万客), gGdp,gPop,gFlt, polygon]
+const REGION_RAW = [
+['USA','美国',10.3,282,700,.038,.008,.020,[[-124,48],[-124,40],[-120,34],[-117,32.5],[-108,31],[-103,29],[-97,26],[-94,29],[-88,30],[-82,25],[-81,31],[-75,35],[-71,41],[-67,45],[-76,44],[-83,42],[-89,48],[-95,49],[-115,49]]],
+['CAN','加拿大',0.74,31,60,.040,.011,.030,[[-141,69],[-125,70],[-110,68],[-95,68],[-82,73],[-75,62],[-64,60],[-56,52],[-64,46],[-70,47],[-83,42],[-89,48],[-95,49],[-123,49],[-141,60]]],
+['MEX','墨西哥与中美',0.71,130,45,.045,.013,.045,[[-117,32],[-106,31],[-97,26],[-92,18],[-87,21],[-83,10],[-77,8],[-92,14],[-96,16],[-105,20],[-112,29]]],
+['COL','南美北部',0.25,95,18,.055,.012,.055,[[-81,8],[-72,12],[-62,10],[-60,5],[-70,-2],[-75,-6],[-81,-6],[-79,2]]],
+['BRA','巴西',0.65,175,50,.050,.010,.050,[[-70,-10],[-60,5],[-51,4],[-44,-2],[-35,-5],[-38,-13],[-48,-25],[-54,-27],[-58,-20],[-64,-12]]],
+['ARG','南美南部',0.35,50,20,.040,.009,.040,[[-73,-18],[-62,-22],[-58,-27],[-57,-35],[-62,-40],[-65,-48],[-68,-55],[-74,-50],[-72,-40],[-71,-30],[-70,-20]]],
+['UK','英国与爱尔兰',1.70,63,120,.030,.007,.020,[[-10,52],[-6,58],[-3,59],[-1,54],[1,52],[-5,50]]],
+['FRA','法国',1.40,59,90,.028,.005,.020,[[-5,48],[-2,43],[3,43],[7,44],[8,49],[2,51],[-2,49]]],
+['IBE','伊比利亚',0.72,50,70,.030,.008,.030,[[-9,43],[-9,38],[-6,36],[-2,37],[3,42],[-2,43]]],
+['GER','中欧',2.40,110,130,.030,.003,.022,[[6,54],[14,54],[19,52],[19,48],[16,46],[10,46],[6,49]]],
+['ITA','意大利',1.15,57,60,.022,.002,.025,[[7,45],[13,46],[18,40],[16,38],[12,42],[9,44]]],
+['NOR','北欧',0.60,24,45,.035,.008,.025,[[5,58],[11,58],[15,66],[22,70],[30,70],[31,62],[22,60],[12,55]]],
+['EEU','东欧',0.35,80,25,.060,-.002,.060,[[19,52],[30,52],[40,50],[40,45],[28,44],[19,48]]],
+['RUS','俄罗斯',0.26,146,40,.075,-.001,.055,[[30,70],[60,72],[90,75],[120,73],[145,70],[160,68],[145,55],[135,45],[120,50],[100,50],[87,49],[75,54],[60,52],[48,46],[40,45],[40,50],[30,55],[31,62]]],
+['MEA','中东',0.90,210,70,.055,.023,.075,[[26,41],[45,40],[48,30],[52,25],[43,13],[35,28],[34,31],[36,36],[26,37]]],
+['NAF','北非',0.25,150,30,.045,.019,.040,[[-17,28],[-10,35],[10,37],[25,32],[35,31],[35,22],[30,20],[20,20],[5,20],[-5,22],[-17,21]]],
+['WAF','西非',0.11,230,12,.060,.026,.060,[[-17,21],[-5,20],[5,20],[15,15],[15,5],[8,4],[-5,5],[-13,8],[-17,14]]],
+['CAF','中东部非洲',0.09,240,10,.060,.028,.055,[[15,15],[25,20],[35,22],[43,12],[42,0],[40,-10],[30,-12],[20,-8],[13,-5],[15,5]]],
+['SAF','南部非洲',0.18,70,20,.035,.014,.030,[[13,-5],[20,-8],[30,-12],[35,-20],[32,-27],[25,-34],[18,-34],[15,-25],[12,-15]]],
+['IND','印度次大陆',0.47,1050,45,.085,.014,.090,[[68,24],[72,20],[77,8],[80,10],[82,17],[88,21],[92,26],[88,27],[80,29],[74,32],[70,28]]],
+['SEA','东南亚半岛',0.35,230,40,.050,.011,.055,[[92,21],[100,20],[106,21],[109,18],[107,10],[100,8],[98,12],[95,16]]],
+['IDN','印尼群岛',0.20,215,25,.060,.012,.070,[[95,5],[105,0],[115,-3],[130,-2],[141,-4],[135,-8],[120,-9],[105,-7],[98,2]]],
+['CHN','中国',1.20,1270,85,.120,.005,.090,[[75,40],[90,45],[105,42],[120,45],[130,45],[126,40],[122,32],[117,24],[110,20],[100,22],[97,28],[85,33],[78,36]]],
+['JPN','日本',4.90,127,130,.008,.000,.012,[[130,32],[135,34],[141,40],[145,44],[142,45],[138,37],[133,34],[130,31]]],
+['KOR','韩国',0.58,47,45,.045,.004,.035,[[126,38],[129,38],[129,35],[126,34]]],
+['AUS','澳大利亚',0.42,19,50,.045,.013,.030,[[114,-22],[113,-26],[116,-35],[129,-32],[138,-35],[145,-38],[150,-37],[153,-28],[147,-19],[142,-11],[135,-12],[130,-11],[126,-14],[122,-17]]],
+['NZL','新西兰',0.06,3.9,12,.040,.012,.028,[[173,-35],[178,-38],[174,-41],[172,-44],[167,-47],[170,-43]]]
+];
+const REGIONS = REGION_RAW.map(r=>({
+  code:r[0], name:r[1], base:{gdp:r[2],pop:r[3],flights:r[4]},
+  g:{gdp:r[5],pop:r[6],flights:r[7]}, poly:r[8]
+}));
+const regValue = (rg,y,m=metric)=>valueAt(rg.base[m], rg.g[m], y, rg.code, m);
+// 仅用于降级底图的陆地（无数据）
+const LAND_EXTRA = [
+  [[-45,60],[-20,70],[-20,80],[-40,83],[-60,80],[-55,68]],                   // 格陵兰
+  [[-180,-66],[-120,-70],[-60,-64],[0,-70],[60,-66],[120,-70],[180,-68],[180,-90],[-180,-90]] // 南极
+];
+
+/* ============================================================
+   2. 渲染器 / 场景 / 相机 / 控制器
+   ============================================================ */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, preserveDrawingBuffer:true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0x03060d, 1);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.01, 400);
+camera.position.set(2.1, 1.15, 2.6);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.075;
+controls.rotateSpeed = 0.55;
+controls.zoomSpeed = 0.8;
+controls.minDistance = 1.15;   // 贴近地表
+controls.maxDistance = 9;
+controls.enablePan = false;
+
+// 地球组（城市、航线、热力层都在其中，随地球自转）
+const earthGroup = new THREE.Group();
+scene.add(earthGroup);
+
+/* ---------- 星空 ---------- */
+const stars = (()=>{
+  const N = 3500, pos = new Float32Array(N*3), col = new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const u=Math.random(), v=Math.random();
+    const th=2*Math.PI*u, ph=Math.acos(2*v-1), r=60+Math.random()*120;
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th); pos[i*3+1]=r*Math.cos(ph); pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+    const w=0.6+Math.random()*0.4, t=Math.random();
+    col[i*3]=w*(0.8+0.2*t); col[i*3+1]=w*0.92; col[i*3+2]=w*(1.0-0.15*t);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color', new THREE.BufferAttribute(col,3));
+  const p = new THREE.Points(g, new THREE.PointsMaterial({ size:0.55, sizeAttenuation:true, vertexColors:true, transparent:true, opacity:0.9, depthWrite:false }));
+  scene.add(p); return p;
+})();
+
+/* ============================================================
+   3. 纹理：CDN 加载 + 程序化降级
+   ============================================================ */
+const CDN = 'https://cdn.jsdelivr.net/npm/three-globe@2.31.0/example/img/';
+function loadTex(url){
+  return new Promise(res=>{
+    new THREE.TextureLoader().setCrossOrigin('anonymous').load(url,
+      t=>{ t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); res(t); },
+      undefined, ()=>res(null));
+  });
+}
+function projX(lon,W){ return (lon+180)/360*W; }
+function projY(lat,H){ return (90-lat)/180*H; }
+function fillPoly(ctx, poly, W, H){
+  ctx.beginPath();
+  poly.forEach((p,i)=>{ const x=projX(p[0],W), y=projY(p[1],H); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+  ctx.closePath(); ctx.fill();
+}
+/** 离线降级：白天底图 */
+function fallbackDay(){
+  const W=2048,H=1024,cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0d2b4d'); g.addColorStop(.5,'#0a4c73'); g.addColorStop(1,'#0d2b4d');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  const paint=poly=>{ ctx.fillStyle='#2f5d34'; fillPoly(ctx,poly,W,H); };
+  REGIONS.forEach(r=>paint(r.poly)); LAND_EXTRA.forEach(paint);
+  // 简单的沙漠/冰盖色带
+  ctx.globalAlpha=.35; ctx.fillStyle='#c9b483';
+  ['NAF','MEA','AUS'].forEach(c=>{ const r=REGIONS.find(x=>x.code===c); if(r) fillPoly(ctx,r.poly,W,H); });
+  ctx.fillStyle='#e8f2ff'; LAND_EXTRA.forEach(p=>fillPoly(ctx,p,W,H));
+  ctx.globalAlpha=1;
+  const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+/** 离线降级：夜间灯光图（城市光斑） */
+function fallbackNight(){
+  const W=2048,H=1024,cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d'); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  CITIES.forEach(c=>{
+    const x=projX(c.lon,W), y=projY(c.lat,H), rad=14+Math.sqrt(c.base.pop)*6;
+    const g=ctx.createRadialGradient(x,y,0,x,y,rad);
+    g.addColorStop(0,'rgba(255,240,190,1)'); g.addColorStop(.4,'rgba(255,190,90,.5)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,rad,0,7); ctx.fill();
+  });
+  const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+
+/* ============================================================
+   4. 地球（自定义着色器：昼夜分界 + 城市灯光 + 海面高光）
+   ============================================================ */
+const earthUni = {
+  uDay:{value:null}, uNight:{value:null},
+  uSun:{value:new THREE.Vector3(1,0,0)},   // 地球本地坐标系
+  uCam:{value:new THREE.Vector3()},        // 地球本地坐标系
+  uNight_gain:{value:1.3}, uTime:{value:0}
+};
+const earthMat = new THREE.ShaderMaterial({
+  uniforms: earthUni,
+  vertexShader:/*glsl*/`
+    varying vec2 vUv; varying vec3 vPos; varying vec3 vNrm;
+    void main(){
+      vUv = uv; vPos = position; vNrm = normalize(normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+    }`,
+  fragmentShader:/*glsl*/`
+    uniform sampler2D uDay; uniform sampler2D uNight;
+    uniform vec3 uSun; uniform vec3 uCam;
+    uniform float uNight_gain; uniform float uTime;
+    varying vec2 vUv; varying vec3 vPos; varying vec3 vNrm;
+    void main(){
+      vec3 N = normalize(vNrm);
+      vec3 V = normalize(uCam - vPos);
+      vec3 S = normalize(uSun);
+      float s = dot(N, S);
+      float day = smoothstep(-0.14, 0.22, s);          // 昼夜分界线（带晨昏蒙影）
+
+      vec3 dayC   = texture2D(uDay, vUv).rgb;
+      vec3 nightC = texture2D(uNight, vUv).rgb;
+      float water = clamp((dayC.b - dayC.r*0.85) * 4.0, 0.0, 1.0);
+
+      vec3 col = dayC * (0.14 + 1.12 * clamp(s, 0.0, 1.0));
+      // 海面镜面高光
+      vec3 H = normalize(S + V);
+      col += vec3(0.9,0.95,1.0) * pow(max(dot(N,H),0.0), 42.0) * water * smoothstep(0.0,0.18,s) * 0.6;
+      // 夜面城市灯光（含轻微闪烁）
+      float tw = 0.9 + 0.1*sin(uTime*2.2 + vUv.x*420.0 + vUv.y*260.0);
+      vec3 lights = nightC * vec3(1.15,0.92,0.60) * uNight_gain * tw;
+      col = mix(col*0.05 + lights, col, day);
+      // 晨昏线附近的暖色散射
+      float term = exp(-pow(s*7.0, 2.0));
+      col += vec3(0.55,0.30,0.12) * term * 0.22;
+      // 边缘大气
+      float rim = pow(1.0 - max(dot(N,V),0.0), 3.0);
+      col += vec3(0.25,0.45,0.9) * rim * (0.22 + 0.78*day);
+
+      gl_FragColor = vec4(col, 1.0);
+      #include <colorspace_fragment>
+    }`
+});
+const earth = new THREE.Mesh(new THREE.SphereGeometry(R, 128, 96), earthMat);
+earthGroup.add(earth);
+
+/* ---------- 大气光晕（背面 + 加色混合 + 菲涅尔） ---------- */
+const atmUni = { uSunW:{value:new THREE.Vector3(1,0,0)}, uPower:{value:1.0} };
+const atmosphere = new THREE.Mesh(
+  new THREE.SphereGeometry(R*1.19, 96, 64),
+  new THREE.ShaderMaterial({
+    uniforms: atmUni, transparent:true, side:THREE.BackSide,
+    blending:THREE.AdditiveBlending, depthWrite:false,
+    vertexShader:/*glsl*/`
+      varying vec3 vN; varying vec3 vWN; varying vec3 vVP;
+      void main(){
+        vN = normalize(normalMatrix * normal);
+        vWN = normalize(mat3(modelMatrix) * normal);
+        vec4 mv = modelViewMatrix * vec4(position,1.0);
+        vVP = mv.xyz;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader:/*glsl*/`
+      uniform vec3 uSunW; uniform float uPower;
+      varying vec3 vN; varying vec3 vWN; varying vec3 vVP;
+      void main(){
+        vec3 V = normalize(-vVP);
+        float f = pow(1.0 - max(dot(vN,V),0.0), 2.6);
+        float sun = smoothstep(-0.45, 0.45, dot(normalize(vWN), normalize(uSunW)));
+        vec3 col = mix(vec3(0.03,0.10,0.34), vec3(0.35,0.62,1.0), sun);
+        gl_FragColor = vec4(col, f * uPower * (0.18 + 0.9*sun));
+      }`
+  })
+);
+scene.add(atmosphere);
+
+/* ============================================================
+   5. 热力着色层（Canvas 纹理，按年份/指标重绘）
+   ============================================================ */
+const heatCv = document.createElement('canvas'); heatCv.width = 1024; heatCv.height = 512;
+const heatCtx = heatCv.getContext('2d');
+const heatTex = new THREE.CanvasTexture(heatCv);
+heatTex.colorSpace = THREE.SRGBColorSpace;
+const heatMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(R*1.0025, 128, 96),
+  new THREE.MeshBasicMaterial({ map:heatTex, transparent:true, opacity:0.62, depthWrite:false })
+);
+earthGroup.add(heatMesh);
+
+let heatRange = [0,1];
+function drawHeat(year){
+  const W=heatCv.width, H=heatCv.height;
+  heatCtx.clearRect(0,0,W,H);
+  const vals = REGIONS.map(r=>regValue(r,year));
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  heatRange = [mn,mx];
+  const lmn=Math.log(mn), lmx=Math.log(mx);
+  REGIONS.forEach((r,i)=>{
+    const t = (Math.log(vals[i]) - lmn) / Math.max(1e-6, lmx-lmn);
+    const c = ramp(t);
+    heatCtx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.9)`;
+    fillPoly(heatCtx, r.poly, W, H);
+    heatCtx.strokeStyle = 'rgba(255,255,255,0.16)'; heatCtx.lineWidth = 1.2;
+    heatCtx.beginPath();
+    r.poly.forEach((p,k)=>{ const x=projX(p[0],W), y=projY(p[1],H); k?heatCtx.lineTo(x,y):heatCtx.moveTo(x,y); });
+    heatCtx.closePath(); heatCtx.stroke();
+  });
+  heatTex.needsUpdate = true;
+  updateLegend();
+}
+
+/* ============================================================
+   6. 城市发光点 + 名称标签
+   ============================================================ */
+function glowSprite(){
+  const s=128, cv=document.createElement('canvas'); cv.width=cv.height=s;
+  const ctx=cv.getContext('2d'), g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.18,'rgba(190,240,255,.9)');
+  g.addColorStop(.45,'rgba(80,200,255,.35)'); g.addColorStop(1,'rgba(40,120,255,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,s,s);
+  const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+const GLOW = glowSprite();
+function textSprite(txt){
+  const pad=8, f=26, cv=document.createElement('canvas'), ctx=cv.getContext('2d');
+  ctx.font=`600 ${f}px -apple-system,"Microsoft YaHei",sans-serif`;
+  const w=Math.ceil(ctx.measureText(txt).width)+pad*2;
+  cv.width=w; cv.height=f+pad*2;
+  const c=cv.getContext('2d');
+  c.font=`600 ${f}px -apple-system,"Microsoft YaHei",sans-serif`;
+  c.textBaseline='middle'; c.shadowColor='rgba(0,0,0,.9)'; c.shadowBlur=6;
+  c.fillStyle='rgba(226,240,255,.95)'; c.fillText(txt,pad,cv.height/2);
+  const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false,depthTest:true}));
+  sp.scale.set(cv.width/cv.height*0.055, 0.055, 1);
+  sp.userData.aspect = cv.width/cv.height;
+  return sp;
+}
+const cityGroup = new THREE.Group(); earthGroup.add(cityGroup);
+const labelGroup = new THREE.Group(); earthGroup.add(labelGroup);
+CITIES.forEach(c=>{
+  const p = ll2v(c.lat, c.lon, R*1.008);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:GLOW, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, depthTest:true, opacity:0.95
+  }));
+  sp.position.copy(p); sp.userData = { city:c }; cityGroup.add(sp); c.sprite = sp;
+
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.0045,10,8),
+    new THREE.MeshBasicMaterial({ color:0xffffff }));
+  core.position.copy(p); cityGroup.add(core); c.core = core;
+
+  const lb = textSprite(c.name);
+  lb.position.copy(ll2v(c.lat, c.lon, R*1.045)); lb.userData.city = c;
+  labelGroup.add(lb); c.label = lb;
+});
+
+/* ============================================================
+   7. 航线弧（大圆插值 + 流动脉冲着色器）
+   ============================================================ */
+function arcCurve(a, b, seg=110){
+  const va = ll2v(a.lat,a.lon,1), vb = ll2v(b.lat,b.lon,1);
+  const ang = va.angleTo(vb), sa = Math.sin(ang);
+  const h = 0.10 + 0.30*(ang/Math.PI);
+  const pts = [];
+  for(let i=0;i<=seg;i++){
+    const t=i/seg;
+    const p = new THREE.Vector3();
+    if (sa < 1e-6) p.copy(va).lerp(vb,t).normalize();
+    else p.copy(va).multiplyScalar(Math.sin((1-t)*ang)/sa)
+          .addScaledVector(vb, Math.sin(t*ang)/sa).normalize();
+    p.multiplyScalar(R*(1 + h*Math.sin(Math.PI*t)));
+    pts.push(p);
+  }
+  return new THREE.CatmullRomCurve3(pts);
+}
+const arcVS = /*glsl*/`
+  varying vec2 vUv;
+  void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`;
+const arcFS = /*glsl*/`
+  uniform vec3 uColor; uniform float uTime, uSpeed, uPhase, uOpacity, uBase;
+  varying vec2 vUv;
+  void main(){
+    float head = fract(uTime * uSpeed + uPhase);
+    float d = vUv.x - head; d -= floor(d);            // 与光头的距离(尾随)
+    float pulse = exp(-d * 15.0) + 0.55*exp(-d*60.0);
+    float ends = smoothstep(0.0,0.05,vUv.x) * smoothstep(1.0,0.95,vUv.x);
+    float a = (uBase + pulse) * uOpacity * ends;
+    vec3 col = mix(uColor, vec3(1.0,0.98,0.92), clamp(pulse,0.0,1.0)*0.75);
+    gl_FragColor = vec4(col, clamp(a,0.0,1.0));
+    #include <colorspace_fragment>
+  }`;
+const arcGroup = new THREE.Group(); earthGroup.add(arcGroup);
+ROUTES.forEach(r=>{
+  const curve = arcCurve(r.a, r.b);
+  const geo = new THREE.TubeGeometry(curve, 128, 0.0035, 5, false);
+  const mat = new THREE.ShaderMaterial({
+    uniforms:{
+      uColor:{value:new THREE.Color().setHSL(0.52 - 0.18*hash(r.flight), 0.9, 0.62)},
+      uTime:{value:0}, uSpeed:{value:0.12 + 0.16*hash(r.flight+'s')},
+      uPhase:{value:hash(r.flight+'p')}, uOpacity:{value:0.9}, uBase:{value:0.16}
+    },
+    vertexShader:arcVS, fragmentShader:arcFS,
+    transparent:true, blending:THREE.AdditiveBlending, depthWrite:false
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.userData = { route:r }; r.mesh = m; arcGroup.add(m);
+});
+
+/* ============================================================
+   8. 时间 / 太阳位置（昼夜分界物理一致）
+   ============================================================ */
+const state = { year:Y0, hour:12, doy:172, playing:false, speed:1, spin:1 };
+function sunLocal(){
+  const dec = -23.44 * Math.cos(2*Math.PI*(state.doy+10)/365.24);   // 太阳赤纬
+  const lon = -15 * (state.hour - 12);                             // 直射点经度
+  return { dec, lon, v: ll2v(dec, lon, 1) };
+}
+function applyTime(){
+  const s = sunLocal();
+  earthUni.uSun.value.copy(s.v);
+  // 地球自转角 = -直射点经度 → 太阳在世界坐标中固定于 +X
+  earthGroup.rotation.y = THREE.MathUtils.degToRad(-s.lon);
+  atmUni.uSunW.value.copy(s.v).applyAxisAngle(new THREE.Vector3(0,1,0), earthGroup.rotation.y);
+  document.getElementById('hClock').textContent =
+    String(Math.floor(state.hour)%24).padStart(2,'0')+':'+String(Math.floor(state.hour%1*60)).padStart(2,'0');
+  document.getElementById('hDoy').textContent = state.doy;
+}
+
+/* ============================================================
+   9. 数据驱动更新（城市点尺寸、航线粗细、热力层、排行）
+   ============================================================ */
+let lastHeatYear = -1;
+function updateData(force=false){
+  const y = state.year;
+  document.getElementById('yearLabel').textContent = Math.round(y);
+  document.getElementById('hYear').textContent = Math.round(y);
+
+  // 城市点：按指标归一化尺寸
+  const cv = CITIES.map(c=>cityValue(c,y));
+  const lmn = Math.log(Math.min(...cv)), lmx = Math.log(Math.max(...cv));
+  CITIES.forEach((c,i)=>{
+    const t = (Math.log(cv[i]) - lmn) / Math.max(1e-6, lmx-lmn);
+    c.norm = t; c.cur = cv[i];
+    const s = 0.028 + 0.085*Math.pow(t,0.85);
+    c.sprite.scale.set(s,s,1);
+    const col = ramp(t);
+    c.sprite.material.color.setRGB(col[0]/255*1.1, col[1]/255*1.1, col[2]/255*1.1);
+    c.core.scale.setScalar(0.7 + t*1.6);
+  });
+
+  // 航线：客流决定亮度
+  const rv = ROUTES.map(r=>routePax(r,y));
+  const rmx = Math.max(...rv);
+  ROUTES.forEach((r,i)=>{
+    r.cur = rv[i];
+    const t = rv[i]/rmx;
+    r.mesh.material.uniforms.uOpacity.value = 0.35 + 0.65*Math.pow(t,0.6);
+    r.mesh.material.uniforms.uBase.value = 0.10 + 0.14*t;
+  });
+
+  // 热力层（播放时节流重绘）
+  if (force || Math.abs(y-lastHeatYear) > 0.12){ drawHeat(y); lastHeatYear = y; }
+  updateRank();
+  if (activeCity) fillCard(activeCity);
+}
+function fmtReg(v){ return METRICS[metric].regF(v) + ' ' + METRICS[metric].unitReg; }
+function updateRank(){
+  const y = state.year;
+  const arr = REGIONS.map(r=>({ name:r.name, v:regValue(r,y) })).sort((a,b)=>b.v-a.v).slice(0,6);
+  const mx = arr[0].v;
+  document.getElementById('rankTitle').textContent = `地区排行 · ${METRICS[metric].name}`;
+  document.getElementById('rank').innerHTML = arr.map((d,i)=>
+    `<div class="r" style="background:linear-gradient(90deg,${rampCss(d.v/mx)}33 ${d.v/mx*100}%,rgba(255,255,255,.03) 0)">
+       <span>${i+1}. ${d.name}</span><i>${fmtReg(d.v)}</i></div>`).join('');
+}
+function updateLegend(){
+  const stops = [0,.16,.33,.5,.66,.83,1].map(t=>`${rampCss(t)} ${t*100}%`).join(',');
+  document.getElementById('bar').style.background = `linear-gradient(90deg,${stops})`;
+  document.getElementById('legendTitle').textContent = `${METRICS[metric].name} 热力标尺（${METRICS[metric].unitReg}）`;
+  document.getElementById('lgMin').textContent = METRICS[metric].regF(heatRange[0]);
+  document.getElementById('lgMax').textContent = METRICS[metric].regF(heatRange[1]);
+}
+
+/* ============================================================
+   10. 交互：拾取、弹窗、提示
+   ============================================================ */
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const tip = document.getElementById('tip');
+const card = document.getElementById('card');
+let activeCity = null, hoverArc = null, pointerDown=null, moved=false;
+
+function setNdc(e){ ndc.x = (e.clientX/innerWidth)*2-1; ndc.y = -(e.clientY/innerHeight)*2+1; }
+function pick(){
+  ray.setFromCamera(ndc, camera);
+  if (cityGroup.visible){
+    const hs = ray.intersectObjects(cityGroup.children, false).filter(h=>h.object.userData.city);
+    if (hs.length) return { type:'city', city:hs[0].object.userData.city };
+  }
+  if (arcGroup.visible){
+    const hs = ray.intersectObjects(arcGroup.children, false);
+    if (hs.length) return { type:'arc', route:hs[0].object.userData.route };
+  }
+  return null;
+}
+function showTip(html, x, y){
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(innerWidth - r.width - 10, x + 14) + 'px';
+  tip.style.top  = Math.min(innerHeight - r.height - 10, y + 14) + 'px';
+}
+const hideTip = ()=>{ tip.style.opacity = 0; };
+
+renderer.domElement.addEventListener('pointerdown', e=>{ pointerDown={x:e.clientX,y:e.clientY}; moved=false; });
+renderer.domElement.addEventListener('pointermove', e=>{
+  if (pointerDown && (Math.abs(e.clientX-pointerDown.x)>4 || Math.abs(e.clientY-pointerDown.y)>4)) moved=true;
+  setNdc(e);
+  const h = pick();
+  // 复位上一条高亮航线
+  if (hoverArc && (!h || h.type!=='arc' || h.route!==hoverArc)){ hoverArc.mesh.material.uniforms.uBase.value *= 0.5; hoverArc = null; }
+  if (!h){ hideTip(); renderer.domElement.style.cursor='grab'; return; }
+  renderer.domElement.style.cursor='pointer';
+  if (h.type === 'city'){
+    const c = h.city, M = METRICS[metric];
+    showTip(`<div class="h">${c.name} <span style="color:#8ea6c8">${c.code}</span></div>
+      <div class="l"><span>${M.name}</span><span>${M.cityF(c.cur)} ${M.unitCity}</span></div>
+      <div class="l"><span>直飞航线</span><span>${c.routes.length} 条</span></div>
+      <div class="l" style="color:#4fd1ff"><span>点击查看详情</span><span></span></div>`, e.clientX, e.clientY);
+  } else {
+    const r = h.route;
+    if (hoverArc !== r){ hoverArc = r; r.mesh.material.uniforms.uBase.value *= 2; }
+    const hrs = r.km/850 + 0.6;
+    showTip(`<div class="h">${r.airline} ${r.flight}</div>
+      <div class="l"><span>航段</span><span>${r.a.name} → ${r.b.name}</span></div>
+      <div class="l"><span>机型</span><span>${r.ac}</span></div>
+      <div class="l"><span>大圆距离</span><span>${r.km.toLocaleString()} km</span></div>
+      <div class="l"><span>预计飞行</span><span>${Math.floor(hrs)}h ${Math.round(hrs%1*60)}m</span></div>
+      <div class="l"><span>年客运量</span><span>${r.cur.toFixed(2)} 百万人</span></div>
+      <div class="l"><span>周班次(估)</span><span>${Math.max(1,Math.round(r.cur*1e6/52/260))} 班</span></div>`,
+      e.clientX, e.clientY);
+  }
+});
+renderer.domElement.addEventListener('pointerup', e=>{
+  pointerDown = null;
+  if (moved) return;                       // 拖拽旋转不触发点击
+  setNdc(e);
+  const h = pick();
+  if (h && h.type==='city') openCard(h.city);
+  else if (!h) closeCard();
+});
+renderer.domElement.addEventListener('pointerleave', hideTip);
+
+function openCard(c){ activeCity = c; fillCard(c); card.classList.add('on'); }
+function closeCard(){ activeCity = null; card.classList.remove('on'); }
+document.getElementById('cardX').onclick = closeCard;
+function fillCard(c){
+  const y = state.year;
+  document.getElementById('cName').textContent = `${c.name} (${c.code})`;
+  document.getElementById('cSub').textContent =
+    `${c.country} · ${c.lat.toFixed(2)}°, ${c.lon.toFixed(2)}° · ${Math.round(y)} 年`;
+  const rows = [
+    ['GDP', METRICS.gdp.cityF(cityValue(c,y,'gdp')) + ' 亿美元'],
+    ['人口', METRICS.pop.cityF(cityValue(c,y,'pop')) + ' 百万人'],
+    ['航空客运', METRICS.flights.cityF(cityValue(c,y,'flights')) + ' 百万客/年'],
+    ['人均 GDP', (cityValue(c,y,'gdp')*1e8/(cityValue(c,y,'pop')*1e6)/1e3).toFixed(1) + ' 千美元']
+  ];
+  document.getElementById('cKV').innerHTML =
+    rows.map(r=>`<div class="kv"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('');
+  const top = c.routes.map(r=>({ r, v:routePax(r,y) })).sort((a,b)=>b.v-a.v).slice(0,4);
+  document.getElementById('cRt').innerHTML = `直飞航线 ${c.routes.length} 条，主要航段：<br>` +
+    (top.length ? top.map(t=>{
+      const o = t.r.a===c ? t.r.b : t.r.a;
+      return `· <b>${o.name}</b> ${t.r.flight} · ${t.v.toFixed(2)} 百万客`;
+    }).join('<br>') : '（暂无数据）');
+}
+
+/* ============================================================
+   11. UI 绑定
+   ============================================================ */
+const $ = id=>document.getElementById(id);
+$('metricSeg').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  [...$('metricSeg').children].forEach(x=>x.classList.toggle('on', x===b));
+  metric = b.dataset.m; updateData(true);
+});
+$('year').addEventListener('input', e=>{ state.year = +e.target.value; updateData(); });
+$('play').onclick = ()=>{ state.playing = !state.playing; $('play').textContent = state.playing ? '⏸ 暂停' : '▶ 播放'; };
+$('speed').onchange = e=>state.speed = +e.target.value;
+$('spin').addEventListener('input', e=>{ state.spin = +e.target.value; $('spinLabel').textContent = state.spin.toFixed(1)+'×'; });
+$('hour').addEventListener('input', e=>{ state.hour = +e.target.value; $('hourLabel').textContent = state.hour.toFixed(1); applyTime(); });
+$('doy').addEventListener('input',  e=>{ state.doy = +e.target.value;  $('doyLabel').textContent = state.doy; applyTime(); });
+$('opa').addEventListener('input',  e=>{ heatMesh.material.opacity = +e.target.value; $('opaLabel').textContent = (+e.target.value).toFixed(2); });
+$('nl').addEventListener('input',   e=>{ earthUni.uNight_gain.value = +e.target.value; $('nlLabel').textContent = (+e.target.value).toFixed(2); });
+$('tHeat').onchange  = e=>heatMesh.visible   = e.target.checked;
+$('tArc').onchange   = e=>arcGroup.visible   = e.target.checked;
+$('tCity').onchange  = e=>cityGroup.visible  = e.target.checked;
+$('tLabel').onchange = e=>labelGroup.visible = e.target.checked;
+$('tAtm').onchange   = e=>atmosphere.visible = e.target.checked;
+$('tStar').onchange  = e=>stars.visible      = e.target.checked;
+$('collapse').onclick = ()=>{
+  $('panel').classList.toggle('min');
+  $('collapse').textContent = $('panel').classList.contains('min') ? '+' : '—';
+};
+$('reset').onclick = ()=>{ camera.position.set(2.1,1.15,2.6); controls.target.set(0,0,0); controls.update(); };
+$('shot').onclick = ()=>{
+  renderer.render(scene, camera);
+  const a = document.createElement('a');
+  a.download = `globe-${metric}-${Math.round(state.year)}.png`;
+  a.href = renderer.domElement.toDataURL('image/png'); a.click();
+};
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+addEventListener('keydown', e=>{
+  if (e.code === 'Space'){ e.preventDefault(); $('play').click(); }
+  if (e.key === 'r' || e.key === 'R') $('reset').click();
+});
+
+/* ============================================================
+   12. 主循环
+   ============================================================ */
+const clock = new THREE.Clock();
+const camLocal = new THREE.Vector3();
+let fpsT = 0, fpsN = 0;
+
+function tick(){
+  const dt = Math.min(0.05, clock.getDelta());
+  const t  = clock.elapsedTime;
+
+  // 时间推进：自转 = 模拟时钟推进（昼夜线保持在空间中固定）
+  if (state.spin > 0){
+    state.hour += dt * state.spin * 1.2;
+    while (state.hour >= 24){ state.hour -= 24; state.doy = state.doy % 365 + 1; $('doy').value = state.doy; $('doyLabel').textContent = state.doy; }
+    $('hour').value = state.hour; $('hourLabel').textContent = state.hour.toFixed(1);
+    applyTime();
+  }
+  // 时间轴播放
+  if (state.playing){
+    state.year += dt * 1.15 * state.speed;
+    if (state.year > Y1) state.year = Y0;
+    $('year').value = state.year;
+    updateData();
+  }
+
+  // 着色器 uniform 更新
+  earthUni.uTime.value = t;
+  earth.worldToLocal(camLocal.copy(camera.position));
+  earthUni.uCam.value.copy(camLocal);
+  arcGroup.children.forEach(m=>{ m.material.uniforms.uTime.value = t; });
+
+  // 标签：背面隐藏 + 距离自适应大小
+  if (labelGroup.visible){
+    const camDir = camera.position.clone().normalize();
+    const d = camera.position.length();
+    const scale = clamp(0.045 * d/2.5, 0.028, 0.075);
+    labelGroup.children.forEach(lb=>{
+      const c = lb.userData.city;
+      const n = lb.position.clone().applyMatrix4(earthGroup.matrixWorld).normalize();
+      const facing = n.dot(camDir) > 0.28;
+      const big = c.norm > (d > 4 ? 0.65 : d > 2.4 ? 0.42 : 0);
+      lb.visible = facing && big;
+      lb.scale.set(scale*lb.userData.aspect, scale, 1);
+    });
+  }
+  // 选中城市脉冲
+  if (activeCity){
+    const s = activeCity.sprite.scale.x;
+    activeCity.core.scale.setScalar((1.2 + 0.6*Math.sin(t*5)) * (0.7 + activeCity.norm*1.6));
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+
+  fpsN++; if (t - fpsT > 0.5){ $('hFps').textContent = Math.round(fpsN/(t-fpsT)) + ' FPS'; fpsT = t; fpsN = 0; }
+  requestAnimationFrame(tick);
+}
+
+/* ============================================================
+   13. 启动
+   ============================================================ */
+(async function init(){
+  const [day, night] = await Promise.all([
+    loadTex(CDN + 'earth-blue-marble.jpg'),
+    loadTex(CDN + 'earth-night.jpg')
+  ]);
+  const offline = !day || !night;
+  earthUni.uDay.value   = day   || fallbackDay();
+  earthUni.uNight.value = night || fallbackNight();
+  if (offline) $('loadTxt').textContent = '在线纹理不可用，已启用离线程序化贴图';
+
+  applyTime();
+  updateData(true);
+  const ld = $('loading');
+  setTimeout(()=>{ ld.classList.add('off'); setTimeout(()=>ld.remove(), 700); }, offline ? 900 : 250);
+  tick();
+})();
+</script>
+</body>
+</html>

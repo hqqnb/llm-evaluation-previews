@@ -4,10 +4,8 @@
   "model_alias": "gpt-5.5",
   "artifact_type": "html",
   "artifact_file": "index.html",
-  "artifact_sha256": "cec9d2087a390ef89c94d380e57d960f7079c5b87b5a6c1c2743c78967a20e4c",
-  "source_answer_sha256": "d2651eb80c21818be83827bb2a3de88aa862034db4b99fc36a44391e2494e164",
-  "external_urls": [
-    "http://localhost:8000/archery_game.html"
-  ],
+  "artifact_sha256": "4a60aa5be2a33d0615b8a685f682d925884e07968e12eb6c7dceee1427180c94",
+  "source_answer_sha256": "fff94f16a7348bee352f860c0a1dc66aa3c324cc6fdd25d0f7fc28b0584a93a6",
+  "external_urls": [],
   "extraction_policy": "mechanical-only-no-code-repair"
 }

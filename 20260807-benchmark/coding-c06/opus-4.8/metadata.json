@@ -4,10 +4,8 @@
   "model_alias": "opus-4.8",
   "artifact_type": "html",
   "artifact_file": "index.html",
-  "artifact_sha256": "c74c40d263782bac134a818ae1ba17e6d84fcdd78bc45e577b6d35b83cacddd1",
-  "source_answer_sha256": "2444734af57a33f4d18bb1e9c26f3a0067cf570badf220158ff532ebc38d16ae",
-  "external_urls": [
-    "http://localhost:8000/archery-game.html`"
-  ],
+  "artifact_sha256": "4d0d6a85b86332bbc75f348dfb94081b9957a0f53228360bd7ece56ccc9bf7fa",
+  "source_answer_sha256": "eb86d21b0768f44dd3f5621e97315a7600b3ef2b27617e557e02399be7b6fde6",
+  "external_urls": [],
   "extraction_policy": "mechanical-only-no-code-repair"
 }

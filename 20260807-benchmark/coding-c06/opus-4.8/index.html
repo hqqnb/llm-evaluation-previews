@@ -1,1 +1,308 @@
-<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>\u5f13\u7bad\u5c04\u51fb\u6a21\u62df</title>\n<style>\n  * { margin: 0; padding: 0; box-sizing: border-box; }\n  body {\n    font-family: -apple-system, \"Segoe UI\", \"Microsoft YaHei\", sans-serif;\n    background: linear-gradient(180deg, #1a2a3a 0%, #2c4a5a 100%);\n    color: #fff;\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    min-height: 100vh;\n    padding: 16px;\n  }\n  h1 { font-size: 22px; margin-bottom: 8px; letter-spacing: 2px; }\n  #hud {\n    display: flex;\n    gap: 24px;\n    margin-bottom: 10px;\n    font-size: 16px;\n    font-variant-numeric: tabular-nums;\n  }\n  #hud span { color: #ffd54f; font-weight: bold; }\n  .wrap { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }\n  canvas {\n    background: linear-gradient(180deg, #87ceeb 0%, #b3e5fc 55%, #8bc34a 55%, #689f38 100%);\n    border: 4px solid #3e2723;\n    border-radius: 8px;\n    cursor: crosshair;\n    display: block;\n    touch-action: none;\n  }\n  #panel {\n    background: rgba(0,0,0,0.35);\n    border-radius: 8px;\n    padding: 14px 18px;\n    min-width: 220px;\n  }\n  #panel h2 { font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #ffd54f; padding-bottom: 6px; }\n  ol { list-style: none; }\n  ol li {\n    display: flex; justify-content: space-between;\n    padding: 5px 4px; font-size: 14px;\n    border-bottom: 1px dashed rgba(255,255,255,0.15);\n  }\n  ol li.me { color: #ffd54f; font-weight: bold; }\n  .rank-num { width: 24px; color: #90caf9; }\n  .btns { margin-top: 12px; text-align: center; }\n  button {\n    background: #ffd54f; color: #1a2a3a; border: none;\n    padding: 8px 16px; border-radius: 6px; font-weight: bold;\n    cursor: pointer; font-size: 14px; margin: 4px;\n  }\n  button:hover { background: #ffca28; }\n  button.ghost { background: transparent; color: #ffd54f; border: 1px solid #ffd54f; }\n  #hint { font-size: 13px; color: #cfd8dc; margin-top: 8px; text-align: center; max-width: 640px; }\n  #msg {\n    position: fixed; inset: 0; display: none;\n    align-items: center; justify-content: center;\n    background: rgba(0,0,0,0.6); z-index: 10;\n  }\n  #msg .card {\n    background: #263238; padding: 28px 36px; border-radius: 12px;\n    text-align: center; border: 2px solid #ffd54f;\n  }\n  #msg h2 { font-size: 24px; margin-bottom: 10px; color: #ffd54f; }\n  #msg p { margin-bottom: 8px; }\n</style>\n</head>\n<body>\n  <h1>\ud83c\udff9 \u5f13\u7bad\u5c04\u51fb\u6a21\u62df</h1>\n  <div id=\"hud\">\n    <div>\u65f6\u95f4: <span id=\"time\">0.00</span>s</div>\n    <div>\u5df2\u547d\u4e2d: <span id=\"hits\">0</span>/4</div>\n    <div>\u5269\u4f59\u7bad: <span id=\"arrows\">\u221e</span></div>\n  </div>\n\n  <div class=\"wrap\">\n    <canvas id=\"game\" width=\"640\" height=\"420\"></canvas>\n    <div id=\"panel\">\n      <h2>\ud83c\udfc6 \u6392\u884c\u699c (\u7528\u65f6\u8d8a\u77ed\u8d8a\u597d)</h2>\n      <ol id=\"board\"></ol>\n      <div class=\"btns\">\n        <button id=\"restart\">\u91cd\u65b0\u5f00\u59cb</button>\n        <button id=\"clear\" class=\"ghost\">\u6e05\u7a7a\u6392\u884c\u699c</button>\n      </div>\n    </div>\n  </div>\n\n  <p id=\"hint\">\u64cd\u4f5c\uff1a\u5728\u753b\u5e03\u4e0a<b>\u6309\u4f4f\u9f20\u6807\u5de6\u952e\u84c4\u529b</b>\uff0c\u79fb\u52a8\u9f20\u6807\u8c03\u6574\u89d2\u5ea6\uff0c<b>\u677e\u5f00\u5c04\u51fb</b>\u3002\u5c04\u4e2d\u5168\u90e8 4 \u4e2a\u9776\u5b50\u5373\u5b8c\u6210\uff0c\u7528\u65f6\u8d8a\u77ed\u6392\u540d\u8d8a\u9ad8\u3002</p>\n\n  <div id=\"msg\"><div class=\"card\">\n    <h2 id=\"msgTitle\"></h2>\n    <p id=\"msgBody\"></p>\n    <button id=\"msgBtn\">\u518d\u6765\u4e00\u5c40</button>\n  </div></div>\n\n<script>\n(function(){\n  \"use strict\";\n  const cv = document.getElementById('game');\n  const ctx = cv.getContext('2d');\n  const W = cv.width, H = cv.height;\n  const GROUND = H * 0.55;\n\n  const BOW = { x: 60, y: GROUND - 10 }; // \u53d1\u5c04\u70b9\n  const G = 520;            // \u91cd\u529b\u52a0\u901f\u5ea6 (px/s^2)\n  const MAX_POWER = 1000;   // \u6700\u5927\u521d\u901f\n  const MIN_POWER = 300;\n  const ARROW_LIMIT = 12;   // \u7bad\u6570\u9650\u5236\uff0c\u9632\u6b62\u4e71\u5c04\n\n  const LS_KEY = 'archery_leaderboard_v1';\n\n  let targets, arrows, hits, arrowsLeft;\n  let charging = false, power = MIN_POWER, chargeDir = 1;\n  let aimX = 400, aimY = 100;\n  let startTime = 0, elapsed = 0, running = false, finished = false;\n  let lastTs = 0;\n\n  function rand(a, b){ return a + Math.random() * (b - a); }\n\n  function initTargets(){\n    // \u56db\u4e2a\u9776\u5b50\uff0c\u968f\u673a\u9ad8\u5ea6\uff0c\u5206\u5e03\u5728\u53f3\u4fa7\n    const xs = [340, 430, 520, 600];\n    return xs.map(x => ({\n      x: x,\n      y: rand(70, GROUND - 30),\n      r: rand(22, 30),\n      hit: false\n    }));\n  }\n\n  function reset(){\n    targets = initTargets();\n    arrows = [];\n    hits = 0;\n    arrowsLeft = ARROW_LIMIT;\n    charging = false;\n    power = MIN_POWER;\n    finished = false;\n    running = false;\n    elapsed = 0;\n    startTime = 0;\n    updateHud();\n    renderBoard();\n    document.getElementById('msg').style.display = 'none';\n  }\n\n  function updateHud(){\n    document.getElementById('time').textContent = elapsed.toFixed(2);\n    document.getElementById('hits').textContent = hits;\n    document.getElementById('arrows').textContent = arrowsLeft;\n  }\n\n  // ---- \u53d1\u5c04 ----\n  function shoot(){\n    if(finished || arrowsLeft <= 0) return;\n    if(!running){ running = true; startTime = performance.now(); }\n    const dx = aimX - BOW.x, dy = aimY - BOW.y;\n    const len = Math.hypot(dx, dy) || 1;\n    arrows.push({\n      x: BOW.x, y: BOW.y,\n      vx: dx/len * power,\n      vy: dy/len * power,\n      dead: false,\n      trail: []\n    });\n    arrowsLeft--;\n    updateHud();\n  }\n\n  function checkHit(a){\n    for(const t of targets){\n      if(t.hit) continue;\n      if(Math.hypot(a.x - t.x, a.y - t.y) <= t.r){\n        t.hit = true;\n        a.dead = true;\n        hits++;\n        updateHud();\n        if(hits === targets.length) finish();\n        return;\n      }\n    }\n  }\n\n  function finish(){\n    finished = true;\n    running = false;\n    const rank = saveScore(elapsed);\n    renderBoard(rank);\n    const msg = document.getElementById('msg');\n    document.getElementById('msgTitle').textContent = '\ud83c\udfaf \u5b8c\u6210\uff01';\n    document.getElementById('msgBody').textContent =\n      '\u7528\u65f6 ' + elapsed.toFixed(2) + 's\uff0c\u6392\u540d\u7b2c ' + rank + ' \u540d\u3002';\n    msg.style.display = 'flex';\n  }\n\n  function gameOverNoArrows(){\n    finished = true;\n    running = false;\n    const msg = document.getElementById('msg');\n    document.getElementById('msgTitle').textContent = '\u7bad\u7528\u5b8c\u4e86';\n    document.getElementById('msgBody').textContent =\n      '\u53ea\u547d\u4e2d\u4e86 ' + hits + '/4\uff0c\u672a\u5b8c\u6210\u3002\u518d\u8bd5\u4e00\u6b21\u5427\uff01';\n    msg.style.display = 'flex';\n  }\n\n  // ---- \u6392\u884c\u699c ----\n  function loadBoard(){\n    try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }\n    catch(e){ return []; }\n  }\n  function saveScore(t){\n    const list = loadBoard();\n    const entry = { t: +t.toFixed(2), at: Date.now() };\n    list.push(entry);\n    list.sort((a,b) => a.t - b.t);\n    const top = list.slice(0, 10);\n    localStorage.setItem(LS_KEY, JSON.stringify(top));\n    // \u672c\u6b21\u6210\u7ee9\u7684\u540d\u6b21\n    let rank = top.findIndex(e => e.at === entry.at) + 1;\n    if(rank === 0) rank = list.length; // \u672a\u8fdb\u524d10\n    return rank;\n  }\n  function renderBoard(highlightRank){\n    const list = loadBoard();\n    const ol = document.getElementById('board');\n    if(list.length === 0){ ol.innerHTML = '<li>\u6682\u65e0\u8bb0\u5f55</li>'; return; }\n    ol.innerHTML = list.map((e, i) =>\n      '<li class=\"' + (i+1===highlightRank ? 'me' : '') + '\">' +\n        '<span class=\"rank-num\">' + (i+1) + '.</span>' +\n        '<span>' + e.t.toFixed(2) + 's</span></li>'\n    ).join('');\n  }\n\n  // ---- \u8f93\u5165 ----\n  function pos(e){\n    const r = cv.getBoundingClientRect();\n    const p = e.touches ? e.touches[0] : e;\n    return { x: (p.clientX - r.left) * (W/r.width), y: (p.clientY - r.top) * (H/r.height) };\n  }\n  cv.addEventListener('mousedown', e => { if(finished) return; charging = true; power = MIN_POWER; chargeDir = 1; });\n  cv.addEventListener('mousemove', e => { const p = pos(e); aimX = p.x; aimY = p.y; });\n  cv.addEventListener('mouseup',   e => { if(charging){ charging = false; shoot(); } });\n  cv.addEventListener('mouseleave',e => { if(charging){ charging = false; shoot(); } });\n  // \u89e6\u5c4f\n  cv.addEventListener('touchstart', e => { e.preventDefault(); if(finished) return; const p=pos(e); aimX=p.x; aimY=p.y; charging=true; power=MIN_POWER; chargeDir=1; }, {passive:false});\n  cv.addEventListener('touchmove',  e => { e.preventDefault(); const p=pos(e); aimX=p.x; aimY=p.y; }, {passive:false});\n  cv.addEventListener('touchend',   e => { e.preventDefault(); if(charging){ charging=false; shoot(); } }, {passive:false});\n\n  document.getElementById('restart').onclick = reset;\n  document.getElementById('msgBtn').onclick = reset;\n  document.getElementById('clear').onclick = () => {\n    if(confirm('\u786e\u5b9a\u6e05\u7a7a\u6392\u884c\u699c\uff1f')){ localStorage.removeItem(LS_KEY); renderBoard(); }\n  };\n\n  // ---- \u66f4\u65b0 ----\n  function update(dt){\n    if(charging){\n      power += chargeDir * 700 * dt;\n      if(power >= MAX_POWER){ power = MAX_POWER; chargeDir = -1; }\n      if(power <= MIN_POWER){ power = MIN_POWER; chargeDir = 1; }\n    }\n    if(running && !finished){ elapsed = (performance.now() - startTime) / 1000; }\n\n    for(const a of arrows){\n      if(a.dead) continue;\n      a.trail.push({x:a.x, y:a.y});\n      if(a.trail.length > 8) a.trail.shift();\n      a.vy += G * dt;\n      a.x += a.vx * dt;\n      a.y += a.vy * dt;\n      checkHit(a);\n      if(a.y >= GROUND && a.x < W){ a.dead = true; }        // \u843d\u5730\n      if(a.x > W || a.x < -20 || a.y > H){ a.dead = true; }  // \u51fa\u754c\n    }\n    arrows = arrows.filter(a => !a.dead || a.trail.length);\n    arrows.forEach(a => { if(a.dead) a.trail = []; });\n    arrows = arrows.filter(a => !a.dead);\n\n    updateHud();\n\n    if(!finished && arrowsLeft <= 0 && arrows.length === 0 && hits < targets.length){\n      gameOverNoArrows();\n    }\n  }\n\n  // ---- \u7ed8\u5236 ----\n  function drawTarget(t){\n    ctx.save();\n    // \u652f\u67b1\n    ctx.strokeStyle = '#5d4037'; ctx.lineWidth = 4;\n    ctx.beginPath(); ctx.moveTo(t.x, t.y + t.r); ctx.lineTo(t.x, GROUND); ctx.stroke();\n    // \u9776\u73af\n    const rings = [ ['#e53935', t.r], ['#fff', t.r*0.72], ['#e53935', t.r*0.48], ['#fff', t.r*0.28], ['#ffd54f', t.r*0.12] ];\n    for(const [c, r] of rings){\n      ctx.fillStyle = c;\n      ctx.beginPath(); ctx.arc(t.x, t.y, r, 0, Math.PI*2); ctx.fill();\n    }\n    if(t.hit){\n      ctx.fillStyle = 'rgba(76,175,80,0.55)';\n      ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI*2); ctx.fill();\n      ctx.fillStyle = '#fff'; ctx.font = 'bold 20px sans-serif';\n      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';\n      ctx.fillText('\u2713', t.x, t.y);\n    }\n    ctx.restore();\n  }\n\n  function drawArrow(a){\n    // \u8f68\u8ff9\n    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;\n    ctx.beginPath();\n    a.trail.forEach((p,i) => i? ctx.lineTo(p.x,p.y): ctx.moveTo(p.x,p.y));\n    ctx.stroke();\n    const ang = Math.atan2(a.vy, a.vx);\n    ctx.save();\n    ctx.translate(a.x, a.y); ctx.rotate(ang);\n    ctx.strokeStyle = '#6d4c41'; ctx.lineWidth = 3;\n    ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(6,0); ctx.stroke();\n    ctx.fillStyle = '#455a64';\n    ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(4,-4); ctx.lineTo(4,4); ctx.closePath(); ctx.fill();\n    ctx.strokeStyle = '#ef5350'; ctx.lineWidth = 2;\n    ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(-13,-4); ctx.moveTo(-18,0); ctx.lineTo(-13,4); ctx.stroke();\n    ctx.restore();\n  }\n\n  function drawBow(){\n    ctx.save();\n    // \u5f13\n    ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 5;\n    ctx.beginPath(); ctx.arc(BOW.x-4, BOW.y, 26, -Math.PI/2.2, Math.PI/2.2); ctx.stroke();\n    ctx.strokeStyle = '#eceff1'; ctx.lineWidth = 1.5;\n    ctx.beginPath(); ctx.moveTo(BOW.x-4+26*Math.cos(-Math.PI/2.2), BOW.y+26*Math.sin(-Math.PI/2.2));\n    ctx.lineTo(BOW.x-4+26*Math.cos(Math.PI/2.2), BOW.y+26*Math.sin(Math.PI/2.2)); ctx.stroke();\n\n    // \u77c4\u51c6\u7ebf\n    const dx = aimX - BOW.x, dy = aimY - BOW.y;\n    const len = Math.hypot(dx,dy) || 1;\n    ctx.strokeStyle = 'rgba(255,213,79,0.7)';\n    ctx.setLineDash([6,6]); ctx.lineWidth = 2;\n    ctx.beginPath(); ctx.moveTo(BOW.x, BOW.y);\n    ctx.lineTo(BOW.x + dx/len*60, BOW.y + dy/len*60); ctx.stroke();\n    ctx.setLineDash([]);\n\n    // \u84c4\u529b\u6761\n    if(charging){\n      const p = (power - MIN_POWER) / (MAX_POWER - MIN_POWER);\n      ctx.fillStyle = 'rgba(0,0,0,0.4)';\n      ctx.fillRect(BOW.x-30, BOW.y+34, 80, 10);\n      ctx.fillStyle = p>0.8 ? '#ef5350' : (p>0.5 ? '#ffca28' : '#66bb6a');\n      ctx.fillRect(BOW.x-30, BOW.y+34, 80*p, 10);\n      ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.strokeRect(BOW.x-30, BOW.y+34, 80, 10);\n    }\n    ctx.restore();\n  }\n\n  function render(){\n    ctx.clearRect(0,0,W,H);\n    // \u592a\u9633\n    ctx.fillStyle = 'rgba(255,241,118,0.8)';\n    ctx.beginPath(); ctx.arc(W-60, 50, 26, 0, Math.PI*2); ctx.fill();\n    targets.forEach(drawTarget);\n    arrows.forEach(drawArrow);\n    drawBow();\n  }\n\n  function loop(ts){\n    if(!lastTs) lastTs = ts;\n    let dt = (ts - lastTs) / 1000;\n    lastTs = ts;\n    if(dt > 0.05) dt = 0.05; // \u9632\u6b62\u5927\u6b65\u957f\u7a7f\u900f\n    update(dt);\n    render();\n    requestAnimationFrame(loop);\n  }\n\n  // \u5bfc\u51fa\u7528\u4e8e\u6d4b\u8bd5\n  window.__archery = {\n    getState: () => ({ hits, arrowsLeft, finished, elapsed, targets }),\n    saveScore, loadBoard,\n    _clearBoard: () => localStorage.removeItem(LS_KEY)\n  };\n\n  reset();\n  requestAnimationFrame(loop);\n})();\n</script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>弓箭射击模拟</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg, #87ceeb 0%, #b6e3a4 60%, #6aa84f 100%);
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 16px; user-select: none;
+  }
+  h1 { color: #2f3e1f; margin-bottom: 8px; text-shadow: 0 1px 0 #fff; }
+  .hud {
+    display: flex; gap: 24px; align-items: center; margin-bottom: 10px;
+    background: rgba(255,255,255,.6); padding: 8px 18px; border-radius: 10px;
+    font-size: 18px; font-weight: 600; color: #2f3e1f;
+  }
+  .hud .time { color: #b7410e; min-width: 90px; }
+  .layout { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  #gameWrap { position: relative; }
+  canvas {
+    background: linear-gradient(180deg,#bfe6ff 0%,#dff4c8 55%,#8bc34a 100%);
+    border: 4px solid #3f5133; border-radius: 12px; cursor: crosshair;
+    display: block; box-shadow: 0 8px 20px rgba(0,0,0,.25);
+  }
+  .panel {
+    background: rgba(255,255,255,.85); border-radius: 12px; padding: 16px;
+    width: 260px; box-shadow: 0 6px 16px rgba(0,0,0,.2);
+  }
+  .panel h2 { font-size: 18px; color: #2f3e1f; margin-bottom: 8px; }
+  #board { list-style: none; }
+  #board li {
+    display: flex; justify-content: space-between; padding: 6px 8px;
+    border-bottom: 1px dashed #ccc; font-variant-numeric: tabular-nums;
+  }
+  #board li:first-child { font-weight: 700; color: #b7410e; }
+  .rank { color: #555; }
+  .controls { margin-top: 12px; display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer;
+    background: #b7410e; color: #fff; font-weight: 600; font-size: 15px;
+  }
+  button.secondary { background: #4b6b32; }
+  button:hover { filter: brightness(1.08); }
+  .hint { margin-top: 10px; font-size: 13px; color: #444; line-height: 1.5; }
+  .overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,.55); color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-radius: 12px; text-align: center; gap: 12px; padding: 20px;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h2 { font-size: 26px; }
+  .overlay p { font-size: 18px; }
+</style>
+</head>
+<body>
+  <h1>🏹 弓箭射击模拟</h1>
+  <div class="hud">
+    <span>命中：<span id="hitCount">0</span> / 4</span>
+    <span>用时：<span class="time" id="timer">0.00s</span></span>
+  </div>
+
+  <div class="layout">
+    <div id="gameWrap">
+      <canvas id="game" width="640" height="480"></canvas>
+      <div class="overlay" id="overlay">
+        <h2 id="ovTitle">准备开始</h2>
+        <p id="ovDesc">点击“开始”后，用鼠标瞄准并点击射击四个靶子。</p>
+        <button id="startBtn" style="max-width:160px">开始</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>🏆 排行榜（用时越短越靠前）</h2>
+      <ul id="board"></ul>
+      <div class="controls">
+        <button id="restartBtn" class="secondary">重新开始</button>
+        <button id="clearBtn" class="secondary">清空榜单</button>
+      </div>
+      <div class="hint">
+        规则：点击“开始”后计时开始，用鼠标点击命中全部 4 个靶子。
+        全部命中后计时停止并记录成绩。用时最短者排名第一。
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const hitCountEl = document.getElementById('hitCount');
+  const timerEl = document.getElementById('timer');
+  const boardEl = document.getElementById('board');
+  const overlay = document.getElementById('overlay');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovDesc = document.getElementById('ovDesc');
+  const startBtn = document.getElementById('startBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const clearBtn = document.getElementById('clearBtn');
+
+  const TARGET_COUNT = 4;
+  const STORAGE_KEY = 'archery_scores_v1';
+
+  let targets = [];
+  let arrows = [];       // 飞行中的箭
+  let hits = 0;
+  let running = false;
+  let startTime = 0;
+  let elapsed = 0;
+  let rafId = null;
+
+  // ---- 排行榜（localStorage，失败则内存降级） ----
+  let memScores = [];
+  function loadScores() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return memScores.slice(); }
+  }
+  function saveScores(list) {
+    memScores = list.slice();
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+  function addScore(seconds) {
+    const list = loadScores();
+    list.push({ time: seconds, date: Date.now() });
+    list.sort((a, b) => a.time - b.time);   // 用时升序 = 名次高
+    const top = list.slice(0, 10);
+    saveScores(top);
+    renderBoard(seconds);
+  }
+  function renderBoard(highlight) {
+    const list = loadScores();
+    boardEl.innerHTML = '';
+    if (list.length === 0) {
+      boardEl.innerHTML = '<li><span class="rank">暂无记录</span></li>';
+      return;
+    }
+    list.forEach((s, i) => {
+      const li = document.createElement('li');
+      const mark = (highlight != null && Math.abs(s.time - highlight) < 1e-6) ? ' ⭐' : '';
+      li.innerHTML = '<span class="rank">#' + (i + 1) + '</span>' +
+                     '<span>' + s.time.toFixed(2) + 's' + mark + '</span>';
+      boardEl.appendChild(li);
+    });
+  }
+
+  // ---- 靶子生成 ----
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+  function spawnTargets() {
+    targets = [];
+    for (let i = 0; i < TARGET_COUNT; i++) {
+      let x, y, ok, tries = 0;
+      const r = rand(28, 40);
+      do {
+        x = rand(r + 20, W - r - 20);
+        y = rand(r + 20, H - r - 120);
+        ok = targets.every(t => Math.hypot(t.x - x, t.y - y) > t.r + r + 10);
+        tries++;
+      } while (!ok && tries < 200);
+      targets.push({ x, y, r, hit: false });
+    }
+  }
+
+  // ---- 绘制 ----
+  function drawTarget(t) {
+    const rings = [
+      { f: 0.0, c: '#e74c3c' },
+      { f: 0.28, c: '#ffffff' },
+      { f: 0.55, c: '#e74c3c' },
+      { f: 0.78, c: '#ffffff' },
+    ];
+    // 外圈
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#e74c3c'; ctx.fill();
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 0.72, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 0.46, 0, Math.PI * 2);
+    ctx.fillStyle = '#e74c3c'; ctx.fill();
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#f1c40f'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  function drawHitMark(t) {
+    ctx.save();
+    ctx.strokeStyle = '#2ecc71'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(t.x - t.r * 0.4, t.y);
+    ctx.lineTo(t.x - t.r * 0.1, t.y + t.r * 0.35);
+    ctx.lineTo(t.x + t.r * 0.45, t.y - t.r * 0.35);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawArrow(a) {
+    ctx.save();
+    ctx.translate(a.x, a.y);
+    ctx.rotate(a.angle);
+    ctx.strokeStyle = '#5a3a1a'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(10, 0); ctx.stroke();
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(8, -4); ctx.lineTo(8, 4); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#c0392b';
+    ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-24, -4); ctx.moveTo(-18, 0); ctx.lineTo(-24, 4); ctx.stroke();
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    // 地面
+    ctx.fillStyle = 'rgba(90,150,60,.4)';
+    ctx.fillRect(0, H - 60, W, 60);
+    targets.forEach(t => { drawTarget(t); if (t.hit) drawHitMark(t); });
+    arrows.forEach(drawArrow);
+  }
+
+  // ---- 循环 ----
+  function loop() {
+    if (running) {
+      elapsed = (performance.now() - startTime) / 1000;
+      timerEl.textContent = elapsed.toFixed(2) + 's';
+    }
+    // 更新箭
+    for (let i = arrows.length - 1; i >= 0; i--) {
+      const a = arrows[i];
+      a.x += a.vx; a.y += a.vy; a.life--;
+      if (a.life <= 0 || a.x < -40 || a.x > W + 40 || a.y < -40 || a.y > H + 40) {
+        arrows.splice(i, 1);
+      }
+    }
+    render();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  // ---- 交互 ----
+  function shootAt(mx, my) {
+    if (!running) return;
+    // 从底部中间发射一支箭飞向点击位置（视觉效果）
+    const sx = W / 2, sy = H - 20;
+    const ang = Math.atan2(my - sy, mx - sx);
+    const speed = 22;
+    arrows.push({
+      x: sx, y: sy, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
+      angle: ang, life: 60
+    });
+    // 命中判定
+    for (const t of targets) {
+      if (!t.hit && Math.hypot(t.x - mx, t.y - my) <= t.r) {
+        t.hit = true;
+        hits++;
+        hitCountEl.textContent = hits;
+        if (hits >= TARGET_COUNT) finish();
+        break;
+      }
+    }
+  }
+
+  canvas.addEventListener('click', function (e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    const my = (e.clientY - rect.top) * (H / rect.height);
+    shootAt(mx, my);
+  });
+
+  function startGame() {
+    hits = 0; arrows = [];
+    hitCountEl.textContent = '0';
+    spawnTargets();
+    running = true;
+    startTime = performance.now();
+    elapsed = 0;
+    overlay.classList.add('hidden');
+    if (!rafId) loop();
+  }
+
+  function finish() {
+    running = false;
+    const finalTime = (performance.now() - startTime) / 1000;
+    timerEl.textContent = finalTime.toFixed(2) + 's';
+    addScore(finalTime);
+    ovTitle.textContent = '🎯 全部命中！';
+    ovDesc.textContent = '用时 ' + finalTime.toFixed(2) + ' 秒，已记入排行榜。';
+    startBtn.textContent = '再来一次';
+    overlay.classList.remove('hidden');
+  }
+
+  startBtn.addEventListener('click', startGame);
+  restartBtn.addEventListener('click', startGame);
+  clearBtn.addEventListener('click', function () {
+    saveScores([]);
+    renderBoard();
+  });
+
+  // 初始化
+  spawnTargets();
+  render();
+  renderBoard();
+})();
+</script>
+</body>
+</html>

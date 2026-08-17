@@ -1,108 +1,89 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>弓箭射击模拟 · 四靶竞速</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>弓箭射击竞速 · Archery Time Trial</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; padding: 20px;
-    font-family: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #10141c; color: #e8ecf3;
+    margin: 0; padding: 24px; min-height: 100vh;
+    background: #0b1220; color: #e9eef6;
+    font-family: system-ui, "Noto Sans SC", sans-serif;
+    display: flex; justify-content: center;
   }
-  h1 { font-size: 20px; margin: 0 0 12px; }
-  .wrap { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; max-width: 1360px; margin: 0 auto; }
-  .stage { flex: 1 1 640px; min-width: 320px; }
-  canvas {
-    width: 100%; height: auto; display: block; border-radius: 10px;
-    border: 1px solid #2a3242; background: #0b0f16; cursor: crosshair; touch-action: none;
-  }
-  canvas:focus-visible { outline: 3px solid #f4c22b; outline-offset: 2px; }
-  .hud { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin: 10px 0; font-variant-numeric: tabular-nums; }
-  .hud div span { color: #9fb0c6; font-size: 12px; display: block; }
-  .hud div b { font-size: 18px; }
-  .bar { flex: 1 1 160px; height: 12px; min-width: 120px; background: #222b39; border-radius: 6px; overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4caf50, #f4c22b, #e2453c); }
-  .side { flex: 0 0 300px; }
-  .card { background: #161d28; border: 1px solid #26303f; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
-  .card h2 { font-size: 15px; margin: 0 0 10px; }
-  ol#board { list-style: none; margin: 0; padding: 0; font-variant-numeric: tabular-nums; }
-  ol#board li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px dashed #26303f; font-size: 13px; }
-  ol#board li:first-child .score { color: #f4c22b; }
-  ol#board li.empty { color: #8595ab; justify-content: center; }
-  ul.keys { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: #c3cede; }
-  kbd { background: #222b39; border: 1px solid #3a465a; border-radius: 4px; padding: 0 5px; font-size: 12px; }
-  button { font: inherit; padding: 7px 12px; border-radius: 7px; border: 1px solid #3a465a; background: #222b39; color: #e8ecf3; cursor: pointer; }
-  button:hover { background: #2c384a; }
-  button[type=submit] { background: #2f7fd1; border-color: #2f7fd1; }
-  #status { min-height: 20px; font-size: 13px; color: #9fb0c6; margin: 6px 0 0; }
-  .overlay { position: fixed; inset: 0; background: rgba(6,9,14,0.78); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10; }
-  .overlay.hidden { display: none; }
-  .panel { background: #161d28; border: 1px solid #33415a; border-radius: 12px; padding: 22px; max-width: 420px; width: 100%; }
-  .panel h2 { margin: 0 0 8px; }
-  .panel input { width: 100%; padding: 8px; margin: 6px 0 12px; border-radius: 7px; border: 1px solid #3a465a; background: #0f141d; color: inherit; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .wrap { width: min(1360px, 100%); display: grid; gap: 18px; grid-template-columns: minmax(0,1fr) 320px; }
+  h1 { margin: 0 0 6px; font-size: 20px; }
+  p.sub { margin: 0 0 14px; color: #93a4bd; font-size: 14px; }
+  canvas { width: 100%; aspect-ratio: 960 / 540; background: #101a2c; border-radius: 12px; display: block; touch-action: none; }
+  canvas:focus-visible { outline: 3px solid #ffd166; outline-offset: 3px; }
+  .hud { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+  .chip { background: #16233c; border: 1px solid #24365a; border-radius: 999px; padding: 6px 14px; font-size: 14px; }
+  .chip b { color: #ffd166; font-variant-numeric: tabular-nums; }
+  .power { height: 10px; background: #16233c; border: 1px solid #24365a; border-radius: 999px; overflow: hidden; }
+  .power i { display: block; height: 100%; width: 0; background: linear-gradient(90deg,#7dffa0,#ffd166,#ff6b6b); transition: width .05s linear; }
+  aside { background: #101a2c; border: 1px solid #1f2f4d; border-radius: 12px; padding: 16px; }
+  aside h2 { font-size: 16px; margin: 0 0 10px; }
+  ol#board { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 6px; }
+  #board li { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 8px; align-items: center;
+    background: #16233c; border-radius: 8px; padding: 7px 10px; font-size: 14px; }
+  #board li.empty { display: block; color: #93a4bd; background: none; padding: 0; }
+  #board .pos { color: #ffd166; font-weight: 700; }
+  #board .t { font-variant-numeric: tabular-nums; }
+  #board .sc { color: #93a4bd; font-size: 12px; }
+  #result { background: #16233c; border: 1px solid #2f7fd0; border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+  label { display: block; font-size: 13px; margin: 10px 0 4px; color: #93a4bd; }
+  input, button { font: inherit; border-radius: 8px; }
+  input { width: 100%; padding: 8px 10px; background: #0b1220; border: 1px solid #24365a; color: inherit; }
+  button { padding: 9px 14px; margin-top: 10px; border: 0; background: #2f7fd0; color: #fff; cursor: pointer; width: 100%; }
+  button:hover:not(:disabled) { background: #3d92e6; }
+  button:disabled { opacity: .5; cursor: default; }
+  #restart { background: #24365a; }
+  .keys { font-size: 13px; color: #93a4bd; line-height: 1.7; margin-top: 14px; }
+  kbd { background: #16233c; border: 1px solid #24365a; border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <main class="stage">
-    <h1>弓箭射击模拟 · 四靶竞速</h1>
-    <canvas id="game" width="960" height="540" tabindex="0"
-            aria-label="射箭场地：弓在左侧，四个靶子在右侧。使用方向键调整仰角，空格键拉弓与射箭。"></canvas>
+  <main>
+    <h1>弓箭射击竞速</h1>
+    <p class="sub">击中全部 4 个靶子，用时越短排名越高。计时从第一箭射出开始。</p>
+    <canvas id="stage" width="960" height="540" tabindex="0"
+      aria-label="弓箭射击场地：左侧为弓手，右侧有四个靶子。使用方向键瞄准，空格键蓄力发射。"></canvas>
     <div class="hud">
-      <div><span>用时</span><b id="hudTime">0.00s</b></div>
-      <div><span>命中靶数</span><b id="hudHits">0 / 4</b></div>
-      <div><span>用箭</span><b id="hudArrows">0</b></div>
-      <div><span>总环数</span><b id="hudRings">0</b></div>
-      <div class="bar" role="img" aria-label="拉弓力度"><i id="powerFill"></i></div>
-      <button id="restart" type="button">重新开始 (R)</button>
+      <span class="chip">用时 <b id="hud-time">0.00s</b></span>
+      <span class="chip">命中 <b id="hud-hits">0/4</b></span>
+      <span class="chip">射出 <b id="hud-shots">0</b> 箭</span>
+      <span class="chip">环数 <b id="hud-score">0 环</b></span>
     </div>
-    <p id="status" role="status" aria-live="polite"></p>
+    <div class="power" aria-hidden="true"><i id="power-fill"></i></div>
   </main>
 
-  <aside class="side">
-    <section class="card">
-      <h2>排行榜（用时越短越靠前）</h2>
-      <ol id="board"></ol>
-      <div class="row" style="margin-top:10px">
-        <button id="clearBoard" type="button">清空本机排行榜</button>
-      </div>
-    </section>
-    <section class="card">
-      <h2>玩法</h2>
-      <ul class="keys">
-        <li>目标：尽快命中全部 <b>4 个靶子</b>，用时最短者排名最高。</li>
-        <li>计时从<b>射出第一箭</b>时开始，第四靶命中即停表；箭矢数量不限。</li>
-        <li>鼠标移动瞄准，按住左键蓄力，松开射箭。</li>
-        <li>键盘：<kbd>↑</kbd>/<kbd>↓</kbd> 调整仰角，按住 <kbd>空格</kbd> 蓄力、松开射箭，<kbd>R</kbd> 重开。</li>
-        <li>靶子会上下摆动（近靶固定），越远越小、摆幅越大；靶心 5 环，最外圈 1 环。</li>
-        <li>关卡固定、无随机风力，因此排行榜可比。成绩仅保存在你本机浏览器中。</li>
-      </ul>
-    </section>
+  <aside>
+    <div id="result" hidden>
+      <strong>本局成绩</strong>
+      <p id="result-text" style="margin:6px 0 0;font-size:14px"></p>
+      <label for="player-name">你的名字</label>
+      <input id="player-name" maxlength="16" placeholder="匿名弓手" />
+      <button id="save-score">保存到排行榜</button>
+    </div>
+
+    <h2>排行榜 · 最快 10 名</h2>
+    <ol id="board"></ol>
+    <button id="restart">重新开始（R）</button>
+
+    <p class="keys">
+      <strong>操作</strong><br />
+      鼠标：移动瞄准，按住蓄力，松开发射<br />
+      键盘：<kbd>↑</kbd><kbd>↓</kbd> 调整角度，<kbd>←</kbd><kbd>→</kbd> 微调，<kbd>空格</kbd> 蓄力发射，<kbd>R</kbd> 重开<br />
+      最多同时 3 箭在空中；2 号、4 号靶会按固定节奏移动，对所有玩家一致。
+    </p>
   </aside>
 </div>
-
-<div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ovTitle">
-  <div class="panel">
-    <h2 id="ovTitle">四靶全中！</h2>
-    <p id="ovStats"></p>
-    <form id="scoreForm">
-      <label for="playerName">选手名字（最多 12 字）</label>
-      <input id="playerName" name="playerName" maxlength="12" autocomplete="off" placeholder="匿名弓手">
-      <div class="row">
-        <button type="submit">提交成绩</button>
-        <button type="button" id="ovSkip">不提交</button>
-      </div>
-    </form>
-    <p id="ovRank" role="status" aria-live="polite"></p>
-    <button id="ovAgain" type="button">再来一局 (R)</button>
-  </div>
-</div>
-
-<script src="core.js"></script>
-<script src="game.js"></script>
+<div id="live" class="sr" role="status" aria-live="polite"></div>
+<script type="module" src="./src/game.js"></script>
 </body>
 </html>

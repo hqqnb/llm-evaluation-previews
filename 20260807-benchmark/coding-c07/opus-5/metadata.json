@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260807-benchmark",
+  "item_id": "coding-c07",
+  "model_alias": "opus-5",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "5309ec4e5f32154aee0608add73c69005ac99bb1664d4495521f60031119e089",
+  "source_answer_sha256": "f95a989da760c54fd5d715fab1b4ebe31b8ccac9c5af9af0743480a9c7664a2d",
+  "external_urls": [
+    "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+    "https://cdn.jsdelivr.net/npm/three-globe@2.31.0/example/img/"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}
