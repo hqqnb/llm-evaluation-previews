@@ -1,0 +1,14 @@
+{
+  "campaign_id": "20260820-glm53",
+  "item_id": "coding-c04",
+  "model_alias": "glm-5.3",
+  "artifact_type": "svg",
+  "artifact_file": "answer.svg",
+  "artifact_sha256": "bc0e27458144f468f9b0fcbd6d79672ea297967a5698850278f0cf09603a0a60",
+  "source_answer_sha256": "e4bec4bfb1f55584c3f01241ff12d4e581194bedbe724d584de833fabb253806",
+  "external_urls": [
+    "http://www.w3.org/2000/svg",
+    "http://www.w3.org/1999/xlink"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

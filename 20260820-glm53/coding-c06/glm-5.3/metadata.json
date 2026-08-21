@@ -1,0 +1,15 @@
+{
+  "campaign_id": "20260820-glm53",
+  "item_id": "coding-c06",
+  "model_alias": "glm-5.3",
+  "artifact_type": "html",
+  "artifact_file": "index.html",
+  "artifact_sha256": "c2443fd7a1147e85b1ddba94bb3d320940c5a6d231f4c8d5e956444b77a60840",
+  "source_answer_sha256": "5a172cf1e1b6dbaf2f0077dc9e0ef62da2885de67df67fef03706038948495b7",
+  "external_urls": [
+    "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=IBM+Plex+Mono:wght@400;600&display=swap",
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+    "http://localhost:8000/archery.html`）"
+  ],
+  "extraction_policy": "mechanical-only-no-code-repair"
+}

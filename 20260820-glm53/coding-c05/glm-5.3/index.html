@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MERIDIAN · 双时区 3D 腕表</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@300;400&family=Noto+Serif+SC:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --gold:#c9a86a; --ink:#e9e2d2; --dim:#9a9284; }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; overflow:hidden; color:var(--ink);
+    background: radial-gradient(1300px 900px at 50% 36%, #171510 0%, #0d0c09 55%, #060504 100%);
+    font-family:'Noto Serif SC', serif;
+  }
+  /* 晕影与噪点，增加暗房摄影质感 */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:1; pointer-events:none;
+    background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,.5) 100%);
+  }
+  body::after{
+    content:''; position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.05;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  #stage{ position:fixed; inset:0; z-index:0; }
+  #stage canvas{ display:block; }
+
+  header{ position:fixed; top:36px; left:44px; z-index:2; pointer-events:none;
+          opacity:0; animation:in 1.2s .5s ease forwards; }
+  header h1{
+    margin:0; font-family:'Cormorant Garamond',serif; font-weight:600;
+    font-size:31px; letter-spacing:.46em; color:var(--gold); text-indent:.46em;
+  }
+  header .rule{ width:150px; height:1px; margin:10px 0 8px;
+    background:linear-gradient(90deg, rgba(201,168,106,.9), rgba(201,168,106,0)); }
+  header .sub{ font-size:12.5px; letter-spacing:.34em; color:var(--dim); }
+
+  aside#panel{
+    position:fixed; left:44px; bottom:40px; z-index:2; width:318px;
+    background:rgba(15,14,11,.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(201,168,106,.28); border-radius:14px;
+    padding:18px 20px 16px;
+    box-shadow:0 24px 60px rgba(0,0,0,.5);
+    opacity:0; animation:in 1.2s .9s ease forwards;
+  }
+  @keyframes in{ to{opacity:1;} }
+  .panel-cap{ font-size:11px; letter-spacing:.42em; color:var(--gold);
+    padding-bottom:10px; margin-bottom:14px;
+    border-bottom:1px solid rgba(201,168,106,.18); }
+  .tz-block{ margin-bottom:14px; }
+  .tz-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .tz-label{ font-size:11.5px; color:var(--dim); letter-spacing:.12em; white-space:nowrap; }
+  select{
+    appearance:none; -webkit-appearance:none;
+    background:#18150f url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23c9a86a' fill='none' stroke-width='1.5'/></svg>") no-repeat right 9px center/10px;
+    color:var(--ink); border:1px solid #3a3325; border-radius:7px;
+    padding:5px 26px 5px 9px; font:12px 'Noto Serif SC',serif; cursor:pointer; max-width:190px;
+  }
+  select:focus{ outline:none; border-color:var(--gold); }
+  .clock{ font-family:'IBM Plex Mono',monospace; font-weight:300; margin-top:8px; }
+  .clock.main{ font-size:33px; color:var(--ink); letter-spacing:.04em; }
+  .clock.gmt{ font-size:21px; color:var(--gold); letter-spacing:.04em; }
+  .meta{ font-size:11.5px; color:var(--dim); margin-top:4px; letter-spacing:.06em; }
+  .hr{ height:1px; background:rgba(201,168,106,.16); margin:4px 0 13px; }
+  .switch{ display:flex; align-items:center; gap:10px; cursor:pointer;
+    font-size:12.5px; color:#cfc8b6; margin-bottom:9px; user-select:none; }
+  .switch input{ display:none; }
+  .switch i{ width:34px; height:19px; border-radius:10px; background:#252218;
+    border:1px solid #453c2b; position:relative; transition:.25s; flex:none; }
+  .switch i::after{ content:''; position:absolute; width:13px; height:13px; border-radius:50%;
+    background:#847a67; top:2px; left:2px; transition:.25s; }
+  .switch input:checked + i{ background:#3c311d; border-color:var(--gold); }
+  .switch input:checked + i::after{ left:16px; background:#d8b878; }
+  .ghost-btn{
+    width:100%; margin-top:6px; padding:7px 0; cursor:pointer;
+    background:transparent; color:var(--gold); border:1px solid rgba(201,168,106,.45);
+    border-radius:8px; font:12px 'Noto Serif SC',serif; letter-spacing:.3em; text-indent:.3em;
+    transition:.25s;
+  }
+  .ghost-btn:hover{ background:rgba(201,168,106,.14); }
+
+  #hint{ position:fixed; right:36px; bottom:32px; z-index:2; pointer-events:none;
+    font-size:11px; letter-spacing:.24em; color:rgba(154,146,132,.75);
+    opacity:0; animation:in 1.2s 1.4s ease forwards; }
+
+  @media (max-width:720px){
+    header{ top:16px; left:18px; } header h1{ font-size:21px; }
+    #panel{ left:12px; right:12px; bottom:12px; width:auto; padding:14px 16px; }
+    #hint{ display:none; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+
+<header>
+  <h1>MERIDIAN</h1>
+  <div class="rule"></div>
+  <div class="sub">双时区机械腕表 · 实时 3D</div>
+</header>
+
+<aside id="panel">
+  <div class="panel-cap">腕表设置</div>
+  <div class="tz-block">
+    <div class="tz-row"><span class="tz-label">主时区（时分秒针）</span><select id="selLocal"></select></div>
+    <div class="clock main" id="clkLocal">--:--:--</div>
+    <div class="meta" id="metaLocal"></div>
+  </div>
+  <div class="tz-block">
+    <div class="tz-row"><span class="tz-label">第二时区（GMT 指针）</span><select id="selGmt"></select></div>
+    <div class="clock gmt" id="clkGmt">--:--:--</div>
+    <div class="meta" id="metaGmt"></div>
+  </div>
+  <div class="hr"></div>
+  <label class="switch"><input type="checkbox" id="swSweep" checked><i></i><span>秒针平滑扫动</span></label>
+  <label class="switch"><input type="checkbox" id="swAuto"><i></i><span>自动展示旋转</span></label>
+  <button class="ghost-btn" id="btnReset">重置视角</button>
+</aside>
+
+<div id="hint">拖拽旋转 · 滚轮缩放 · 双击复位</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const TAU = Math.PI * 2;
+const pad = n => String(n).padStart(2, '0');
+
+/* ================= 时区工具 ================= */
+const ZONES = [
+  ['Asia/Shanghai','上海'], ['Asia/Hong_Kong','香港'], ['Asia/Tokyo','东京'], ['Asia/Singapore','新加坡'],
+  ['Asia/Dubai','迪拜'], ['Asia/Kolkata','新德里'], ['Europe/Moscow','莫斯科'], ['Europe/Zurich','苏黎世'],
+  ['Europe/Paris','巴黎'], ['Europe/London','伦敦'], ['America/New_York','纽约'], ['America/Chicago','芝加哥'],
+  ['America/Los_Angeles','洛杉矶'], ['America/Sao_Paulo','圣保罗'], ['Australia/Sydney','悉尼'],
+  ['Pacific/Auckland','奥克兰'], ['UTC','协调世界时'],
+];
+const WD_ZH = { Sun:'周日', Mon:'周一', Tue:'周二', Wed:'周三', Thu:'周四', Fri:'周五', Sat:'周六' };
+
+let tzLocal = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai';
+if (!ZONES.some(z => z[0] === tzLocal)) ZONES.unshift([tzLocal, '本地时区']);
+let tzGmt = 'Europe/London';
+const zoneName = tz => (ZONES.find(z => z[0] === tz) || [tz, tz])[1];
+
+const fmtCache = new Map();
+function getFmt(tz){
+  let f = fmtCache.get(tz);
+  if (!f){
+    f = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit',
+      weekday:'short', day:'2-digit', month:'2-digit'
+    });
+    fmtCache.set(tz, f);
+  }
+  return f;
+}
+function tzNow(tz){
+  const d = new Date(), o = {};
+  for (const p of getFmt(tz).formatToParts(d)) o[p.type] = p.value;
+  return { h:(+o.hour)%24, m:+o.minute, s:+o.second, ms:d.getMilliseconds(),
+           day:+o.day, month:+o.month, weekday:o.weekday };
+}
+function offsetLabel(tz){
+  try{
+    const v = new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset'})
+      .formatToParts(new Date()).find(p=>p.type==='timeZoneName').value;
+    return v.replace('GMT','UTC');
+  }catch(e){ return ''; }
+}
+
+/* ================= 纹理画布 ================= */
+const DIAL_SIZE = 2048, DIAL_R = 0.98, PXU = (DIAL_SIZE/2)/DIAL_R;
+const dialCv = document.createElement('canvas');   dialCv.width = dialCv.height = DIAL_SIZE;
+const dateCv = document.createElement('canvas');   dateCv.width = dateCv.height = 256;
+const dayCv  = document.createElement('canvas');   dayCv.width = 512;  dayCv.height = 256;
+const movCv  = document.createElement('canvas');   movCv.width = movCv.height = 1024;
+const backCv = document.createElement('canvas');   backCv.width = backCv.height = 2048;
+
+const dialTex = new THREE.CanvasTexture(dialCv);
+const dateTex = new THREE.CanvasTexture(dateCv);
+const dayTex  = new THREE.CanvasTexture(dayCv);
+const movTex  = new THREE.CanvasTexture(movCv);
+const backTex = new THREE.CanvasTexture(backCv);
+
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);     ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function ring(ctx,r){ ctx.beginPath(); ctx.arc(0,0,r,0,TAU); }
+function spacedText(ctx,text,x,y,ls){
+  const chars=[...text], ws=chars.map(ch=>ctx.measureText(ch).width);
+  const total=ws.reduce((a,b)=>a+b,0)+ls*(chars.length-1);
+  let cx=x-total/2;
+  chars.forEach((ch,i)=>{ ctx.fillText(ch,cx+ws[i]/2,y); cx+=ws[i]+ls; });
+}
+/* 环形刻字：dir=1 顶部弧（顺时针排布），dir=-1 底部弧（正读） */
+function ringText(ctx,text,r,center,size,color,dir){
+  ctx.font = `600 ${size}px "Cormorant Garamond",serif`;
+  ctx.fillStyle = color; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const ls = size*0.5;
+  const total = [...text].reduce((s,ch)=>s+ctx.measureText(ch).width+ls,-ls);
+  let a = center - dir*(total/2)/r;
+  for (const ch of text){
+    const w = ctx.measureText(ch).width;
+    a += dir*(w/2)/r;
+    ctx.save(); ctx.rotate(a); ctx.translate(0,-r); ctx.fillText(ch,0,0); ctx.restore();
+    a += dir*(w/2+ls)/r;
+  }
+}
+
+/* ---- 表盘 ---- */
+function windowCut(ctx,cx,cy,w,h){
+  const X=cx*PXU, Y=cy*PXU, W=w*PXU, H=h*PXU, r=PXU*0.012;
+  ctx.save();                                    // 挖穿（露出下方日历轮）
+  ctx.globalCompositeOperation='destination-out';
+  rr(ctx,X-W/2,Y-H/2,W,H,r); ctx.fillStyle='#000'; ctx.fill();
+  ctx.restore();
+  ctx.save();                                    // 窗口坡口阴影
+  ctx.shadowColor='rgba(0,0,0,0.85)'; ctx.shadowBlur=PXU*0.02;
+  ctx.strokeStyle='rgba(8,10,8,0.9)'; ctx.lineWidth=PXU*0.02;
+  rr(ctx,X-W/2,Y-H/2,W,H,r); ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle='rgba(214,183,122,0.95)';      // 金色窗框
+  ctx.lineWidth=PXU*0.006;
+  rr(ctx,X-W/2,Y-H/2,W,H,r); ctx.stroke();
+}
+function drawDial(){
+  const ctx=dialCv.getContext('2d'), c=DIAL_SIZE/2, R=r=>r*PXU;
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,DIAL_SIZE,DIAL_SIZE);
+  ctx.save(); ctx.translate(c,c);
+
+  // 深绿放射底
+  const g=ctx.createRadialGradient(0,0,R(0.1),0,0,c);
+  g.addColorStop(0,'#20523b'); g.addColorStop(.45,'#133324');
+  g.addColorStop(.8,'#0c2517'); g.addColorStop(1,'#082013');
+  ctx.fillStyle=g; ring(ctx,c); ctx.fill();
+
+  // 太阳纹缎面（放射丝纹）
+  for(let i=0;i<1300;i++){
+    const a=(i/1300)*TAU+(Math.random()-.5)*.0022;
+    ctx.strokeStyle = i%2
+      ? `rgba(255,255,240,${(0.028*(0.5+Math.random()*0.8)).toFixed(3)})`
+      : `rgba(0,0,0,${(0.06*(0.5+Math.random()*0.8)).toFixed(3)})`;
+    ctx.lineWidth = Math.random()<.28 ? 2.4 : 1.1;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*R(.05), Math.sin(a)*R(.05));
+    ctx.lineTo(Math.cos(a)*c, Math.sin(a)*c);
+    ctx.stroke();
+  }
+  // 中心同心装饰圈
+  ctx.lineWidth=1.4; ctx.strokeStyle='rgba(255,255,255,0.045)';
+  for(const r of [.155,.19,.225]){ ring(ctx,R(r)); ctx.stroke(); }
+
+  // 铁路式分钟轨道
+  ctx.strokeStyle='rgba(216,186,128,0.85)'; ctx.lineWidth=3;
+  ring(ctx,R(.965)); ctx.stroke(); ring(ctx,R(.9)); ctx.stroke();
+  for(let i=0;i<60;i++){
+    const a=i/60*TAU, maj=i%5===0;
+    ctx.strokeStyle = maj ? 'rgba(228,199,140,1)' : 'rgba(205,210,205,0.55)';
+    ctx.lineWidth = maj ? 9 : 3;
+    const r1=maj?R(.893):R(.902), r2=maj?R(.972):R(.963);
+    ctx.beginPath();
+    ctx.moveTo(Math.sin(a)*r1,-Math.cos(a)*r1);
+    ctx.lineTo(Math.sin(a)*r2,-Math.cos(a)*r2);
+    ctx.stroke();
+  }
+
+  // 24 小时刻度圈（金色=昼 / 灰=夜）
+  const r24=R(.68);
+  ctx.strokeStyle='rgba(216,186,128,0.3)'; ctx.lineWidth=2;
+  ring(ctx,R(.745)); ctx.stroke(); ring(ctx,R(.615)); ctx.stroke();
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let h=2;h<=24;h+=2){
+    const a=h/24*TAU, sx=Math.sin(a), cy=-Math.cos(a), maj=h%6===0;
+    ctx.strokeStyle = maj ? 'rgba(228,199,140,0.9)' : 'rgba(205,210,205,0.4)';
+    ctx.lineWidth = maj ? 6 : 2.5;
+    ctx.beginPath();
+    ctx.moveTo(sx*R(.615),cy*R(.615)); ctx.lineTo(sx*R(.648),cy*R(.648));
+    ctx.stroke();
+    ctx.fillStyle = (h>6&&h<18) ? 'rgba(233,206,150,0.95)' : 'rgba(150,160,158,0.72)';
+    ctx.font=`600 ${R(.058)}px "Cormorant Garamond",serif`;
+    ctx.fillText(String(h), sx*r24, cy*r24);
+  }
+
+  // 品牌铭刻
+  ctx.fillStyle='rgba(238,230,214,0.96)';
+  ctx.font=`600 ${R(.105)}px "Cormorant Garamond",serif`;
+  spacedText(ctx,'MERIDIAN',0,-R(.245),R(.03));
+  ctx.fillStyle='rgba(209,176,118,0.9)';
+  ctx.font=`500 ${R(.036)}px "Cormorant Garamond",serif`;
+  spacedText(ctx,'DUAL TIME',0,-R(.318),R(.018));
+  ctx.fillStyle='rgba(190,196,190,0.55)';
+  ctx.font=`500 ${R(.034)}px "Cormorant Garamond",serif`;
+  spacedText(ctx,'AUTOMATIC',0,R(.44),R(.02));
+
+  // 3 点日期窗、12 点星期窗（真实开窗，透出下方日历轮）
+  windowCut(ctx, .52, 0, .175, .145);
+  windowCut(ctx, 0, -.50, .40, .155);
+
+  ctx.restore();
+  dialTex.needsUpdate = true;
+}
+
+/* ---- 日历轮 ---- */
+function drawDateWheel(n){
+  const ctx=dateCv.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,'#ece5d4'); g.addColorStop(.5,'#f7f2e6'); g.addColorStop(1,'#e2dac5');
+  ctx.fillStyle=g; ctx.fillRect(0,0,256,256);
+  ctx.fillStyle='#191914'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='600 160px "Cormorant Garamond",serif';
+  ctx.fillText(String(n),128,140);
+  dateTex.needsUpdate=true;
+}
+function drawDayWheel(s){
+  const ctx=dayCv.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,'#ece5d4'); g.addColorStop(.5,'#f7f2e6'); g.addColorStop(1,'#e2dac5');
+  ctx.fillStyle=g; ctx.fillRect(0,0,512,256);
+  ctx.fillStyle='#191914'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='600 106px "Noto Serif SC",serif';
+  ctx.fillText(s,256,138);
+  dayTex.needsUpdate=true;
+}
+
+/* ---- 背透机芯装饰盘（日内瓦条纹） ---- */
+function drawMovement(){
+  const ctx=movCv.getContext('2d'), S=1024, c=S/2, U=c/0.52;
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,S,S);
+  ctx.save(); ctx.translate(c,c);
+  ctx.beginPath(); ctx.arc(0,0,c,0,TAU); ctx.clip();
+  const n=13, bh=c*2/n;
+  for(let i=0;i<n;i++){
+    const g=ctx.createLinearGradient(0,-c+i*bh,0,-c+(i+1)*bh);
+    if(i%2){ g.addColorStop(0,'#8a6a3e'); g.addColorStop(1,'#a88450'); }
+    else   { g.addColorStop(0,'#b08a52'); g.addColorStop(1,'#8f6d42'); }
+    ctx.fillStyle=g; ctx.fillRect(-c,-c+i*bh,c*2,bh);
+  }
+  ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=1.5;
+  for(let i=1;i<n;i++){ ctx.beginPath(); ctx.moveTo(-c,-c+i*bh); ctx.lineTo(c,-c+i*bh); ctx.stroke(); }
+  const rg=ctx.createRadialGradient(0,0,c*0.45,0,0,c);
+  rg.addColorStop(0,'rgba(0,0,0,0)'); rg.addColorStop(1,'rgba(0,0,0,0.5)');
+  ctx.fillStyle=rg; ctx.fillRect(-c,-c,c*2,c*2);
+
+  // 螺丝（坐标取反以匹配背面视图）
+  const screw=(x,y,rot)=>{
+    ctx.save(); ctx.translate(-x*U,y*U); ctx.rotate(rot);
+    ctx.fillStyle='#7a5f38'; ctx.beginPath(); ctx.arc(0,0,.020*U,0,TAU); ctx.fill();
+    ctx.strokeStyle='rgba(40,30,15,0.9)'; ctx.lineWidth=.006*U;
+    ctx.beginPath(); ctx.moveTo(-.014*U,0); ctx.lineTo(.014*U,0); ctx.stroke();
+    ctx.restore();
+  };
+  screw(.32,.05,.6); screw(-.05,.33,-.4); screw(.30,-.28,1.1);
+  // 红宝石轴眼
+  const jewel=(x,y)=>{
+    ctx.save(); ctx.translate(-x*U,y*U);
+    ctx.fillStyle='#c9a35c'; ctx.beginPath(); ctx.arc(0,0,.030*U,0,TAU); ctx.fill();
+    const j=ctx.createRadialGradient(-.006*U,-.006*U,0,0,0,.020*U);
+    j.addColorStop(0,'#e04a55'); j.addColorStop(1,'#7c1020');
+    ctx.fillStyle=j; ctx.beginPath(); ctx.arc(0,0,.020*U,0,TAU); ctx.fill();
+    ctx.restore();
+  };
+  jewel(-.05,.30); jewel(.30,.20);
+
+  ctx.fillStyle='rgba(60,45,25,0.85)'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font=`600 ${.036*U}px "Cormorant Garamond",serif`;
+  spacedText(ctx,'CAL. MT-24',0,.40*U,.012*U);
+  ctx.font=`500 ${.024*U}px "Cormorant Garamond",serif`;
+  spacedText(ctx,'TWENTY-SIX JEWELS',0,.45*U,.008*U);
+  ctx.restore();
+  movTex.needsUpdate=true;
+}
+
+/* ---- 底盖刻字盘（同心拉丝 + 环形刻字 + 中央背透开孔） ---- */
+function drawCaseback(){
+  const ctx=backCv.getContext('2d'), S=2048, c=S/2, R=r=>r*(c/0.61);
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,S,S);
+  ctx.save(); ctx.translate(c,c);
+  for(let r=R(.585),k=0; r<=c; r+=6,k++){
+    ctx.strokeStyle = k%2 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
+    ctx.lineWidth=3; ring(ctx,r); ctx.stroke();
+  }
+  const rg=ctx.createRadialGradient(0,0,R(.78),0,0,c);
+  rg.addColorStop(0,'rgba(0,0,0,0)'); rg.addColorStop(1,'rgba(0,0,0,0.45)');
+  ctx.fillStyle=rg; ring(ctx,c); ctx.fill();
+
+  ctx.strokeStyle='rgba(214,183,122,0.35)'; ctx.lineWidth=2.5;
+  ring(ctx,R(.595)); ctx.stroke(); ring(ctx,R(1.0)); ctx.stroke();
+  ringText(ctx,'MERIDIAN · DUAL TIME', R(.82), 0, R(.052), 'rgba(56,46,28,0.95)', 1);
+  ringText(ctx,'AUTOMATIC · SAPPHIRE · 5 ATM', R(.82), Math.PI, R(.044), 'rgba(56,46,28,0.95)', -1);
+
+  ctx.globalCompositeOperation='destination-out';   // 中央开孔 → 背透
+  ring(ctx,R(.575)); ctx.fillStyle='#000'; ctx.fill();
+  ctx.restore();
+  backTex.needsUpdate=true;
+}
+
+/* ================= 渲染基础 ================= */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x000000, 0);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.06).texture;
+
+const camera = new THREE.PerspectiveCamera(38, innerWidth/innerHeight, 0.1, 60);
+camera.position.set(6.5, 4.2, 10);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.06;
+controls.enablePan = false;
+controls.minDistance = 2.4; controls.maxDistance = 10;
+controls.minPolarAngle = 0.12; controls.maxPolarAngle = Math.PI - 0.12;
+controls.autoRotateSpeed = 1.0;
+controls.enabled = false;
+
+const key = new THREE.DirectionalLight(0xfff1dc, 2.8);
+key.position.set(2.6, 3.8, 4.6);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = key.shadow.camera.bottom = -2.2;
+key.shadow.camera.right = key.shadow.camera.top = 2.2;
+key.shadow.camera.near = 0.5; key.shadow.camera.far = 14;
+key.shadow.bias = -0.0002; key.shadow.normalBias = 0.015;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xcfd8e8, 0.5); fill.position.set(-4,-2,2); scene.add(fill);
+const rim  = new THREE.DirectionalLight(0xffffff, 1.0); rim.position.set(-3,2,-5);  scene.add(rim);
+
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+[dialTex,dateTex,dayTex,movTex,backTex].forEach(t=>{ t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=maxAniso; });
+movTex.wrapS = backTex.wrapS = THREE.RepeatWrapping;
+movTex.repeat.x = -1; backTex.repeat.x = -1;   // 背面视图预镜像
+
+/* ================= 材质 ================= */
+const matGold    = new THREE.MeshStandardMaterial({ color:0xcf9f6a, metalness:1, roughness:0.25, envMapIntensity:1.1 });
+const matGoldPol = new THREE.MeshStandardMaterial({ color:0xd8ab74, metalness:1, roughness:0.12, envMapIntensity:1.25 });
+const matGoldMat = new THREE.MeshStandardMaterial({ color:0xb98f5c, metalness:1, roughness:0.34, envMapIntensity:1.0 });
+const matBlue    = new THREE.MeshStandardMaterial({ color:0x1d3f8f, metalness:1, roughness:0.18, envMapIntensity:1.4 });
+const matBlack   = new THREE.MeshStandardMaterial({ color:0x22201d, metalness:0.9, roughness:0.35 });
+const matDial    = new THREE.MeshStandardMaterial({ map:dialTex, metalness:0.4, roughness:0.5, alphaTest:0.5, envMapIntensity:0.75 });
+const matDark    = new THREE.MeshStandardMaterial({ color:0x0c1512, metalness:0.6, roughness:0.6 });
+const matGlass   = new THREE.MeshPhysicalMaterial({ color:0xffffff, transparent:true, opacity:0.16,
+  roughness:0.03, metalness:0, clearcoat:1, envMapIntensity:1.6, side:THREE.DoubleSide, depthWrite:false });
+const matBrass   = new THREE.MeshStandardMaterial({ color:0xc9a35c, metalness:1, roughness:0.3, envMapIntensity:1.0 });
+const matRuby    = new THREE.MeshStandardMaterial({ color:0x9b1e2e, metalness:0.2, roughness:0.15 });
+
+/* ================= 建表 ================= */
+const watch = new THREE.Group();
+scene.add(watch);
+const lathe = (pts, mat) => new THREE.Mesh(
+  new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])), 128),
+  Object.assign(mat, {})
+);
+{
+  const m = matGold.clone(); m.side = THREE.DoubleSide;
+  // 主表壳（含圈口轮廓）
+  watch.add(lathe([[0.955,0],[0.955,0.075],[1.04,0.075],[1.12,0.06],[1.15,0.02],[1.15,-0.03],[1.12,-0.09],[1.04,-0.105],[0.96,-0.105]], m));
+  // 底盖金属环
+  const m2 = matGoldMat.clone(); m2.side = THREE.DoubleSide;
+  watch.add(lathe([[0.60,-0.126],[1.03,-0.126],[1.10,-0.112],[1.11,-0.098]], m2));
+  // 抛光圈口
+  const bezel = new THREE.Mesh(new THREE.TorusGeometry(1.055, 0.032, 24, 128), matGoldPol);
+  bezel.position.z = 0.078; watch.add(bezel);
+}
+// 表耳（管状）与表冠
+for (const sy of [1,-1]) for (const sx of [1,-1]){
+  const lug = new THREE.Mesh(new THREE.CylinderGeometry(0.072,0.072,0.34,20), matGoldPol);
+  lug.geometry.rotateZ(Math.PI/2);
+  lug.position.set(0.36*sx, 1.02*sy, -0.02);
+  watch.add(lug);
+}
+{
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.105,0.105,0.13,22),
+    new THREE.MeshStandardMaterial({ color:0xcf9f6a, metalness:1, roughness:0.28, flatShading:true }));
+  crown.geometry.rotateZ(Math.PI/2); crown.position.set(1.245,0,0); watch.add(crown);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.078,0.092,0.035,22), matGoldPol);
+  cap.geometry.rotateZ(Math.PI/2); cap.position.set(1.325,0,0); watch.add(cap);
+}
+// 金属链节表带（沿腕弧弯曲，尺寸渐收）
+{
+  const Rb = 1.35, cz = -0.02 - Rb, y0 = 1.10, dPhi = 0.24;
+  for (const sy of [1,-1]) for (let i=0;i<6;i++){
+    const phi = 0.10 + dPhi*(i+0.5);
+    const w = 0.56 - i*0.062, l = Rb*dPhi - 0.016;
+    const link = new THREE.Mesh(new THREE.BoxGeometry(w, l, 0.085), matGoldMat);
+    link.position.set(0, sy*(y0 + Rb*Math.sin(phi)), cz + Rb*Math.cos(phi));
+    link.rotation.x = -sy*phi;
+    watch.add(link);
+  }
+}
+// 内圈 rehaut
+{
+  const rehaut = new THREE.Mesh(new THREE.CylinderGeometry(0.985,0.985,0.085,96,1,true), matDark);
+  rehaut.material = matDark.clone(); rehaut.material.side = THREE.BackSide;
+  rehaut.position.z = 0.0425; watch.add(rehaut);
+}
+// 表盘 + 窗腔挡板 + 日历轮
+const dial = new THREE.Mesh(new THREE.CircleGeometry(0.98, 128), matDial);
+dial.receiveShadow = true; watch.add(dial);
+{
+  const plate = new THREE.Mesh(new THREE.RingGeometry(0.52, 0.94, 96),
+    new THREE.MeshStandardMaterial({ color:0x101010, roughness:0.9 }));
+  plate.position.z = -0.028; watch.add(plate);
+}
+const dateWheel = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.24),
+  new THREE.MeshStandardMaterial({ map:dateTex, roughness:0.6, metalness:0, envMapIntensity:0.3 }));
+dateWheel.position.set(0.52, 0, -0.015); dateWheel.receiveShadow = true; watch.add(dateWheel);
+const dayWheel = new THREE.Mesh(new THREE.PlaneGeometry(0.50, 0.25),
+  new THREE.MeshStandardMaterial({ map:dayTex, roughness:0.6, metalness:0, envMapIntensity:0.3 }));
+dayWheel.position.set(0, 0.50, -0.015); dayWheel.receiveShadow = true; watch.add(dayWheel);
+
+// 立体时标（12 点双条，3 点让位日期窗）
+{
+  const g = new THREE.BoxGeometry(0.045, 0.13, 0.028);
+  const put = (x,y,rz)=>{ const m=new THREE.Mesh(g,matGoldPol);
+    m.position.set(x,y,0.02); m.rotation.z=rz; m.castShadow=true; watch.add(m); };
+  for (let h=0; h<12; h++){
+    if (h===3) continue;
+    const a = h/12*TAU;
+    if (h===0){ put(-0.042,0.83,0); put(0.042,0.83,0); }
+    else put(Math.sin(a)*0.83, Math.cos(a)*0.83, -a);
+  }
+}
+// 指针
+function handMesh(len, w, tail, mat){
+  const s = new THREE.Shape();
+  s.moveTo(0,-tail); s.lineTo(w*0.55,-tail*0.25); s.lineTo(w,len*0.42);
+  s.lineTo(0,len); s.lineTo(-w,len*0.42); s.lineTo(-w*0.55,-tail*0.25); s.closePath();
+  const g = new THREE.ExtrudeGeometry(s,{ depth:0.012, bevelEnabled:true,
+    bevelThickness:0.006, bevelSize:0.004, bevelSegments:2 });
+  g.translate(0,0,-0.006);
+  const m = new THREE.Mesh(g, mat); m.castShadow = true; return m;
+}
+const hourHand = handMesh(0.55, 0.046, 0.12, matGoldPol);  hourHand.position.z = 0.045;
+const minHand  = handMesh(0.80, 0.034, 0.14, matGoldPol);  minHand.position.z  = 0.078;
+watch.add(hourHand, minHand);
+
+const gmtHand = new THREE.Group(); gmtHand.position.z = 0.062;
+{
+  const stem = new THREE.Mesh(new THREE.BoxGeometry(0.018,0.86,0.008), matBlack);
+  stem.position.y = 0.23;
+  const tipS = new THREE.Shape();
+  tipS.moveTo(0,0); tipS.lineTo(0.05,0.09); tipS.lineTo(0,0.19); tipS.lineTo(-0.05,0.09); tipS.closePath();
+  const tip = new THREE.Mesh(new THREE.ExtrudeGeometry(tipS,{depth:0.014,bevelEnabled:false}), matGoldPol);
+  tip.position.set(0,0.52,-0.007); tip.castShadow = true;
+  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.03,0.009,10,24), matBlack);
+  tail.position.y = -0.16;
+  gmtHand.add(stem, tip, tail);
+}
+watch.add(gmtHand);
+
+const secHand = new THREE.Group(); secHand.position.z = 0.098;
+{
+  const stem = new THREE.Mesh(new THREE.BoxGeometry(0.013,1.12,0.009), matBlue);
+  stem.position.y = 0.34; stem.castShadow = true;
+  const tail = new THREE.Mesh(new THREE.TorusGeometry(0.034,0.011,10,24), matBlue);
+  tail.position.y = -0.185;
+  secHand.add(stem, tail);
+}
+watch.add(secHand);
+{
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.035,24), matGoldPol);
+  hub.position.z = 0.118; watch.add(hub);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.026,0.026,0.05,20), matBlue);
+  cap.position.z = 0.128; watch.add(cap);
+}
+// 弧面表镜
+{
+  const theta = Math.asin(0.95/2.5);
+  const glass = new THREE.Mesh(new THREE.SphereGeometry(2.5,64,24,0,TAU,0,theta), matGlass);
+  glass.geometry.rotateX(Math.PI/2);
+  glass.position.z = 0.09 - 2.5*Math.cos(theta);
+  watch.add(glass);
+}
+// 背透：机芯盘 + 动件 + 底盖
+const movPlate = new THREE.Mesh(new THREE.CircleGeometry(0.52,64),
+  new THREE.MeshStandardMaterial({ map:movTex, metalness:0.55, roughness:0.45, envMapIntensity:0.9 }));
+movPlate.geometry.rotateY(Math.PI); movPlate.position.z = -0.055; watch.add(movPlate);
+
+function gearGeometry(rRoot, rTip, teeth, thick, holeR){
+  const s = new THREE.Shape();
+  const P=(a,r)=>[Math.cos(a)*r, Math.sin(a)*r];
+  for(let i=0;i<teeth;i++){
+    const a0=i/teeth*TAU, a1=(i+0.38)/teeth*TAU, a3=(i+0.88)/teeth*TAU, a4=(i+1)/teeth*TAU;
+    if(i===0) s.moveTo(...P(a0,rRoot));
+    s.lineTo(...P(a1,rRoot)); s.lineTo(...P(a1,rTip));
+    s.lineTo(...P(a3,rTip));  s.lineTo(...P(a3,rRoot)); s.lineTo(...P(a4,rRoot));
+  }
+  s.closePath();
+  const hole = new THREE.Path(); hole.absarc(0,0,holeR,0,TAU,true); s.holes.push(hole);
+  const g = new THREE.ExtrudeGeometry(s,{ depth:thick, bevelEnabled:false });
+  g.translate(0,0,-thick/2); return g;
+}
+function makeGear(rRoot,rTip,teeth,thick,x,y){
+  const grp = new THREE.Group();
+  grp.add(new THREE.Mesh(gearGeometry(rRoot,rTip,teeth,thick,rRoot*0.25), matBrass));
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(rRoot*0.28,rRoot*0.28,thick+0.02,16), matBrass);
+  hub.rotation.x = Math.PI/2; grp.add(hub);
+  const sg = new THREE.BoxGeometry(rRoot*0.09, rRoot*0.9, thick*0.5);
+  for(let k=0;k<3;k++){
+    const sp = new THREE.Mesh(sg, matBrass); sp.rotation.z = k*Math.PI/3; grp.add(sp);
+  }
+  grp.position.set(x,y,-0.028);
+  watch.add(grp); return grp;
+}
+const gearA = makeGear(0.15,0.17,20,0.018,-0.18, 0.14);
+const gearB = makeGear(0.095,0.108,12,0.018,-0.40, 0.26);
+// 摆轮（往复摆动）
+const balance = new THREE.Group();
+{
+  const rim2 = new THREE.Mesh(new THREE.TorusGeometry(0.115,0.013,10,40), matBrass);
+  const sp1 = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.23,0.008), matBrass);
+  const sp2 = sp1.clone(); sp2.rotation.z = Math.PI/2;
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.05,12), matBrass);
+  hub.rotation.x = Math.PI/2;
+  balance.add(rim2, sp1, sp2, hub);
+  balance.position.set(0.16,-0.16,-0.028);
+  watch.add(balance);
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.34,0.018), matGoldMat);
+  bridge.position.set(0.235,-0.235,-0.012); bridge.rotation.z = Math.PI/4; watch.add(bridge);
+  const ruby = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.012,12), matRuby);
+  ruby.rotation.x = Math.PI/2; ruby.position.set(0.16,-0.16,-0.002); watch.add(ruby);
+}
+// 底盖刻字盘 + 背透玻璃
+{
+  const back = new THREE.Mesh(new THREE.CircleGeometry(0.61,64),
+    new THREE.MeshStandardMaterial({ map:backTex, metalness:0.95, roughness:0.38, alphaTest:0.5, envMapIntensity:1.0 }));
+  back.geometry.rotateY(Math.PI); back.position.z = -0.126; watch.add(back);
+  const bg = new THREE.Mesh(new THREE.CircleGeometry(0.575,64), matGlass);
+  bg.geometry.rotateY(Math.PI); bg.position.z = -0.121; watch.add(bg);
+}
+
+/* ================= UI ================= */
+const $ = id => document.getElementById(id);
+function fillSelect(sel, val){
+  sel.innerHTML = '';
+  for (const [tz,name] of ZONES){
+    const o = document.createElement('option');
+    o.value = tz; o.textContent = `${name} · ${offsetLabel(tz)}`;
+    sel.appendChild(o);
+  }
+  sel.value = val;
+}
+fillSelect($('selLocal'), tzLocal);
+fillSelect($('selGmt'), tzGmt);
+$('selLocal').addEventListener('change', e => { tzLocal = e.target.value; calCache=''; });
+$('selGmt').addEventListener('change',   e => { tzGmt   = e.target.value; });
+
+let sweep = true, rotateWanted = false, resumeTimer = null;
+$('swSweep').addEventListener('change', e => sweep = e.target.checked);
+$('swAuto').addEventListener('change', e => {
+  rotateWanted = e.target.checked; controls.autoRotate = rotateWanted;
+});
+controls.addEventListener('start', () => {
+  controls.autoRotate = false;
+  if (resumeTimer){ clearTimeout(resumeTimer); resumeTimer = null; }
+});
+controls.addEventListener('end', () => {
+  if (resumeTimer) clearTimeout(resumeTimer);
+  if (rotateWanted) resumeTimer = setTimeout(()=>{ controls.autoRotate = true; }, 2500);
+});
+
+/* 相机飞行动画（入场 / 复位共用） */
+let camAnim = null, introWatch = true, introT = 0;
+const HOME_POS = new THREE.Vector3(1.55, 1.05, 4.4), HOME_TGT = new THREE.Vector3(0,0,0);
+function flyTo(pos, tgt, dur){
+  camAnim = { t:0, dur, fromP:camera.position.clone(), toP:pos.clone(),
+              fromT:controls.target.clone(), toT:tgt.clone() };
+  controls.enabled = false; controls.autoRotate = false;
+}
+const easeOut = t => 1 - Math.pow(1-t, 3);
+flyTo(HOME_POS, HOME_TGT, 2.8);
+watch.rotation.y = -0.8;
+$('btnReset').addEventListener('click', () => flyTo(HOME_POS, HOME_TGT, 1.2));
+renderer.domElement.addEventListener('dblclick', () => flyTo(HOME_POS, HOME_TGT, 1.2));
+
+/* ================= 日历与文本 ================= */
+let calCache = '';
+function updateCalendar(main){
+  const key = main.day + '|' + main.weekday;
+  if (key !== calCache){
+    calCache = key;
+    drawDateWheel(main.day);
+    drawDayWheel(WD_ZH[main.weekday] || '');
+  }
+}
+let lastDom = 0;
+function updateDom(main, gmt, now){
+  if (now - lastDom < 200) return;
+  lastDom = now;
+  $('clkLocal').textContent = `${pad(main.h)}:${pad(main.m)}:${pad(main.s)}`;
+  $('metaLocal').textContent =
+    `${zoneName(tzLocal)} · ${WD_ZH[main.weekday]||''} · ${main.month}月${main.day}日`;
+  $('clkGmt').textContent = `${pad(gmt.h)}:${pad(gmt.m)}:${pad(gmt.s)}`;
+  $('metaGmt').textContent =
+    `${zoneName(tzGmt)} · ${WD_ZH[gmt.weekday]||''} · ${gmt.month}月${gmt.day}日`;
+}
+
+/* ================= 主循环 ================= */
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const t = clock.elapsedTime;
+
+  const main = tzNow(tzLocal);
+  const gmt  = tzNow(tzGmt);
+  const secF = sweep ? main.s + main.ms/1000 : main.s;   // 扫秒 / 跳秒
+  const minF = main.m + secF/60;
+  const hourF = (main.h%12) + minF/60;
+  const gmtF = gmt.h + gmt.m/60 + (sweep ? gmt.s + gmt.ms/1000 : gmt.s)/3600;
+
+  hourHand.rotation.z = -hourF/12*TAU;
+  minHand.rotation.z  = -minF/60*TAU;
+  secHand.rotation.z  = -secF/60*TAU;
+  gmtHand.rotation.z  = -gmtF/24*TAU;
+
+  updateCalendar(main);
+  updateDom(main, gmt, performance.now());
+
+  // 背透机芯动件
+  balance.rotation.z = 2.1*Math.sin(t*TAU*2.5);            // 摆轮往复
+  gearA.rotation.z = -(secF/60)*TAU;                        // 秒轮
+  gearB.rotation.z =  (secF/60)*TAU*(20/12);                // 传动轮
+
+  // 入场 + 相机飞行
+  if (introWatch){
+    introT += dt;
+    watch.rotation.y = -0.8*(1 - easeOut(Math.min(1, introT/2.8)));
+    if (introT >= 2.8){ introWatch = false; watch.rotation.y = 0; }
+  }
+  if (camAnim){
+    camAnim.t += dt;
+    const k = easeOut(Math.min(1, camAnim.t/camAnim.dur));
+    camera.position.lerpVectors(camAnim.fromP, camAnim.toP, k);
+    controls.target.lerpVectors(camAnim.fromT, camAnim.toT, k);
+    camera.lookAt(controls.target);
+    if (camAnim.t >= camAnim.dur){
+      camAnim = null;
+      controls.enabled = true;
+      controls.autoRotate = rotateWanted;
+    }
+  } else {
+    controls.update();
+  }
+
+  renderer.render(scene, camera);
+}
+
+/* ================= 启动 ================= */
+drawDial(); drawMovement(); drawCaseback();
+drawDateWheel(tzNow(tzLocal).day);
+drawDayWheel(WD_ZH[tzNow(tzLocal).weekday] || '');
+animate();
+// 衬线字体加载完成后重绘全部刻字，保证字形精确
+document.fonts.ready.then(() => {
+  drawDial(); drawMovement(); drawCaseback();
+  const m = tzNow(tzLocal);
+  drawDateWheel(m.day); drawDayWheel(WD_ZH[m.weekday] || '');
+});
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

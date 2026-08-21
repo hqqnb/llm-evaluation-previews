@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#171512">
+<title>百步穿杨 · 弓箭射击计时挑战</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#ece5d8; --ink-dim:#a2977f; --amber:#d9a441; --amber-hi:#f0c46a;
+  --panel:rgba(24,21,17,.88); --line:rgba(217,164,65,.35);
+  --serif:'Noto Serif SC','Songti SC','STSong',serif;
+  --sans:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{background:#171512;color:var(--ink);font-family:var(--sans);user-select:none;-webkit-user-select:none}
+#scene{position:fixed;inset:0;display:block;touch-action:none}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;touch-action:none}
+body.st-menu #hud{display:none}
+body.st-finished #hud{display:none}
+
+/* ---- 计时 ---- */
+#timer-box{position:absolute;top:22px;left:26px}
+#timer-box .label{font-family:var(--mono);font-size:10px;letter-spacing:.42em;color:var(--ink-dim);margin-bottom:4px}
+#timer{font-family:var(--mono);font-size:34px;font-weight:600;color:#7c7466;letter-spacing:.04em;transition:color .3s}
+body.timing #timer{color:var(--amber-hi)}
+#timer-note{font-size:11px;color:var(--ink-dim);letter-spacing:.12em;margin-top:4px}
+
+/* ---- 靶位指示 & 工具 ---- */
+#hud-right{position:absolute;top:22px;right:26px;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+#target-chips{display:flex;gap:8px}
+.chip{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 8px 5px;background:rgba(20,18,15,.5);border:1px solid rgba(236,229,216,.14);transition:border-color .3s}
+.chip svg{width:26px;height:26px}
+.chip circle{stroke:rgba(236,229,216,.5);fill:none;stroke-width:1.4}
+.chip .tick{stroke:none;fill:none;stroke-width:2.2}
+.chip span{font-family:var(--mono);font-size:10px;color:var(--ink-dim);letter-spacing:.08em}
+.chip.hit{border-color:rgba(217,164,65,.6)}
+.chip.hit circle{stroke:var(--amber)}
+.chip.hit span{color:var(--amber)}
+.chip.hit .tick{stroke:var(--amber-hi);fill:none;stroke-dasharray:16;stroke-dashoffset:16;animation:tickIn .45s .08s ease forwards}
+@keyframes tickIn{to{stroke-dashoffset:0}}
+#hud-tools{display:flex;gap:8px;pointer-events:auto}
+.tool-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:rgba(20,18,15,.5);border:1px solid rgba(236,229,216,.18);cursor:pointer;color:var(--ink-dim);transition:.15s}
+.tool-btn:hover{color:var(--amber-hi);border-color:var(--amber)}
+.tool-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---- 风向仪 ---- */
+#wind-box{position:absolute;left:26px;bottom:24px;display:flex;align-items:center;gap:10px}
+#wind-dial{width:46px;height:46px}
+#wind-dial .bg{fill:rgba(20,18,15,.5);stroke:rgba(236,229,216,.18)}
+#wind-arrow{transition:transform .8s ease,opacity .5s;transform-origin:20px 20px}
+#wind-arrow path{stroke:var(--amber);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#wind-txt .w-label{font-family:var(--mono);font-size:9px;letter-spacing:.35em;color:var(--ink-dim);margin-bottom:3px}
+#wind-txt .w-val{font-family:var(--mono);font-size:15px;color:var(--ink)}
+
+/* ---- 提示 / 力度 / 准星 ---- */
+#hint{position:absolute;bottom:92px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.18em;color:var(--ink-dim);white-space:nowrap;transition:opacity .3s}
+#hint.hide{opacity:0}
+#power-wrap{position:absolute;left:50%;top:calc(50% + 46px);transform:translateX(-50%);width:180px;opacity:0;transition:opacity .15s}
+#power-wrap.on{opacity:1}
+#power-track{height:3px;background:rgba(236,229,216,.16)}
+#power-bar{height:100%;width:0%;background:var(--amber)}
+#power-bar.full{background:var(--amber-hi)}
+#power-label{display:block;text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.4em;color:var(--amber);margin-top:6px;opacity:0}
+#power-label.on{opacity:1}
+#crosshair{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(var(--s,1));pointer-events:none;z-index:11}
+body.st-menu #crosshair,body.st-finished #crosshair{display:none}
+
+/* ---- 浮字 / 闪白 / Toast ---- */
+#fx-layer{position:fixed;inset:0;pointer-events:none;z-index:12}
+.float-txt{position:fixed;transform:translate(-50%,-50%);font-family:var(--serif);font-weight:700;font-size:17px;color:var(--amber-hi);text-shadow:0 1px 3px rgba(0,0,0,.75);letter-spacing:.12em;white-space:nowrap;animation:floatUp 1.15s cubic-bezier(.2,.7,.4,1) forwards}
+.float-txt.dim{color:rgba(236,229,216,.6);font-size:13px;font-weight:600}
+.float-center{position:fixed;left:50%;top:19%;transform:translateX(-50%);font-family:var(--serif);font-weight:700;font-size:20px;color:var(--amber-hi);letter-spacing:.3em;text-shadow:0 1px 4px rgba(0,0,0,.8);white-space:nowrap;animation:floatUp 1.6s ease forwards}
+@keyframes floatUp{0%{margin-top:8px;opacity:0}14%{opacity:1}72%{opacity:.9}100%{margin-top:-46px;opacity:0}}
+#flash{position:fixed;inset:0;background:#f6e8c8;opacity:0;pointer-events:none;z-index:20}
+#toast{position:fixed;left:50%;bottom:36px;transform:translate(-50%,12px);background:rgba(24,21,17,.94);border:1px solid var(--line);color:var(--ink);font-size:13px;letter-spacing:.14em;padding:10px 22px;opacity:0;transition:.25s;z-index:40;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---- 面板通用 ---- */
+.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:30;background:rgba(12,10,8,.45);padding:18px}
+body.st-menu #menu{display:flex;animation:fadeIn .35s ease}
+body.st-finished #result{display:flex;animation:fadeIn .35s ease}
+body.st-menu #menu .panel,body.st-finished #result .panel{animation:rise .5s cubic-bezier(.2,.8,.3,1)}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes rise{from{transform:translateY(18px);opacity:0}}
+.panel{background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);box-shadow:0 0 0 4px rgba(24,21,17,.55),0 0 0 5px rgba(217,164,65,.16),0 30px 80px rgba(0,0,0,.55);position:relative}
+.panel::before,.panel::after{content:'';position:absolute;width:20px;height:20px;pointer-events:none}
+.panel::before{top:7px;left:7px;border-top:1px solid var(--amber);border-left:1px solid var(--amber)}
+.panel::after{bottom:7px;right:7px;border-bottom:1px solid var(--amber);border-right:1px solid var(--amber)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.42em;color:var(--amber);margin-bottom:14px}
+.btn{font-family:var(--serif);font-size:16px;font-weight:600;letter-spacing:.22em;padding:13px 34px;cursor:pointer;border:1px solid transparent;transition:all .18s}
+.btn.primary{background:var(--amber);color:#201a10;border-color:var(--amber)}
+.btn.primary:hover{background:var(--amber-hi);transform:translateY(-1px)}
+.btn.primary:active{transform:translateY(0)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:rgba(236,229,216,.35)}
+.btn.ghost:hover{border-color:var(--amber);color:var(--amber-hi)}
+
+/* ---- 开局面板 ---- */
+.menu-panel{display:grid;grid-template-columns:1.25fr 1fr;width:min(880px,94vw);max-height:90vh}
+.menu-left{padding:44px 42px;border-right:1px solid rgba(217,164,65,.18);overflow-y:auto}
+.menu-right{padding:44px 32px;overflow-y:auto}
+.menu-left h1{font-family:var(--serif);font-weight:900;font-size:clamp(34px,5vw,46px);letter-spacing:.14em;line-height:1.15;margin-bottom:18px}
+.desc{color:var(--ink-dim);font-size:14px;line-height:1.95;margin-bottom:26px}
+.ctl{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:34px}
+.ctl li{display:flex;gap:12px;align-items:center;font-size:13px}
+.ctl svg{flex:none;width:18px;height:18px;stroke:var(--amber);fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.ctl b{font-weight:600;color:var(--ink)}
+.ctl span{color:var(--ink-dim)}
+.foot{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:#6b6355;margin-top:26px}
+
+/* ---- 荣誉榜 ---- */
+.lb-title{font-family:var(--serif);font-size:15px;letter-spacing:.3em;padding-bottom:10px;border-bottom:1px solid rgba(217,164,65,.25);margin-bottom:4px;display:flex;justify-content:space-between;align-items:baseline}
+.lb-title small{font-family:var(--mono);font-size:9px;letter-spacing:.28em;color:var(--ink-dim)}
+ol.lb-list{list-style:none}
+ol.lb-list li{display:grid;grid-template-columns:26px 1fr auto auto;gap:10px;align-items:baseline;padding:9px 6px;font-size:13px;border-bottom:1px dashed rgba(236,229,216,.08)}
+ol.lb-list .rk{font-family:var(--mono);color:var(--ink-dim)}
+ol.lb-list .rk.top0{color:var(--amber)}
+ol.lb-list .rk.top1{color:#cfc6b4}
+ol.lb-list .rk.top2{color:#c08b62}
+ol.lb-list .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ol.lb-list .tm{font-family:var(--mono)}
+ol.lb-list .ar{font-family:var(--mono);font-size:11px;color:var(--ink-dim)}
+ol.lb-list li.empty{display:block;text-align:center;color:var(--ink-dim);padding:30px 0;font-size:12px;letter-spacing:.18em}
+ol.lb-list li.new{background:rgba(217,164,65,.1);outline:1px solid rgba(217,164,65,.4)}
+
+/* ---- 结算面板 ---- */
+.result-panel{width:min(560px,94vw);max-height:92vh;overflow-y:auto;padding:40px 44px;text-align:center}
+.result-panel h2{font-family:var(--serif);font-weight:900;font-size:32px;letter-spacing:.2em}
+#r-time{font-family:var(--mono);font-size:54px;font-weight:600;color:var(--amber-hi);letter-spacing:.03em;margin:12px 0 6px}
+.r-stats{color:var(--ink-dim);font-size:13px;letter-spacing:.12em;margin-bottom:22px}
+.r-stats em{font-style:normal;color:var(--amber)}
+#r-save{border-top:1px solid rgba(217,164,65,.2);border-bottom:1px solid rgba(217,164,65,.2);padding:18px 0;margin-bottom:18px;display:flex;flex-direction:column;gap:12px;align-items:center}
+#r-save .r-qualify{font-size:13px;color:var(--amber);letter-spacing:.15em}
+#r-save .r-none{font-size:13px;color:var(--ink-dim);letter-spacing:.12em}
+#r-name{background:rgba(236,229,216,.06);border:1px solid rgba(236,229,216,.25);color:var(--ink);font-family:var(--serif);font-size:15px;padding:10px 16px;text-align:center;letter-spacing:.15em;width:220px;outline:none}
+#r-name:focus{border-color:var(--amber)}
+.r-saved{font-size:14px;color:var(--amber-hi);letter-spacing:.15em;font-family:var(--serif)}
+.r-lb{text-align:left;margin-bottom:24px}
+.r-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+
+@media (max-width:760px){
+  .menu-panel{grid-template-columns:1fr}
+  .menu-left{border-right:none;border-bottom:1px solid rgba(217,164,65,.18);padding:32px 28px}
+  .menu-right{padding:28px}
+  #timer{font-size:26px}
+  .chip svg{width:22px;height:22px}
+  #hud-right{right:16px}#timer-box{left:16px;top:16px}
+  #wind-box{left:16px;bottom:16px}
+  .result-panel{padding:30px 24px}
+}
+</style>
+</head>
+<body class="st-menu">
+<canvas id="scene"></canvas>
+
+<div id="hud">
+  <div id="timer-box">
+    <div class="label">用时 TIME</div>
+    <div id="timer">00:00.00</div>
+    <div id="timer-note">首箭离弦后开始计时</div>
+  </div>
+  <div id="hud-right">
+    <div id="target-chips">
+      <div class="chip"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="10"/><circle cx="13" cy="13" r="6.2"/><circle cx="13" cy="13" r="2.4"/><path class="tick" d="M8.5 13.6 l3 3 L18 9.6"/></svg><span>18m</span></div>
+      <div class="chip"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="10"/><circle cx="13" cy="13" r="6.2"/><circle cx="13" cy="13" r="2.4"/><path class="tick" d="M8.5 13.6 l3 3 L18 9.6"/></svg><span>27m</span></div>
+      <div class="chip"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="10"/><circle cx="13" cy="13" r="6.2"/><circle cx="13" cy="13" r="2.4"/><path class="tick" d="M8.5 13.6 l3 3 L18 9.6"/></svg><span>37m</span></div>
+      <div class="chip"><svg viewBox="0 0 26 26"><circle cx="13" cy="13" r="10"/><circle cx="13" cy="13" r="6.2"/><circle cx="13" cy="13" r="2.4"/><path class="tick" d="M8.5 13.6 l3 3 L18 9.6"/></svg><span>48m</span></div>
+    </div>
+    <div id="hud-tools">
+      <button class="tool-btn" id="btn-reset" title="重置本局" aria-label="重置本局"><svg viewBox="0 0 16 16"><path d="M13.5 8 a5.5 5.5 0 1 1 -1.7 -3.95"/><path d="M13.5 2.6 v2.6 h-2.6"/></svg></button>
+      <button class="tool-btn" id="btn-mute" title="声音开关" aria-label="声音开关">
+        <svg id="ic-son" viewBox="0 0 16 16"><path d="M2.5 6.4 v3.2 h2.4 L8.4 12.6 V3.4 L4.9 6.4 z"/><path d="M10.6 5.6 a3.4 3.4 0 0 1 0 4.8"/></svg>
+        <svg id="ic-soff" viewBox="0 0 16 16" style="display:none"><path d="M2.5 6.4 v3.2 h2.4 L8.4 12.6 V3.4 L4.9 6.4 z"/><line x1="10.6" y1="6.2" x2="13.4" y2="9.8"/><line x1="13.4" y1="6.2" x2="10.6" y2="9.8"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="wind-box">
+    <svg id="wind-dial" viewBox="0 0 40 40">
+      <circle class="bg" cx="20" cy="20" r="18.5"/>
+      <g id="wind-arrow"><path d="M13 20 h13"/><path d="M22 15.5 l4.5 4.5 -4.5 4.5"/></g>
+    </svg>
+    <div id="wind-txt">
+      <div class="w-label">横风 CROSSWIND</div>
+      <div class="w-val" id="wind-val">— m/s</div>
+    </div>
+  </div>
+  <div id="hint" class="hide">移动鼠标瞄准 · 按住左键拉弓</div>
+  <div id="power-wrap"><div id="power-track"><div id="power-bar"></div></div><span id="power-label">满弦</span></div>
+  <svg id="crosshair" viewBox="0 0 48 48" width="46" height="46">
+    <g stroke="#f2ead9" stroke-width="1.6" stroke-linecap="round">
+      <line x1="24" y1="4" x2="24" y2="12"/><line x1="24" y1="36" x2="24" y2="44"/>
+      <line x1="4" y1="24" x2="12" y2="24"/><line x1="36" y1="24" x2="44" y2="24"/>
+    </g>
+    <circle cx="24" cy="24" r="1.5" fill="#f2ead9"/>
+    <circle id="ch-ring" cx="24" cy="24" r="20" fill="none" stroke="rgba(217,164,65,.9)" stroke-width="1.2" opacity="0"/>
+  </svg>
+</div>
+
+<div id="fx-layer"></div>
+<div id="flash"></div>
+<div id="toast"></div>
+
+<!-- 开局面板 -->
+<div id="menu" class="overlay">
+  <div class="panel menu-panel">
+    <div class="menu-left">
+      <div class="eyebrow">FOUR TARGETS · TIMED CHALLENGE</div>
+      <h1>百步穿杨</h1>
+      <p class="desc">四座箭靶，远近错落。张弓、屏息、放箭——计时自第一箭离弦而始，至第四靶应声而止。风会偏移箭路，重力从不留情。</p>
+      <ul class="ctl">
+        <li><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5"/><line x1="8" y1="0.6" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="15.4"/><line x1="0.6" y1="8" x2="3" y2="8"/><line x1="13" y1="8" x2="15.4" y2="8"/></svg><div><b>移动鼠标 · 触屏拖动</b>&ensp;<span>瞄准方向</span></div></li>
+        <li><svg viewBox="0 0 16 16"><path d="M4.5 1.5 Q11 8 4.5 14.5"/><line x1="4.5" y1="1.5" x2="4.5" y2="14.5"/><line x1="6" y1="8" x2="14" y2="8"/><path d="M12 5.8 L14.6 8 L12 10.2"/></svg><div><b>按住左键</b>&ensp;<span>拉弓蓄力 · 拉满则箭疾，久握则手颤</span></div></li>
+        <li><svg viewBox="0 0 16 16"><line x1="1.5" y1="8" x2="12" y2="8"/><path d="M10 5.6 L13 8 L10 10.4"/><path d="M3.5 3.4 q1.6 4.6 0 9.2"/></svg><div><b>松开左键</b>&ensp;<span>放箭 · 弹道受重力与横风影响</span></div></li>
+        <li><svg viewBox="0 0 16 16"><path d="M1.5 5.5 h7.5 a2 2 0 1 0 -2 -2.4"/><path d="M1.5 8.5 h10.5 a2 2 0 1 1 -2 2.4"/><path d="M1.5 11.5 h5"/></svg><div><b>抬高准星</b>&ensp;<span>补偿箭矢下坠 · 留意左下角风向</span></div></li>
+      </ul>
+      <button class="btn primary" id="btn-start">张弓开局</button>
+      <p class="foot">WEBGL · 本地运行 · 成绩存于此浏览器</p>
+    </div>
+    <div class="menu-right">
+      <h3 class="lb-title">荣誉榜 <small>HALL OF FAME · TOP 10</small></h3>
+      <ol class="lb-list" id="m-lb-list"></ol>
+    </div>
+  </div>
+</div>
+
+<!-- 结算面板 -->
+<div id="result" class="overlay">
+  <div class="panel result-panel">
+    <div class="eyebrow">CHALLENGE COMPLETE</div>
+    <h2>四靶尽破</h2>
+    <div id="r-time">00:00.00</div>
+    <div class="r-stats" id="r-stats"></div>
+    <div id="r-save"></div>
+    <div class="r-lb">
+      <h3 class="lb-title">荣誉榜 <small>HALL OF FAME · TOP 10</small></h3>
+      <ol class="lb-list" id="r-lb-list"></ol>
+    </div>
+    <div class="r-actions">
+      <button class="btn primary" id="btn-again">再来一局</button>
+      <button class="btn ghost" id="btn-home">收弓返回</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+if(!window.THREE){
+  document.body.innerHTML='<div style="display:flex;height:100vh;align-items:center;justify-content:center;font-family:serif;color:#ece5d8;letter-spacing:.2em;text-align:center;padding:20px">three.js 未能加载——请检查网络连接后刷新页面</div>';
+  return;
+}
+
+/* ================= 工具 ================= */
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function fmt(ms){ms=Math.max(0,Math.round(ms));const m=Math.floor(ms/60000),s=Math.floor(ms/1000)%60,c=Math.floor(ms/10)%100,p=n=>String(n).padStart(2,'0');return p(m)+':'+p(s)+'.'+p(c);}
+
+/* ================= DOM 引用 ================= */
+const canvas=$('#scene'), timerEl=$('#timer'), timerNote=$('#timer-note'), hintEl=$('#hint'),
+      powerWrap=$('#power-wrap'), powerBar=$('#power-bar'), powerLabel=$('#power-label'),
+      crossEl=$('#crosshair'), chRing=$('#ch-ring'), windArrow=$('#wind-arrow'), windVal=$('#wind-val'),
+      fxLayer=$('#fx-layer'), flashEl=$('#flash'), toastEl=$('#toast');
+const chips=[...document.querySelectorAll('#target-chips .chip')];
+
+/* ================= 音频（WebAudio 合成，无外部文件） ================= */
+let actx=null,master=null,muted=false;
+function audio(){
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+  if(!actx){actx=new AC();master=actx.createGain();master.gain.value=.5;master.connect(actx.destination);}
+  if(actx.state==='suspended')actx.resume();
+}
+function env(g,t0,a,peak,dec){g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(peak,t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+dec);}
+function tone(f0,f1,dur,type,peak,delay){
+  if(!actx||muted)return;const t0=actx.currentTime+(delay||0);
+  const o=actx.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t0);
+  o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t0+dur);
+  const g=actx.createGain();env(g,t0,.008,peak,dur);o.connect(g);g.connect(master);o.start(t0);o.stop(t0+dur+.05);
+}
+function noise(dur,peak,ft,ff,delay){
+  if(!actx||muted)return;const t0=actx.currentTime+(delay||0);
+  const n=Math.floor(actx.sampleRate*dur)+1,buf=actx.createBuffer(1,n,actx.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<n;i++)d[i]=Math.random()*2-1;
+  const src=actx.createBufferSource();src.buffer=buf;
+  const f=actx.createBiquadFilter();f.type=ft;f.frequency.value=ff;
+  const g=actx.createGain();env(g,t0,.004,peak,dur);
+  src.connect(f);f.connect(g);g.connect(master);src.start(t0);
+}
+const SFX={
+  draw(){noise(.35,.10,'bandpass',900);tone(140,220,.3,'sine',.03);},
+  shoot(){noise(.07,.22,'highpass',2500);tone(220,70,.14,'triangle',.20);},
+  hit(){tone(140,60,.22,'sine',.5);noise(.09,.3,'lowpass',500);tone(900,500,.05,'square',.05);},
+  ground(){noise(.12,.18,'lowpass',300);},
+  cancel(){tone(300,180,.08,'sine',.06);},
+  win(){[523,659,784,1046].forEach((f,i)=>tone(f,f,.4,'triangle',.15,i*.13));},
+  click(){tone(1250,900,.05,'sine',.08);}
+};
+
+/* ================= 三维场景 ================= */
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+const scene=new THREE.Scene();
+scene.fog=new THREE.Fog(0xd9c9a5,55,230);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.08,600);
+camera.rotation.order='YXZ';
+camera.position.set(0,1.62,.8);
+scene.add(camera);
+
+const UP=new THREE.Vector3(0,1,0), tmpV=new THREE.Vector3();
+
+/* 灯光：傍晚金色侧光 */
+scene.add(new THREE.HemisphereLight(0xb8c3c9,0x8a7a55,.5));
+const sun=new THREE.DirectionalLight(0xffdcae,.95);
+sun.position.set(28,42,36);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-45;sun.shadow.camera.right=45;
+sun.shadow.camera.top=45;sun.shadow.camera.bottom=-45;
+sun.shadow.camera.near=5;sun.shadow.camera.far=160;
+sun.shadow.bias=-.0004;
+scene.add(sun);
+sun.target.position.set(0,0,-24);scene.add(sun.target);
+
+/* 天穹（自然天色渐变 + 前方余晖） */
+const skyMat=new THREE.ShaderMaterial({
+  side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{top:{value:new THREE.Color(0x87a0b2)},mid:{value:new THREE.Color(0xd9c9a5)},low:{value:new THREE.Color(0xe0b283)}},
+  vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:'uniform vec3 top,mid,low;varying vec3 vP;void main(){vec3 d=normalize(vP);float h=d.y;vec3 c=h>0.0?mix(mid,top,pow(min(h*1.4,1.0),.75)):mix(mid,low,min(-h*3.0,1.0)*.5);float f=max(0.0,-d.z)*pow(max(0.0,1.0-abs(h)*3.0),2.0);c=mix(c,low,f*.5);gl_FragColor=vec4(c,1.0);}'
+});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(380,24,16),skyMat));
+
+/* 草地（程序纹理） */
+function groundTexture(){
+  const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');
+  x.fillStyle='#73753f';x.fillRect(0,0,512,512);
+  for(let i=0;i<9000;i++){
+    x.fillStyle='hsl('+(68+Math.random()*26)+','+(22+Math.random()*20)+'%,'+(26+Math.random()*20)+'%)';
+    const w=1+Math.random()*3;x.fillRect(Math.random()*512,Math.random()*512,w,w*.6);
+  }
+  for(let i=0;i<40;i++){
+    x.fillStyle='hsla('+(45+Math.random()*15)+',30%,'+(40+Math.random()*12)+'%,.12)';
+    x.beginPath();x.arc(Math.random()*512,Math.random()*512,10+Math.random()*40,0,7);x.fill();
+  }
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(30,30);t.anisotropy=4;return t;
+}
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshLambertMaterial({map:groundTexture()}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+
+/* 射手木台与白线 */
+const woodMat=new THREE.MeshLambertMaterial({color:0x6b5136});
+const woodDark=new THREE.MeshLambertMaterial({color:0x57422c});
+const platform=new THREE.Mesh(new THREE.BoxGeometry(2.6,.14,2.6),woodMat);
+platform.position.set(0,.07,.8);platform.castShadow=platform.receiveShadow=true;scene.add(platform);
+const line=new THREE.Mesh(new THREE.BoxGeometry(2.6,.02,.06),new THREE.MeshLambertMaterial({color:0xe9e2d2}));
+line.position.set(0,.15,-.46);scene.add(line);
+
+/* 草丛、树、远山、云、旗 */
+const tuftGeo=new THREE.ConeGeometry(.16,.5,5);
+const tuftMat=new THREE.MeshLambertMaterial({color:0x8f8a4e});
+for(let i=0;i<60;i++){
+  let x,z;
+  do{x=rand(-60,60);z=rand(-85,12);}while(!(Math.abs(x)>7||z>3||z<-56));
+  const m=new THREE.Mesh(tuftGeo,tuftMat);
+  m.position.set(x,.2,z);const s=rand(.6,1.6);m.scale.set(s,s,s);scene.add(m);
+}
+const trunkMat=new THREE.MeshLambertMaterial({color:0x5a4632});
+const leafMat=new THREE.MeshLambertMaterial({color:0x3d5240});
+const leafMat2=new THREE.MeshLambertMaterial({color:0x465c48});
+function makeTree(x,z,s){
+  const g=new THREE.Group();
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(.10*s,.14*s,1.1*s,6),trunkMat);
+  tr.position.y=.55*s;tr.castShadow=true;g.add(tr);
+  [[1.05,1.5,1.5],[.8,1.3,2.3],[.55,1.1,3.0]].forEach((p,i)=>{
+    const c=new THREE.Mesh(new THREE.ConeGeometry(p[0]*s,p[1]*s,7),i%2?leafMat2:leafMat);
+    c.position.y=p[2]*s;c.castShadow=true;g.add(c);
+  });
+  g.position.set(x,0,z);scene.add(g);
+}
+[[-16,-13,1.2],[16,-20,1.4],[-21,-31,1.7],[19,-42,1.5],[-15,-55,1.8],[14,-63,1.3],[-26,-60,2.1],[24,-74,1.8],[9,-72,1.5]].forEach(p=>makeTree(p[0],p[1],p[2]));
+[[-95,-215,55,42,0x9aa08c],[25,-235,75,55,0x93a093],[115,-205,58,36,0x8d998f],[-165,-195,48,30,0x96a291]].forEach(p=>{
+  const m=new THREE.Mesh(new THREE.ConeGeometry(p[2],p[3],6),new THREE.MeshLambertMaterial({color:p[4]}));
+  m.position.set(p[0],p[3]/2-2,p[1]);m.rotation.y=rand(0,3);scene.add(m);
+});
+const cloudMat=new THREE.MeshLambertMaterial({color:0xf3ecdd});
+[[-45,44,-130,7],[38,52,-160,9],[0,40,-108,5.5]].forEach(p=>{
+  const g=new THREE.Group();
+  [[0,0,0,1],[.9,-.12,.2,.65],[-.85,-.08,-.15,.55]].forEach(q=>{
+    const s=new THREE.Mesh(new THREE.SphereGeometry(q[3],10,8),cloudMat);
+    s.position.set(q[0],q[1],q[2]);g.add(s);
+  });
+  g.position.set(p[0],p[1],p[2]);g.scale.set(p[3],p[3]*.32,p[3]*.42);scene.add(g);
+});
+
+/* 靶面纹理（经典五环 + 做旧） */
+function targetFaceTexture(){
+  const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');
+  x.fillStyle='#d8c48c';x.fillRect(0,0,512,512);
+  for(let i=0;i<2600;i++){x.fillStyle='rgba(120,100,55,'+(Math.random()*.12)+')';x.fillRect(Math.random()*512,Math.random()*512,2,2);}
+  const rings=[[1,'#ece7db'],[.8,'#35302b'],[.6,'#44719f'],[.4,'#c4432e'],[.2,'#e6c23f']];
+  rings.forEach((r,i)=>{
+    x.fillStyle=r[1];x.beginPath();x.arc(256,256,250*r[0],0,7);x.fill();
+    x.strokeStyle='rgba(0,0,0,.18)';x.lineWidth=2;x.stroke();
+  });
+  x.fillStyle='#c4432e';x.beginPath();x.arc(256,256,4,0,7);x.fill();
+  const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t;
+}
+const faceTex=targetFaceTexture();
+const strawMat=new THREE.MeshLambertMaterial({color:0xc9b075});
+const faceMat=new THREE.MeshLambertMaterial({map:faceTex});
+const backMat=new THREE.MeshLambertMaterial({color:0xb99f66});
+
+function distTexture(text){
+  const c=document.createElement('canvas');c.width=128;c.height=64;const x=c.getContext('2d');
+  x.fillStyle='#33291d';x.fillRect(0,0,128,64);
+  x.strokeStyle='#57472f';x.lineWidth=3;x.strokeRect(3,3,122,58);
+  x.fillStyle='#dcc896';x.font='600 30px "IBM Plex Mono",monospace';x.textAlign='center';x.textBaseline='middle';
+  x.fillText(text,64,35);
+  return new THREE.CanvasTexture(c);
+}
+
+/* 四座靶子 */
+const TARGETS_DEF=[
+  {x:-5.5,z:-18,r:.62,h:1.35,dist:18},
+  {x:5.0,z:-27,r:.55,h:1.30,dist:27},
+  {x:-10,z:-37,r:.47,h:1.45,dist:37},
+  {x:4.5,z:-48,r:.40,h:1.35,dist:48},
+];
+const targets=[];
+TARGETS_DEF.forEach((def,idx)=>{
+  const g=new THREE.Group();
+  const ry=Math.atan2(-def.x,-def.z);
+  g.rotation.y=ry;
+  const geo=new THREE.CylinderGeometry(def.r,def.r,.10,40);geo.rotateX(Math.PI/2);
+  const disc=new THREE.Mesh(geo,[strawMat,faceMat,backMat]);
+  disc.position.y=def.h;disc.castShadow=disc.receiveShadow=true;g.add(disc);
+  /* 画架式木架 */
+  const legL=Math.sqrt(Math.pow(def.r*.7,2)+Math.pow(def.h+.27,2));
+  [[1,-1],[-1,1]].forEach(s=>{
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(.07,legL,.07),woodDark);
+    leg.position.set(s[0]*def.r*.6,(def.h+.27)/2+.05,-.10);
+    leg.rotation.z=s[1]*Math.atan2(def.r*.7,def.h+.27);
+    leg.castShadow=true;g.add(leg);
+  });
+  const back=Math.sqrt(Math.pow(.72,2)+Math.pow(def.h*.75,2));
+  const bl=new THREE.Mesh(new THREE.BoxGeometry(.07,back,.07),woodDark);
+  bl.position.set(0,def.h*.375,-.44);bl.rotation.x=Math.atan2(.72,def.h*.75);bl.castShadow=true;g.add(bl);
+  const bar=new THREE.Mesh(new THREE.BoxGeometry(def.r*1.7,.06,.06),woodMat);
+  bar.position.set(0,.45,-.10);g.add(bar);
+  /* 距离牌 */
+  const plate=new THREE.Mesh(new THREE.PlaneGeometry(.4,.2),new THREE.MeshLambertMaterial({map:distTexture(def.dist+' m')}));
+  plate.position.set(def.r*.72,.62,.06);g.add(plate);
+
+  g.position.set(def.x,0,def.z);scene.add(g);
+  targets.push({
+    def,group:g,disc,hit:false,wobble:0,wobbleT:0,
+    n:new THREE.Vector3(Math.sin(ry),0,Math.cos(ry)),
+    c:new THREE.Vector3(def.x,def.h,def.z),
+    tx:new THREE.Vector3(Math.cos(ry),0,-Math.sin(ry))
+  });
+});
+
+/* 旗帜（顶点动画，随风向摆动） */
+const flags=[];
+function makeFlag(x,z,color){
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,3.2,6),woodDark);
+  pole.position.set(x,1.6,z);pole.castShadow=true;scene.add(pole);
+  const geo=new THREE.PlaneGeometry(1.3,.8,12,5);geo.translate(.65,0,0);
+  const mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color,side:THREE.DoubleSide}));
+  mesh.position.set(x,2.75,z);scene.add(mesh);
+  flags.push({mesh,geo,base:geo.attributes.position.array.slice()});
+}
+makeFlag(-13.5,-22,0xb4553f);
+makeFlag(12.5,-34,0xe0d6c2);
+
+/* ================= 第一人称弓 ================= */
+const bowGroup=new THREE.Group();
+bowGroup.position.set(.22,-.27,-.55);
+bowGroup.rotation.set(0,-.10,0);
+camera.add(bowGroup);
+
+const bowCurve=new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0,.62,0),new THREE.Vector3(.055,.42,.02),
+  new THREE.Vector3(.095,.15,.035),new THREE.Vector3(.095,-.15,.035),
+  new THREE.Vector3(.055,-.42,.02),new THREE.Vector3(0,-.62,0)
+]);
+const limb=new THREE.Mesh(new THREE.TubeGeometry(bowCurve,24,.015,7),new THREE.MeshPhongMaterial({color:0x4a3520,shininess:15}));
+bowGroup.add(limb);
+const grip=new THREE.Mesh(new THREE.CylinderGeometry(.024,.024,.17,10),new THREE.MeshLambertMaterial({color:0x241a12}));
+grip.rotation.z=Math.PI/2;grip.position.set(.095,0,.035);bowGroup.add(grip);
+
+const stringGeo=new THREE.BufferGeometry();
+stringGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(9),3));
+const bowString=new THREE.Line(stringGeo,new THREE.LineBasicMaterial({color:0xe8e2d0}));
+bowGroup.add(bowString);
+
+/* 箭矢构造（复用几何） */
+const shaftGeo=new THREE.CylinderGeometry(.0065,.0065,.78,6);shaftGeo.rotateX(Math.PI/2);
+const tipGeo=new THREE.ConeGeometry(.013,.05,8);tipGeo.rotateX(Math.PI/2);
+const fletchGeo=new THREE.PlaneGeometry(.034,.10);fletchGeo.rotateX(Math.PI/2);
+const nockGeo=new THREE.CylinderGeometry(.008,.008,.03,6);nockGeo.rotateX(Math.PI/2);
+const shaftMat=new THREE.MeshPhongMaterial({color:0xcabb98,shininess:30});
+const tipMat=new THREE.MeshPhongMaterial({color:0x8f8a82,shininess:60});
+const fletchA=new THREE.MeshLambertMaterial({color:0xc75b2a,side:THREE.DoubleSide});
+const fletchB=new THREE.MeshLambertMaterial({color:0xe8e2d4,side:THREE.DoubleSide});
+function makeArrowMesh(){
+  const g=new THREE.Group();
+  const sh=new THREE.Mesh(shaftGeo,shaftMat);sh.castShadow=true;g.add(sh);
+  const tp=new THREE.Mesh(tipGeo,tipMat);tp.position.z=.415;g.add(tp);
+  for(let i=0;i<3;i++){
+    const f=new THREE.Mesh(fletchGeo,i?fletchB:fletchA);
+    f.position.z=-.31;f.rotation.z=i*2.094;g.add(f);
+  }
+  const nk=new THREE.Mesh(nockGeo,fletchA);nk.position.z=-.40;g.add(nk);
+  return g;
+}
+const nockedArrow=makeArrowMesh();
+nockedArrow.rotation.y=Math.PI;
+bowGroup.add(nockedArrow);
+
+/* ================= 游戏状态 ================= */
+const LB_KEY='archery.fourTargets.lb', NAME_KEY='archery.playerName';
+const G=9.8,V_MIN=16,V_MAX=58;
+let state='menu',started=false,startTime=0,finalMs=0,arrowsShot=0,hits=0,scoreSaved=false;
+let drawing=false,drawT=0,holdTime=0,releasing=false,stringRelT=0;
+let nockedVisible=true,reloadT=1,reloadAnimT=1;
+let nx=0,ny=0,aimYaw=0,aimPitch=0,swayYaw=0,swayPitch=0,hitShake=0;
+let windX=rand(-1.8,1.8),windAcc=windX*.4;
+let timeScale=1,tsTarget=1,elapsed=0,finishTO=null;
+const arrows=[];
+let hintLast=null,timerLast=null,noteLast=null;
+
+/* ================= 射击 ================= */
+function spawnArrow(pos,dir,speed){
+  const m=makeArrowMesh();m.position.copy(pos);scene.add(m);
+  arrows.push({mesh:m,vel:dir.clone().multiplyScalar(speed),prev:pos.clone(),live:true});
+}
+function release(){
+  if(!drawing)return;
+  drawing=false;
+  if(state!=='aiming')return;
+  if(drawT<.18){SFX.cancel();return;}
+  const speed=lerp(V_MIN,V_MAX,Math.pow(drawT,.85));
+  const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+  const right=tmpV.crossVectors(dir,UP).normalize().clone();
+  const up=new THREE.Vector3().crossVectors(right,dir).normalize();
+  const pos=camera.position.clone().addScaledVector(dir,1.1).addScaledVector(up,-.10).addScaledVector(right,.05);
+  const firstArrow=!started;
+  spawnArrow(pos,dir,speed);
+  arrowsShot++;
+  if(firstArrow){
+    started=true;startTime=performance.now();
+    document.body.classList.add('timing');
+    floatCenter('首箭离弦 · 计时开始');
+  }
+  SFX.shoot();
+  releasing=true;stringRelT=0;
+  nockedVisible=false;reloadT=0;
+}
+function removeArrow(i){
+  const a=arrows[i];
+  if(a.mesh.parent)a.mesh.parent.remove(a.mesh);
+  arrows.splice(i,1);
+}
+function onArrowHitTarget(a,t,p,dist){
+  a.live=false;
+  const f=a.vel.clone().normalize();
+  a.mesh.position.copy(p).addScaledVector(f,-.365);
+  tmpV.copy(a.mesh.position).add(f);a.mesh.lookAt(tmpV);
+  t.disc.attach(a.mesh);
+  t.wobble=1;t.wobbleT=0;
+  SFX.hit();hitShake=1;
+  const ratio=dist/t.def.r;
+  const ring=10-Math.min(4,Math.floor(ratio*5));
+  const wasHit=t.hit;
+  if(!t.hit){
+    t.hit=true;hits++;
+    chips[targets.indexOf(t)].classList.add('hit');
+  }
+  floatText(new THREE.Vector3(p.x,p.y+.45,p.z),
+    hits===4&&!wasHit?('四靶尽破 · '+ring+'环'):(wasHit?(ring+'环 · 此靶已中'):('第 '+(hits)+' 靶 · 命中 · '+ring+'环')));
+  if(hits===4&&!wasHit)finishRound();
+}
+function stickGround(a,prev){
+  a.live=false;
+  const f=a.vel.clone().normalize();
+  const tt=prev.y/(prev.y-a.mesh.position.y+.00001);
+  const gp=prev.clone().lerp(a.mesh.position,clamp(tt,0,1));gp.y=0;
+  a.mesh.position.copy(gp).addScaledVector(f,-.355);
+  tmpV.copy(a.mesh.position).add(f);a.mesh.lookAt(tmpV);
+  SFX.ground();
+  if(started)floatText(new THREE.Vector3(gp.x,.35,gp.z),'脱靶','dim');
+}
+function updateArrows(dt){
+  for(let i=arrows.length-1;i>=0;i--){
+    const a=arrows[i];
+    if(!a.live)continue;
+    a.prev.copy(a.mesh.position);
+    a.vel.y-=G*dt;
+    a.vel.x+=windAcc*dt;
+    a.vel.multiplyScalar(Math.max(0,1-.05*dt));
+    a.mesh.position.addScaledVector(a.vel,dt);
+    if(a.vel.lengthSq()>.01){tmpV.copy(a.mesh.position).add(a.vel);a.mesh.lookAt(tmpV);}
+    let hit=false;
+    for(const t of targets){
+      const d0=tmpV.copy(a.prev).sub(t.c).dot(t.n);
+      const d1=new THREE.Vector3().copy(a.mesh.position).sub(t.c).dot(t.n);
+      if(d0>=0&&d1<0){
+        const f=d0/(d0-d1);
+        const p=a.prev.clone().lerp(a.mesh.position,f);
+        const along=p.clone().sub(t.c).dot(t.tx);
+        const up=p.y-t.c.y;
+        const dd=Math.sqrt(along*along+up*up);
+        if(dd<=t.def.r){onArrowHitTarget(a,t,p,dd);hit=true;break;}
+      }
+    }
+    if(hit)continue;
+    if(a.mesh.position.y<=.02){stickGround(a,a.prev);continue;}
+    if(a.mesh.position.z<-160||Math.abs(a.mesh.position.x)>90||a.mesh.position.y>80)removeArrow(i);
+  }
+}
+
+/* ================= 回合流程 ================= */
+function resetRound(){
+  if(finishTO){clearTimeout(finishTO);finishTO=null;}
+  for(let i=arrows.length-1;i>=0;i--)removeArrow(i);
+  targets.forEach(t=>{t.hit=false;t.wobble=0;t.disc.rotation.x=0;});
+  chips.forEach(c=>c.classList.remove('hit'));
+  arrowsShot=0;hits=0;started=false;startTime=0;finalMs=0;scoreSaved=false;
+  windX=rand(-1.8,1.8);windAcc=windX*.4;updateWindHUD();
+  drawing=false;drawT=0;holdTime=0;releasing=false;
+  nockedVisible=true;reloadT=1;reloadAnimT=1;
+  timeScale=1;tsTarget=1;hitShake=0;
+  document.body.classList.remove('timing');
+}
+function finishRound(){
+  state='finishing';
+  document.body.className='st-finishing';
+  finalMs=performance.now()-startTime;
+  tsTarget=.15;
+  flashScreen(.32);
+  SFX.win();
+  finishTO=setTimeout(openResult,1000);
+}
+function openResult(){
+  finishTO=null;
+  state='finished';
+  document.body.className='st-finished';
+  tsTarget=1;timeScale=1;
+  const pct=Math.round(400/arrowsShot);
+  let badge=arrowsShot===4?' · <em>四箭四雕 · 完美射术</em>':(arrowsShot<=6?' · <em>几乎箭无虚发</em>':'');
+  $('#r-stats').innerHTML='射出 '+arrowsShot+' 箭 · 命中率 '+pct+'%'+badge;
+  const saveBox=$('#r-save');
+  const lb=loadLB();
+  const pos=lb.findIndex(r=>finalMs<r.timeMs);const rank=(pos===-1?lb.length:pos)+1;
+  const qualifies=lb.length<10||rank<=10;
+  if(qualifies){
+    saveBox.innerHTML='<div class="r-qualify">此绩可入荣誉榜 · 位列第 '+rank+'</div>'+
+      '<input id="r-name" maxlength="12" placeholder="留下名号" value="'+esc(localStorage.getItem(NAME_KEY)||'')+'">'+
+      '<button class="btn primary" id="r-save-btn">铭刻此绩</button>';
+    const input=$('#r-name');
+    const doSave=()=>saveScore();
+    $('#r-save-btn').addEventListener('click',doSave);
+    input.addEventListener('keydown',e=>{if(e.key==='Enter')doSave();});
+  }else{
+    saveBox.innerHTML='<div class="r-none">未入前十 · 差之毫厘，再试一次</div>';
+  }
+  renderLB($('#r-lb-list'),lb,-1);
+  countUp($('#r-time'),finalMs,850);
+}
+function saveScore(){
+  if(scoreSaved)return;scoreSaved=true;
+  const input=$('#r-name');
+  const name=((input&&input.value.trim())||'无名射手').slice(0,12);
+  try{localStorage.setItem(NAME_KEY,name);}catch(e){}
+  const lb=loadLB();
+  const rec={name,timeMs:finalMs,arrows:arrowsShot,date:Date.now()};
+  lb.push(rec);lb.sort((a,b)=>a.timeMs-b.timeMs);
+  const idx=lb.indexOf(rec);const top=lb.slice(0,10);
+  saveLB(top);
+  renderLB($('#r-lb-list'),top,idx<10?idx:-1);
+  $('#r-save').innerHTML='<div class="r-saved">已铭刻 · 荣誉榜第 '+(idx+1)+' 位</div>';
+  toast('成绩已记录');SFX.click();
+}
+
+/* ================= 排行榜 ================= */
+function loadLB(){try{return JSON.parse(localStorage.getItem(LB_KEY))||[];}catch(e){return[];}}
+function saveLB(l){try{localStorage.setItem(LB_KEY,JSON.stringify(l));}catch(e){}}
+function renderLB(ol,data,hi){
+  ol.innerHTML=data.length?data.map((r,i)=>
+    '<li'+(i===hi?' class="new"':'')+'><span class="rk'+(i<3?' top'+i:'')+'">'+(i+1)+'</span>'+
+    '<span class="nm">'+esc(r.name)+'</span><span class="tm">'+fmt(r.timeMs)+'</span>'+
+    '<span class="ar">'+r.arrows+'箭</span></li>').join('')
+    :'<li class="empty">虚位以待 · 尚无人留下名号</li>';
+}
+
+/* ================= HUD 反馈 ================= */
+function updateWindHUD(){
+  windVal.textContent=Math.abs(windX)<.12?'无风':Math.abs(windX).toFixed(1)+' m/s';
+  windArrow.style.transform='rotate('+(windX>=0?0:180)+'deg)';
+  windArrow.style.opacity=Math.abs(windX)<.12?.3:1;
+}
+function floatText(worldPos,text,cls){
+  const v=worldPos.clone().project(camera);
+  if(v.z>1)return;
+  const el=document.createElement('div');
+  el.className='float-txt'+(cls?' '+cls:'');
+  el.textContent=text;
+  el.style.left=((v.x*.5+.5)*innerWidth)+'px';
+  el.style.top=((-v.y*.5+.5)*innerHeight)+'px';
+  fxLayer.appendChild(el);
+  setTimeout(()=>el.remove(),1250);
+}
+function floatCenter(text){
+  const el=document.createElement('div');
+  el.className='float-center';el.textContent=text;
+  fxLayer.appendChild(el);
+  setTimeout(()=>el.remove(),1700);
+}
+function flashScreen(op){
+  flashEl.style.transition='none';flashEl.style.opacity=op;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    flashEl.style.transition='opacity .6s ease';flashEl.style.opacity=0;
+  }));
+}
+let toastTO=null;
+function toast(msg){
+  toastEl.textContent=msg;toastEl.classList.add('show');
+  clearTimeout(toastTO);toastTO=setTimeout(()=>toastEl.classList.remove('show'),1900);
+}
+function countUp(el,target,dur){
+  const t0=performance.now();
+  (function step(n){
+    const k=Math.min(1,(n-t0)/dur),e=1-Math.pow(1-k,3);
+    el.textContent=fmt(target*e);
+    if(k<1)requestAnimationFrame(step);
+  })(t0);
+}
+
+/* ================= 输入 ================= */
+addEventListener('pointermove',e=>{
+  nx=(e.clientX/innerWidth)*2-1;
+  ny=(e.clientY/innerHeight)*2-1;
+});
+function uiHit(e){return !!(e.target.closest&&e.target.closest('button, input, .overlay, #hud-tools'));}
+addEventListener('pointerdown',e=>{
+  if(state!=='aiming'||uiHit(e))return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  audio();
+  drawing=true;holdTime=0;
+  SFX.draw();
+});
+addEventListener('pointerup',()=>release());
+addEventListener('pointercancel',()=>{drawing=false;});
+addEventListener('blur',()=>{drawing=false;});
+addEventListener('contextmenu',e=>e.preventDefault());
+
+$('#btn-start').addEventListener('click',()=>{
+  audio();SFX.click();
+  resetRound();
+  state='aiming';document.body.className='st-aiming';
+});
+$('#btn-again').addEventListener('click',()=>{
+  audio();SFX.click();
+  resetRound();
+  state='aiming';document.body.className='st-aiming';
+});
+$('#btn-home').addEventListener('click',()=>{
+  SFX.click();
+  resetRound();
+  state='menu';document.body.className='st-menu';
+  renderLB($('#m-lb-list'),loadLB(),-1);
+});
+$('#btn-reset').addEventListener('click',()=>{
+  if(state==='menu'||state==='finished')return;
+  SFX.click();
+  resetRound();
+  state='aiming';document.body.className='st-aiming';
+  toast('已重置本局');
+});
+$('#btn-mute').addEventListener('click',()=>{
+  muted=!muted;
+  $('#ic-son').style.display=muted?'none':'block';
+  $('#ic-soff').style.display=muted?'block':'none';
+  if(!muted){audio();SFX.click();}
+});
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+/* ================= 每帧更新 ================= */
+function updateDraw(rdt){
+  if(drawing){drawT=Math.min(1,drawT+rdt/.9);holdTime+=rdt;}
+  else if(drawT>0)drawT=Math.max(0,drawT-rdt*5);
+  if(releasing){
+    stringRelT+=rdt;
+    if(Math.exp(-stringRelT*10)<.01)releasing=false;
+  }
+  if(!nockedVisible){
+    reloadT+=rdt;
+    if(reloadT>=.5){nockedVisible=true;reloadAnimT=0;}
+  }
+  if(nockedVisible)reloadAnimT=Math.min(1,reloadAnimT+rdt*4);
+  const nockExtra=releasing?Math.sin(stringRelT*38)*.02*Math.exp(-stringRelT*10):0;
+  const nockZ=.035+drawT*.40+nockExtra;
+  nockedArrow.visible=nockedVisible;
+  const raise=(1-(1-reloadAnimT)*(1-reloadAnimT)*(1-reloadAnimT));
+  nockedArrow.position.set(.06,.005-(1-raise)*.16,nockZ-.40);
+  const sp=stringGeo.attributes.position;
+  sp.setXYZ(0,.012,.585,.012);
+  sp.setXYZ(1,.095,0,nockZ);
+  sp.setXYZ(2,.012,-.585,.012);
+  sp.needsUpdate=true;
+}
+function updateCamera(rdt){
+  if(state==='menu'){
+    aimYaw=Math.sin(elapsed*.1)*.12;
+    aimPitch=.02+Math.sin(elapsed*.07)*.04;
+  }else{
+    const tYaw=-nx*.35,tPitch=-ny*.33;
+    aimYaw+=(tYaw-aimYaw)*Math.min(1,rdt*14);
+    aimPitch+=(tPitch-aimPitch)*Math.min(1,rdt*14);
+  }
+  const amp=.0009+drawT*(.0016+Math.min(holdTime,6)*.00055);
+  swayYaw=(Math.sin(elapsed*2.9)*.5+Math.sin(elapsed*5.3+1.3)*.35+Math.sin(elapsed*8.7+2.1)*.15)*amp;
+  swayPitch=(Math.cos(elapsed*3.7)*.5+Math.sin(elapsed*6.1+.7)*.35+Math.cos(elapsed*9.4+1.9)*.15)*amp;
+  camera.rotation.y=aimYaw+swayYaw;
+  camera.rotation.x=aimPitch+swayPitch;
+  camera.rotation.z=hitShake>0?Math.sin(elapsed*90)*.006*hitShake:0;
+  hitShake=Math.max(0,hitShake-rdt*2.2);
+  const fov=60-drawT*13;
+  if(Math.abs(camera.fov-fov)>.01){camera.fov=fov;camera.updateProjectionMatrix();}
+}
+function updateBow(){
+  bowGroup.position.y=-.27+Math.sin(elapsed*1.5)*.004-drawT*.015;
+  bowGroup.rotation.z=swayYaw*2.5;
+  bowGroup.rotation.x=swayPitch*2.5+drawT*.03;
+}
+function updateTargets(dt){
+  targets.forEach(t=>{
+    if(t.wobble>.002){
+      t.wobbleT+=dt;
+      t.disc.rotation.x=Math.sin(t.wobbleT*16)*.055*t.wobble;
+      t.wobble*=Math.exp(-dt*1.8);
+    }else if(t.disc.rotation.x!==0)t.disc.rotation.x=0;
+  });
+}
+function updateFlags(){
+  const speed=2+Math.abs(windX)*2.2;
+  const ampK=.25+Math.min(1,Math.abs(windX)/1.8)*.75;
+  flags.forEach(f=>{
+    const arr=f.geo.attributes.position.array;
+    for(let i=0;i<arr.length;i+=3){
+      const x=f.base[i];
+      arr[i+2]=Math.sin(x*4.5-elapsed*speed)*.10*(x/1.3)*ampK;
+      arr[i+1]=f.base[i+1]+Math.cos(x*3.5-elapsed*2)*.03*(x/1.3);
+    }
+    f.geo.attributes.position.needsUpdate=true;
+    f.geo.computeVertexNormals();
+    f.mesh.rotation.y=windX>=0?0:Math.PI;
+  });
+}
+function updateHUD(){
+  const ms=started?(finalMs||performance.now()-startTime):0;
+  const ts=fmt(ms);
+  if(ts!==timerLast){timerEl.textContent=ts;timerLast=ts;}
+  const note=started?('已射 '+arrowsShot+' 箭'):'首箭离弦后开始计时';
+  if(note!==noteLast){timerNote.textContent=note;noteLast=note;}
+  const on=drawT>.02;
+  powerWrap.classList.toggle('on',on);
+  if(on)powerBar.style.width=(drawT*100)+'%';
+  powerBar.classList.toggle('full',drawT>.97);
+  powerLabel.classList.toggle('on',drawT>.97);
+  crossEl.style.setProperty('--s',(1.14-.32*drawT).toFixed(3));
+  chRing.setAttribute('opacity',drawT.toFixed(2));
+  chRing.setAttribute('r',(20-7*drawT).toFixed(1));
+  let h='';
+  if(state==='aiming'){
+    if(!started)h='移动鼠标瞄准 · 按住左键拉弓';
+    else if(drawing)h=(drawT>.85&&holdTime>4)?'稳住……手臂在颤':('松开放箭 · 蓄力 '+Math.round(drawT*100)+'%');
+  }
+  if(h!==hintLast){
+    hintLast=h;
+    hintEl.textContent=h;
+    hintEl.classList.toggle('hide',!h);
+  }
+}
+
+/* ================= 主循环 ================= */
+let lastT=performance.now();
+function tick(now){
+  requestAnimationFrame(tick);
+  const rdt=Math.min(.05,(now-lastT)/1000)||0;lastT=now;
+  timeScale+=(tsTarget-timeScale)*Math.min(1,rdt*6);
+  const dt=rdt*timeScale;
+  elapsed+=dt;
+  updateDraw(rdt);
+  updateCamera(rdt);
+  updateArrows(dt);
+  updateTargets(dt);
+  updateFlags();
+  updateBow();
+  updateHUD();
+  renderer.render(scene,camera);
+}
+
+/* ================= 启动 ================= */
+updateWindHUD();
+renderLB($('#m-lb-list'),loadLB(),-1);
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
